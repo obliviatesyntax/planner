@@ -32,9 +32,11 @@ contain both `{{ .Token }}` (the code) and `{{ .ConfirmationURL }}` (the link).
 
 ## Using it
 
-- **Quick add** (or press `N`): type and hit Enter. Goes to triage. Shortcuts inside the text:
-  `!1 !2 !3` priority · `#` + a label's shortcut (several allowed) · `@today @week @month @eventually`.
-  Example: `Book dentist !1 #p @week`
+- **Quick add** (or press `N`): type and hit Enter.
+  - With a day/time in plain English it goes on the **plan**: `Setup dentist appointment today 5PM`,
+    `Call mom tomorrow`, `Gym fri 6-7pm`, `Review doc nov 20 at 14:00 for 1h` (see `js/when.js`).
+  - Otherwise, or with `@today @week @month @eventually`, it goes to **triage**.
+  - Also: `!1 !2 !3` priority · `#` + a label's shortcut (several allowed).
 - **Drag** any task between triage buckets, a day's to-do list and the calendar. Drag a calendar
   block's bottom edge to change its length.
 - **+ Add** under a day's to-do list adds straight to that day; **click an empty calendar spot** to
@@ -51,6 +53,7 @@ contain both `{{ .Token }}` (the code) and `{{ .ConfirmationURL }}` (the link).
 |---|---|
 | `js/config.js` | Triage buckets, priorities, calendar hours, label colours. Change the page's shape here. |
 | `js/utils.js` | Date, time and text helpers. |
+| `js/when.js` | Reads days and times from plain English for quick add ("today 5pm"). |
 | `js/supabase-config.js` | Which Supabase project to use (URL + public key), code-or-link switch. |
 | `js/auth.js` | Sign in (password or emailed link/code), create account, sign out. |
 | `js/store.js` | **Where data is saved:** loads from and saves changes to the Supabase tables. |

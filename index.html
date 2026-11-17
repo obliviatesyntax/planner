@@ -48,7 +48,7 @@
 
     <!-- Quick add: type and press Enter. New tasks go to triage. Shortcuts: see app.js → parseQuickAdd. -->
     <form id="quick-add" class="quick-add" autocomplete="off">
-      <input id="qa-title" placeholder="Add a task…   e.g. “Book dentist !1 #p @week”   (press N to jump here)">
+      <input id="qa-title" placeholder="Add a task…   “Dentist tomorrow 5pm #p” puts it on the plan · “Renew passport @month” goes to triage   (N)">
       <button type="submit" class="primary">Add</button>
     </form>
 
@@ -60,7 +60,7 @@
   <section id="history-view" hidden></section>
 
   <footer class="footer">
-    <span class="muted">Shortcuts: <b>!1 !2 !3</b> priority · <b>#</b> + a label's shortcut, e.g. <b>#p</b> · <b>@today @week @month @eventually</b> (triage bucket) · click an empty calendar spot to add a task at that time · double-click a task to rename · drag tasks between triage, days and times</span>
+    <span class="muted">Quick add: a day/time like <b>today 5pm</b>, <b>tomorrow</b>, <b>fri 6-7pm</b> puts a task on the plan; otherwise it goes to triage · <b>!1 !2 !3</b> priority · <b>#</b> + a label's shortcut, e.g. <b>#p</b> · <b>@today @week @month @eventually</b> (triage bucket) · click an empty calendar spot to add a task at that time · double-click a task to rename · drag tasks between triage, days and times</span>
     <span class="spacer"></span>
     <button type="button" id="export-btn">Export backup</button>
     <label class="file-btn">Import backup<input type="file" id="import-input" accept="application/json" hidden></label>
@@ -75,6 +75,7 @@
   <script src="js/supabase-config.js"></script>
   <script src="js/config.js"></script>
   <script src="js/utils.js"></script>
+  <script src="js/when.js"></script>
   <script src="js/auth.js"></script>
   <script src="js/store.js"></script>
   <script src="js/tasks.js"></script>

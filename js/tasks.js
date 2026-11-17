@@ -111,12 +111,12 @@ const Tasks = (() => {
   // ---- task actions -------------------------------------------------------
 
   // New tasks go to triage, unless a day (planDate) or a calendar time (planDate + startMin) is given.
-  function add({ title, priority = 2, labels: labelIds = [], bucket = 'today', planDate = null, startMin = null }) {
+  function add({ title, priority = 2, labels: labelIds = [], bucket = 'today', planDate = null, startMin = null, duration = null }) {
     title = (title || '').trim();
     if (!title) return null;
     const task = {
       id: newId(), title, priority, labels: labelIds, bucket,
-      planDate, startMin: planDate ? startMin : null, duration: CALENDAR.defaultDuration,
+      planDate, startMin: planDate ? startMin : null, duration: duration || CALENDAR.defaultDuration,
       order: 0, createdAt: new Date().toISOString(), doneOn: null,
     };
     tasks.push(task);

@@ -7,12 +7,26 @@ const App = (() => {
   const form = document.getElementById('quick-add');
   const titleInput = document.getElementById('qa-title');
 
+  // The top box understands plain English for committing to the plan:
+  //   "Setup dentist appointment today 5PM"  → today's calendar at 5 PM   (see when.js)
+  //   "Call mom tomorrow"                    → tomorrow's to-do list
+  //   "Setup dentist appt @today"            → triage, Today bucket (@ always means triage)
+  //   "Setup dentist appt"                   → triage, Today bucket
   form.addEventListener('submit', e => {
     e.preventDefault();
-    const task = addFromText(titleInput.value, { bucket: 'today' });
+    const text = titleInput.value;
+    const hasBucket = parseQuickAdd(text).bucket;
+    const when = hasBucket ? null : When.parse(text);
+    const task = when && when.date
+      ? addFromText(when.title, { planDate: when.date, startMin: when.startMin, duration: when.duration })
+      : addFromText(text, { bucket: 'today' });
     if (!task) return;
     titleInput.value = '';
     flash(task.id);
+    const where = task.planDate
+      ? When.describe({ date: task.planDate, startMin: task.startMin, duration: task.startMin != null ? task.duration : null })
+      : `triage: ${TRIAGE.find(b => b.id === task.bucket).label}`;
+    toast(`Added “${task.title}” to ${where}`, 'Undo', () => Tasks.remove(task.id));
   });
 
   // Adds a task from typed text. `where` says where it goes:
@@ -33,6 +47,7 @@ const App = (() => {
       bucket: parsed.bucket || where.bucket || 'today',
       planDate: where.planDate || null,
       startMin: where.startMin ?? null,
+      duration: where.duration || null,
     });
   }
 
