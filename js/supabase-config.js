@@ -7,4 +7,13 @@
 const SUPABASE_URL = 'https://eiwoavnrsdnffiztwziq.supabase.co';
 const SUPABASE_KEY = 'sb_publishable_kdR9wEYN5G9aiNnr9S9AIA_6pd3xhPB';
 
+// Does the sign-in email contain a 6-digit code?
+//   false: Supabase's built-in email sender, whose emails can only contain a link.
+//   true:  after setting up custom SMTP and adding {{ .Token }} to the Magic Link email template.
+const EMAIL_HAS_CODE = false;
+
+// The public address of the site. Emailed links go here when the app is opened as a local file.
+// Must also be listed in Supabase → Authentication → URL Configuration → Redirect URLs.
+const SITE_URL = 'https://obliviatesyntax.github.io/';
+
 const db = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);

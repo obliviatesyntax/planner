@@ -25,6 +25,11 @@
         <button type="submit" class="primary">Sign in</button>
         <button type="button" id="code-back" class="link-btn">Use a different email</button>
       </form>
+      <form id="finish-form" class="signin-step" hidden>
+        <input id="finish-password" type="password" required minlength="6" placeholder="Password (6+ characters)" autocomplete="new-password">
+        <button type="submit" class="primary">Finish creating account</button>
+        <button type="button" id="finish-skip" class="link-btn">Skip, continue without a password</button>
+      </form>
       <p id="signin-message" class="muted"></p>
     </div>
   </section>

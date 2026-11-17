@@ -141,6 +141,7 @@ const App = (() => {
 (async () => {
   const user = await Auth.currentUser();
   if (!user) return Auth.showSignIn();
+  if (Auth.isFinishingSignup()) return Auth.showFinishSignup(user);   // back from a "Create account" link
   Auth.showApp(user);
   try {
     await Tasks.init();

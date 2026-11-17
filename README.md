@@ -7,9 +7,12 @@ colours are priority (P1 red, P2 orange, P3 blue). Tick tasks off to fill the Do
 
 Tasks are saved in Supabase (Postgres), one private list per signed-in person.
 
-- **Signing in:** email + password, or "Email me a sign-in code" (6-digit code, or click the link in
-  the same email). **Create account** emails a code first to confirm the address, then saves the
-  password. It also gives a password to code-only accounts, and resets a forgotten one.
+- **Signing in:** email + password, or email sign-in (no password). **Create account** emails you
+  first to confirm the address, then saves the password. It also gives a password to accounts made
+  by email sign-in, and resets a forgotten one.
+- **Code or link?** `EMAIL_HAS_CODE` in `js/supabase-config.js`. `false` (now): the email has a link
+  only (Supabase's built-in sender). `true`: after setting up custom SMTP and adding `{{ .Token }}` to
+  the Magic Link template, the email also has a 6-digit code to type in, which works from a local file.
 - **Online:** open the deployed site.
 - **Locally:** just double-click `index.html` and sign in with the emailed code (the link in the
   email can't open a file on disk, so use the code). `python3 -m http.server 8080` also works.
