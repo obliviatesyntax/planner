@@ -21,26 +21,5 @@ const Triage = (() => {
       </div>`;
   }
 
-  // "+ Add" in a bucket: type, Enter adds (and stays open for the next one), Escape closes.
-  // Quick-add shortcuts (!1 #p) work here too.
-  root.addEventListener('click', e => {
-    const btn = e.target.closest('.col-add');
-    if (!btn) return;
-    const input = document.createElement('input');
-    input.className = 'col-add-input';
-    input.placeholder = 'Task name, Enter to add';
-    btn.replaceWith(input);
-    input.focus();
-    input.addEventListener('keydown', ev => {
-      if (ev.key === 'Escape') return render();
-      if (ev.key !== 'Enter') return;
-      const task = App.addFromText(input.value, btn.dataset.bucket);
-      if (!task) return;
-      render();
-      root.querySelector(`.col-add[data-bucket="${btn.dataset.bucket}"]`).click();   // keep adding
-    });
-    input.addEventListener('blur', () => { if (!input.value.trim()) render(); });
-  });
-
   return { render };
 })();

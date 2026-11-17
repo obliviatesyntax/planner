@@ -83,6 +83,12 @@ const Tasks = (() => {
     return days.map(day => ({ day, tasks: doneList(day) }));
   }
 
+  // Has any task (done or not) been given a calendar time between these two days?
+  // Decides whether the calendar is shown compact or roomy.
+  function usesCalendar(fromDate, toDate) {
+    return tasks.some(t => t.startMin != null && t.planDate >= fromDate && t.planDate <= toDate);
+  }
+
   function todayStats() {
     const today = todayISO();
     const done = doneList(today).length;
@@ -105,17 +111,18 @@ const Tasks = (() => {
 
   // ---- task actions -------------------------------------------------------
 
-  // New tasks always start in triage.
-  function add({ title, priority = 2, labels: labelIds = [], bucket = 'today' }) {
+  // New tasks go to triage, unless a day (planDate) or a calendar time (planDate + startMin) is given.
+  function add({ title, priority = 2, labels: labelIds = [], bucket = 'today', planDate = null, startMin = null }) {
     title = (title || '').trim();
     if (!title) return null;
     const task = {
       id: newId(), title, priority, labels: labelIds, bucket,
-      planDate: null, startMin: null, duration: CALENDAR.defaultDuration,
+      planDate, startMin: planDate ? startMin : null, duration: CALENDAR.defaultDuration,
       order: 0, createdAt: new Date().toISOString(), doneOn: null,
     };
     tasks.push(task);
-    place(triageList(bucket), task, null);
+    if (!planDate) place(triageList(bucket), task, null);
+    else if (startMin == null) place(planList(planDate), task, null);
     commit();
     return task;
   }
@@ -232,7 +239,7 @@ const Tasks = (() => {
 
   return {
     init, onChange, rollover, get,
-    triageList, planList, calendarList, doneList, doneByDay, todayStats,
+    triageList, planList, calendarList, doneList, doneByDay, usesCalendar, todayStats,
     add, update, cyclePriority, toggleDone, moveToTriage, moveToPlan, moveToCalendar, remove, restore,
     allLabels, label, findLabel, addLabel, removeLabel,
     exportData, replaceAll,

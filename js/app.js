@@ -9,26 +9,55 @@ const App = (() => {
 
   form.addEventListener('submit', e => {
     e.preventDefault();
-    const task = App.addFromText(titleInput.value, 'today');
+    const task = addFromText(titleInput.value, { bucket: 'today' });
     if (!task) return;
     titleInput.value = '';
     flash(task.id);
   });
 
-  // Adds a task to triage from typed text. Shortcuts inside the text:
+  // Adds a task from typed text. `where` says where it goes:
+  //   { bucket: 'week' }                         a triage bucket
+  //   { planDate: '2026-11-17' }                 that day's to-do list
+  //   { planDate: '2026-11-17', startMin: 570 }  that day's calendar at 9:30
+  // Shortcuts inside the text:
   //   !1 !2 !3   priority            #p #work   labels (by shortcut or name, several allowed)
   //   @today @week @month @eventually (or @t @w @m @e)   triage bucket
   // With label filters selected at the top and no #label typed, the new task gets the
   // selected labels, so it doesn't vanish from view.
-  function addFromText(text, defaultBucket) {
+  function addFromText(text, where) {
     const parsed = parseQuickAdd(text);
     return Tasks.add({
       title: parsed.title,
       priority: parsed.priority || 2,
       labels: parsed.labels.length ? parsed.labels : Labels.selectedIds(),
-      bucket: parsed.bucket || defaultBucket,
+      bucket: parsed.bucket || where.bucket || 'today',
+      planDate: where.planDate || null,
+      startMin: where.startMin ?? null,
     });
   }
+
+  // "+ Add" buttons under triage buckets and day lists (data-bucket or data-date say where).
+  // Type, Enter adds (and the box stays open for the next one), Escape or clicking away closes.
+  document.addEventListener('click', e => {
+    const btn = e.target.closest('.col-add');
+    if (!btn) return;
+    const { bucket, date } = btn.dataset;
+    const selector = bucket ? `.col-add[data-bucket="${bucket}"]` : `.col-add[data-date="${date}"]`;
+    const input = document.createElement('input');
+    input.className = 'col-add-input';
+    input.placeholder = 'Task name, Enter to add';
+    btn.replaceWith(input);
+    input.focus();
+    input.addEventListener('keydown', ev => {
+      if (ev.key === 'Escape') return renderAll();
+      if (ev.key !== 'Enter') return;
+      const task = addFromText(input.value, bucket ? { bucket } : { planDate: date });
+      if (!task) return;
+      const again = document.querySelector(selector);   // the page re-rendered: reopen the box
+      if (again) again.click();
+    });
+    input.addEventListener('blur', () => { if (!input.value.trim()) setTimeout(renderAll); });
+  });
 
   function parseQuickAdd(text) {
     const out = { labels: [] };
@@ -133,7 +162,7 @@ const App = (() => {
   let lastDay = todayISO();
   setInterval(() => {
     if (todayISO() !== lastDay) { lastDay = todayISO(); if (!Tasks.rollover()) renderAll(); return; }
-    const busy = document.querySelector('.dragging, [contenteditable="true"], .col-add-input, .label-input') || Calendar.isResizing();
+    const busy = document.querySelector('.dragging, [contenteditable="true"], .col-add-input, .cal-add-input, .label-input') || Calendar.isResizing();
     if (!busy && !onLogPage()) Planner.render();
   }, 60 * 1000);
 

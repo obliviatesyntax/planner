@@ -1,33 +1,42 @@
 // planner.js — the top section: what you've committed to.
 //
-//   ‹ Today ›  [3 days | Week]
-//   ┌──────────┬──────────┬──────────┐ ┌────────────┐
-//   │ Today    │ Tomorrow │ Thu      │ │ Done today │
-//   │ plan list│ plan list│ plan list│ │            │
-//   ├──────────┼──────────┼──────────┤ │            │
-//   │ calendar │ calendar │ calendar │ │            │
-//   └──────────┴──────────┴──────────┘ └────────────┘
+//   ‹ Today ›  [2 days | Week]
+//   ┌──────────┬──────────┐ ┌────────────┐
+//   │ Today    │ Tomorrow │ │ Done today │
+//   │ to-do    │ to-do    │ │            │
+//   │ + Add    │ + Add    │ │            │
+//   ├──────────┼──────────┤ │            │
+//   │ calendar │ calendar │ │            │
+//   └──────────┴──────────┘ └────────────┘
+//
+// The calendar is compact until you use it: once any task in the last two weeks or the
+// days on screen has a time, it switches to the roomier size (CALENDAR.compact / .roomy).
+// Click an empty spot on the calendar to add a task at that time.
 //
 // Calendar (below) holds the time-grid maths, used here and by dnd.js.
 
 const Calendar = (() => {
-  const { startHour, endHour, slotMinutes, slotPx, snapMinutes } = CALENDAR;
-  const pxPerMinute = slotPx / slotMinutes;
-  const height = (endHour - startHour) * 60 * pxPerMinute;
+  const { startHour, endHour, slotMinutes, snapMinutes } = CALENDAR;
+  let size = CALENDAR.compact;            // { slotPx, maxHeight }, set by useSize()
   let resizing = null;
 
+  const pxPerMinute = () => size.slotPx / slotMinutes;
+  const height = () => (endHour - startHour) * 60 * pxPerMinute();
+
+  function useSize(roomy) { size = roomy ? CALENDAR.roomy : CALENDAR.compact; }
+  function maxHeight() { return size.maxHeight; }
+
   // Mouse y-position inside a calendar day -> minutes after midnight, snapped.
-  function minutesAt(dayEl, clientY) {
+  function minutesAt(dayEl, clientY, snap = snapMinutes) {
     const y = clientY - dayEl.getBoundingClientRect().top;
-    const minutes = startHour * 60 + Math.round(y / pxPerMinute / snapMinutes) * snapMinutes;
-    return Math.max(startHour * 60, Math.min(endHour * 60 - snapMinutes, minutes));
+    const minutes = startHour * 60 + Math.round(y / pxPerMinute() / snap) * snap;
+    return Math.max(startHour * 60, Math.min(endHour * 60 - snap, minutes));
   }
 
+  function topPx(startMin) { return (startMin - startHour * 60) * pxPerMinute(); }
+
   function blockStyle(startMin, duration) {
-    return {
-      top: `${(startMin - startHour * 60) * pxPerMinute}px`,
-      height: `${Math.max(duration * pxPerMinute, 18)}px`,
-    };
+    return { top: `${topPx(startMin)}px`, height: `${Math.max(duration * pxPerMinute(), 18)}px` };
   }
 
   // Blocks that overlap in time sit side by side: returns { id: { col, cols } }.
@@ -61,24 +70,43 @@ const Calendar = (() => {
     const now = minutesNow();
     return `
       <div class="cal-day ${isToday ? 'is-today' : ''}" data-drop="calendar" data-date="${date}"
-           style="height:${height}px; --slot:${slotPx}px">
+           style="height:${height()}px; --slot:${size.slotPx}px">
         ${events.map(t => {
           const { top, height: h } = blockStyle(t.startMin, t.duration);
           const { col, cols: n } = cols[t.id];
           return Cards.html(t, 'calendar', `top:${top};height:${h};left:calc(${col} * 100% / ${n});width:calc(100% / ${n} - 2px)`);
         }).join('')}
         ${isToday && now >= startHour * 60 && now < endHour * 60
-          ? `<div class="now-line" style="top:${(now - startHour * 60) * pxPerMinute}px"></div>` : ''}
+          ? `<div class="now-line" style="top:${topPx(now)}px"></div>` : ''}
       </div>`;
   }
 
   function gutterHtml() {
     let html = '';
-    for (let h = startHour; h < endHour; h++) {
-      html += `<div class="hour" style="top:${(h - startHour) * 60 * pxPerMinute}px">${formatTime(h * 60).replace(':00', '')}</div>`;
+    for (let h = startHour + 1; h < endHour; h++) {   // the first hour is the top edge: no label needed
+      html += `<div class="hour" style="top:${topPx(h * 60)}px">${formatTime(h * 60).replace(':00', '')}</div>`;
     }
-    return `<div class="cal-gutter" style="height:${height}px">${html}</div>`;
+    return `<div class="cal-gutter" style="height:${height()}px">${html}</div>`;
   }
+
+  // Click an empty spot: a little box appears at that time; type a name, Enter adds it there.
+  document.addEventListener('click', e => {
+    const day = e.target.closest('.cal-day');
+    if (!day || e.target !== day) return;   // clicks on tasks or the box itself are not "empty"
+    day.querySelectorAll('.cal-add-input').forEach(el => el.remove());
+    const startMin = minutesAt(day, e.clientY - 8, slotMinutes);
+    const input = document.createElement('input');
+    input.className = 'cal-add-input';
+    input.placeholder = `${formatTime(startMin)}: task name, Enter`;
+    input.style.top = `${topPx(startMin)}px`;
+    day.appendChild(input);
+    input.focus();
+    input.addEventListener('keydown', ev => {
+      if (ev.key === 'Escape') return input.remove();
+      if (ev.key === 'Enter') App.addFromText(input.value, { planDate: day.dataset.date, startMin });
+    });
+    input.addEventListener('blur', () => input.remove());
+  });
 
   // Drag the bottom edge of a block to change its length.
   document.addEventListener('pointerdown', e => {
@@ -91,7 +119,7 @@ const Calendar = (() => {
   document.addEventListener('pointermove', e => {
     if (!resizing) return;
     const task = Tasks.get(resizing.id);
-    const minutes = Math.round((e.clientY - resizing.top) / pxPerMinute / snapMinutes) * snapMinutes;
+    const minutes = Math.round((e.clientY - resizing.top) / pxPerMinute() / snapMinutes) * snapMinutes;
     const duration = Math.max(snapMinutes, Math.min(endHour * 60 - task.startMin, minutes));
     resizing.duration = duration;
     resizing.card.style.height = blockStyle(task.startMin, duration).height;
@@ -104,12 +132,15 @@ const Calendar = (() => {
     if (duration) Tasks.update(id, { duration }); else App.renderAll();
   });
 
-  return { minutesAt, blockStyle, dayHtml, gutterHtml, isResizing: () => !!resizing };
+  return {
+    minutesAt, blockStyle, topPx, dayHtml, gutterHtml, useSize, maxHeight, pxPerMinute,
+    isResizing: () => !!resizing,
+  };
 })();
 
 const Planner = (() => {
   const root = document.getElementById('planner');
-  let mode = 'short';          // 'short' (today + next days) or 'week'
+  let mode = 'short';          // 'short' (today + next day) or 'week'
   let start = todayISO();      // first day shown
   let scrolledToNow = false;
 
@@ -128,12 +159,14 @@ const Planner = (() => {
     const list = days();
     const today = todayISO();
     const done = Tasks.doneList(today).filter(Labels.matches);
+    Calendar.useSize(Tasks.usesCalendar(addDays(today, -14), list[list.length - 1]));
     const scroller = root.querySelector('.cal-scroll');
     const scrollTop = scroller ? scroller.scrollTop : null;
 
     root.innerHTML = `
       <div class="section-head">
         <h2>Plan</h2>
+        <span class="muted">What you've committed to</span>
         <div class="day-nav">
           <button type="button" data-nav="-1" title="Earlier">‹</button>
           <button type="button" data-nav="0">Today</button>
@@ -156,11 +189,12 @@ const Planner = (() => {
               </div>`).join('')}
             <div class="row-label">To do</div>
             ${list.map(d => `
-              <div class="list plan-list ${d === today ? 'is-today' : ''}" data-drop="plan" data-date="${d}">${
-                Tasks.planList(d).filter(Labels.matches).map(t => Cards.html(t, 'plan')).join('')
-              }</div>`).join('')}
+              <div class="plan-cell ${d === today ? 'is-today' : ''}" data-drop="plan" data-date="${d}">
+                <div class="list">${Tasks.planList(d).filter(Labels.matches).map(t => Cards.html(t, 'plan')).join('')}</div>
+                <button type="button" class="col-add" data-date="${d}">+ Add</button>
+              </div>`).join('')}
           </div>
-          <div class="cal-scroll">
+          <div class="cal-scroll" style="max-height:${Calendar.maxHeight()}px">
             <div class="plan-grid cal-grid">
               ${Calendar.gutterHtml()}
               ${list.map(Calendar.dayHtml).join('')}
@@ -185,7 +219,7 @@ const Planner = (() => {
     const newScroller = root.querySelector('.cal-scroll');
     if (scrollTop !== null) newScroller.scrollTop = scrollTop;
     else if (!scrolledToNow) {
-      newScroller.scrollTop = Math.max(0, (minutesNow() - 60 - CALENDAR.startHour * 60) * CALENDAR.slotPx / CALENDAR.slotMinutes);
+      newScroller.scrollTop = Math.max(0, Calendar.topPx(minutesNow() - 60));
       scrolledToNow = true;
     }
   }

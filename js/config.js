@@ -21,13 +21,16 @@ const CALENDAR = {
   startHour: 6,          // first hour shown
   endHour: 24,           // last hour shown (24 = midnight)
   slotMinutes: 30,       // one grid line every 30 minutes
-  slotPx: 22,            // height of one slot in pixels
   snapMinutes: 15,       // dropped/resized blocks snap to 15 minutes
   defaultDuration: 30,   // a task dropped on the calendar starts 30 minutes long
+  // Two sizes. Compact (small slots, short box) until you start giving tasks times;
+  // roomy once any task in the last two weeks or on the days shown has a time.
+  compact: { slotPx: 12, maxHeight: 200 },
+  roomy:   { slotPx: 22, maxHeight: 420 },
 };
 
-// How many day columns the top section shows: the short view (today + next days) or a full week.
-const DAY_VIEWS = { short: 3, week: 7 };
+// How many day columns the top section shows: the short view (today + tomorrow) or a full week.
+const DAY_VIEWS = { short: 2, week: 7 };
 
 // New labels take the next colour from this list.
 const LABEL_COLORS = ['#5f3dc4', '#2b8a3e', '#1971c2', '#c2255c', '#e8590c', '#0c8599', '#5c940d', '#862e9c'];

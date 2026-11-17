@@ -2,7 +2,7 @@
 
 A daily planner on one page:
 
-- **Top: Plan.** Today and the next days (or a full week): each day has a **to-do list** and a
+- **Top: Plan.** Today and tomorrow (or a full week): each day has a **to-do list** and a
   **calendar** with time slots. Tick tasks off here; they move to **Done today** on the right.
   Unfinished tasks from past days roll into today's list automatically.
 - **Bottom: Triage.** Every new task lands here first, in **Today / This week / This month /
@@ -37,7 +37,9 @@ contain both `{{ .Token }}` (the code) and `{{ .ConfirmationURL }}` (the link).
   Example: `Book dentist !1 #p @week`
 - **Drag** any task between triage buckets, a day's to-do list and the calendar. Drag a calendar
   block's bottom edge to change its length.
-- **Click P1/P2/P3** to cycle priority · **double-click** a title to rename · **×** deletes (triage).
+- **+ Add** under a day's to-do list adds straight to that day; **click an empty calendar spot** to
+  add a task at that time. The calendar stays compact until you start giving tasks times.
+- **Click P1/P2/P3** to cycle priority · **double-click** a title to rename · **×** deletes (triage and to-do lists).
 
 ## Code map (read in this order)
 

@@ -2,7 +2,7 @@
 //
 //   checkbox  → mark done (only on committed tasks: plan list and calendar)
 //   P1/P2/P3  → click to cycle priority
-//   ×         → delete (only in triage), with Undo
+//   ×         → delete (triage and day lists), with Undo
 //   title     → double-click to rename
 //   drag      → see dnd.js
 
@@ -20,7 +20,7 @@ const Cards = (() => {
           ${Labels.tagsHtml(task)}
         </div>
         <button type="button" class="prio" title="${PRIORITIES[task.priority]} (click to change)">P${task.priority}</button>
-        ${committed ? '' : '<button type="button" class="del" title="Delete">×</button>'}
+        ${where === 'calendar' ? '' : '<button type="button" class="del" title="Delete">×</button>'}
         ${where === 'calendar' ? '<div class="resize" title="Drag to change length"></div>' : ''}
       </div>`;
   }
