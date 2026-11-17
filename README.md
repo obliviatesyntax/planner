@@ -38,7 +38,11 @@ contain both `{{ .Token }}` (the code) and `{{ .ConfirmationURL }}` (the link).
 - **Drag** any task between triage buckets, a day's to-do list and the calendar. Drag a calendar
   block's bottom edge to change its length.
 - **+ Add** under a day's to-do list adds straight to that day; **click an empty calendar spot** to
-  add a task at that time. The calendar stays compact until you start giving tasks times.
+  add a task at that time. The calendar shows from an hour before now (blue line) down to today's
+  last upcoming task (3–8 hours); scroll for more, or click the "▲ earlier / ▼ later" pills.
+- Today's calendar tasks that ended over 2 hours ago without being ticked off move to today's to-do list.
+- **Labels on existing tasks:** hover a task and click **#** (or click one of its tags) to tick labels
+  on/off or create a new one. Typing `#p` or `!1` while renaming a task works too.
 - **Click P1/P2/P3** to cycle priority · **double-click** a title to rename · **×** deletes (triage and to-do lists).
 
 ## Code map (read in this order)

@@ -121,8 +121,8 @@ main { padding: 0 20px; }
 .plan-cell:hover .col-add { border-color: var(--line); }
 
 /* Scrollbar hidden so the calendar's columns line up exactly with the day columns above.
-   Its height (max-height) is set by planner.js: compact until you use the calendar. */
-.cal-scroll { overflow-y: auto; scrollbar-width: none; transition: max-height .2s; }
+   Its height is set by planner.js: just enough to reach today's upcoming tasks. */
+.cal-scroll { overflow-y: auto; scrollbar-width: none; transition: height .2s; }
 .cal-scroll::-webkit-scrollbar { display: none; }
 .cal-grid { position: relative; }
 .cal-gutter { position: relative; }
@@ -133,13 +133,18 @@ main { padding: 0 20px; }
 }
 .cal-day.is-today { background-color: #fffdf3; }
 .cal-day.drag-over { box-shadow: 0 0 0 2px var(--accent) inset; }
-.now-line { position: absolute; left: 0; right: 0; border-top: 2px solid var(--p1); z-index: 2; pointer-events: none; }
-.now-line::before { content: ""; position: absolute; left: -4px; top: -5px; width: 8px; height: 8px; border-radius: 50%; background: var(--p1); }
+.now-line { position: absolute; left: 0; right: 0; border-top: 2px solid var(--accent); z-index: 2; pointer-events: none; }
+.now-line::before { content: ""; position: absolute; left: -4px; top: -5px; width: 8px; height: 8px; border-radius: 50%; background: var(--accent); }
 .cal-day { cursor: copy; }
 .cal-day .card { cursor: grab; }
 .cal-add-input {
   position: absolute; left: 2px; right: 2px; z-index: 4; padding: 2px 6px; font-size: 12px;
   border: 1px solid var(--accent); border-radius: 6px; outline: none; background: #fff;
+}
+.cal-more {
+  position: absolute; left: 50%; transform: translateX(-50%); z-index: 3;
+  border: 1px solid var(--line); background: #fff; color: var(--accent); font-size: 11px;
+  padding: 1px 8px; border-radius: 99px; box-shadow: 0 1px 3px rgba(0,0,0,.1); white-space: nowrap;
 }
 .cal-ghost {
   position: absolute; left: 2px; right: 2px; border: 2px dashed var(--accent); border-radius: 6px;
@@ -210,11 +215,35 @@ main { padding: 0 20px; }
 
 /* A card placed on the calendar */
 .card.event { position: absolute; padding: 2px 4px 2px 6px; overflow: hidden; z-index: 1; font-size: 12px; gap: 4px; }
-.card.event .body { flex-direction: column; align-items: flex-start; flex-wrap: nowrap; gap: 0; }
+.card.event .body { gap: 0 5px; }
 .card.event .check { width: 13px; height: 13px; margin-top: 1px; }
 .card.event .prio { font-size: 10px; }
 .card .resize { position: absolute; left: 0; right: 0; bottom: 0; height: 6px; cursor: ns-resize; }
 .card.event:hover .resize { background: rgba(0,0,0,.08); }
+
+.card .lbl-btn {
+  border: 0; background: none; color: var(--muted); font-weight: 700; font-size: 12px; padding: 0 3px;
+  border-radius: 4px; visibility: hidden; flex: none;
+}
+.card:hover .lbl-btn { visibility: visible; }
+.card .lbl-btn:hover { background: rgba(0,0,0,.06); color: var(--text); }
+.card.event .lbl-btn { display: none; }
+.card.event:hover .lbl-btn { display: inline; }
+.card .tag { cursor: pointer; }
+
+.label-picker {
+  position: absolute; z-index: 20; width: 230px; display: flex; flex-direction: column; gap: 2px;
+  background: var(--panel); border: 1px solid var(--line); border-radius: var(--radius);
+  box-shadow: 0 8px 24px rgba(0,0,0,.15); padding: 8px;
+}
+.lp-title { font-size: 12px; color: var(--muted); padding: 0 4px 4px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.lp-item { display: flex; align-items: center; gap: 8px; border: 0; background: none; padding: 5px 6px; border-radius: 6px; text-align: left; }
+.lp-item:hover { background: var(--bg); }
+.lp-item .sc { color: var(--muted); font-size: 12px; margin-left: auto; }
+.lp-box { width: 14px; height: 14px; border-radius: 4px; border: 2px solid var(--c); flex: none; }
+.lp-item.on .lp-box { background: var(--c); box-shadow: inset 0 0 0 2px #fff; }
+.lp-new { margin-top: 4px; padding: 6px 8px; border: 1px solid var(--line); border-radius: 6px; outline: none; }
+.lp-new:focus { border-color: var(--accent); }
 
 .tag { font-size: 11px; padding: 0 5px; border-radius: 99px; color: #fff; background: var(--c); font-weight: 600; }
 .drop-indicator { height: 3px; border-radius: 2px; background: var(--accent); margin: -1px 0; }

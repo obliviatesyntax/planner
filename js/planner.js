@@ -9,22 +9,41 @@
 //   │ calendar │ calendar │ │            │
 //   └──────────┴──────────┘ └────────────┘
 //
-// The calendar is compact until you use it: once any task in the last two weeks or the
-// days on screen has a time, it switches to the roomier size (CALENDAR.compact / .roomy).
+// The calendar covers the whole day but only shows a window of it: from a little before now,
+// as tall as needed to reach the last task coming up today (CALENDAR.view). Scroll for more;
+// "▲ 2 earlier" / "▼ 1 later" pills show tasks outside the window. A blue line marks now.
 // Click an empty spot on the calendar to add a task at that time.
 //
 // Calendar (below) holds the time-grid maths, used here and by dnd.js.
 
 const Calendar = (() => {
-  const { startHour, endHour, slotMinutes, snapMinutes } = CALENDAR;
-  let size = CALENDAR.compact;            // { slotPx, maxHeight }, set by useSize()
+  const { startHour, endHour, slotMinutes, slotPx, snapMinutes, view } = CALENDAR;
   let resizing = null;
 
-  const pxPerMinute = () => size.slotPx / slotMinutes;
+  const pxPerMinute = () => slotPx / slotMinutes;
   const height = () => (endHour - startHour) * 60 * pxPerMinute();
 
-  function useSize(roomy) { size = roomy ? CALENDAR.roomy : CALENDAR.compact; }
-  function maxHeight() { return size.maxHeight; }
+  // Which part of the day to show for these dates: { start, span } in minutes.
+  // With today on screen: from an hour before now, tall enough to reach today's last
+  // upcoming task. Otherwise: from just before the earliest task on the days shown.
+  function viewWindow(dates) {
+    const today = todayISO();
+    const now = minutesNow();
+    const events = dates.flatMap(d => Tasks.calendarList(d).filter(Labels.matches).map(t => ({ ...t, date: d })));
+    let anchor, relevant;
+    if (dates.includes(today)) {
+      anchor = now - view.beforeNow;
+      relevant = events.filter(t => t.date === today);
+    } else {
+      anchor = events.length ? Math.min(...events.map(t => t.startMin)) - 30 : 8 * 60;
+      relevant = events;
+    }
+    const maxStart = endHour * 60 - view.minHours * 60;
+    const start = Math.max(startHour * 60, Math.min(maxStart, Math.floor(anchor / 60) * 60));
+    const lastEnd = Math.max(0, ...relevant.filter(t => t.startMin + t.duration > start).map(t => t.startMin + t.duration));
+    const span = Math.min(endHour * 60 - start, view.maxHours * 60, Math.max(view.minHours * 60, lastEnd + 30 - start));
+    return { start, span };
+  }
 
   // Mouse y-position inside a calendar day -> minutes after midnight, snapped.
   function minutesAt(dayEl, clientY, snap = snapMinutes) {
@@ -70,7 +89,7 @@ const Calendar = (() => {
     const now = minutesNow();
     return `
       <div class="cal-day ${isToday ? 'is-today' : ''}" data-drop="calendar" data-date="${date}"
-           style="height:${height()}px; --slot:${size.slotPx}px">
+           style="height:${height()}px; --slot:${slotPx}px">
         ${events.map(t => {
           const { top, height: h } = blockStyle(t.startMin, t.duration);
           const { col, cols: n } = cols[t.id];
@@ -78,6 +97,8 @@ const Calendar = (() => {
         }).join('')}
         ${isToday && now >= startHour * 60 && now < endHour * 60
           ? `<div class="now-line" style="top:${topPx(now)}px"></div>` : ''}
+        <button type="button" class="cal-more up" hidden></button>
+        <button type="button" class="cal-more down" hidden></button>
       </div>`;
   }
 
@@ -132,8 +153,32 @@ const Calendar = (() => {
     if (duration) Tasks.update(id, { duration }); else App.renderAll();
   });
 
+  // "▲ 2 earlier" / "▼ 1 later" pills for tasks scrolled out of view; click to scroll to them.
+  function updateHints(scroller) {
+    const top = scroller.scrollTop, bottom = top + scroller.clientHeight;
+    scroller.querySelectorAll('.cal-day').forEach(day => {
+      const events = [...day.querySelectorAll('.card.event')];
+      const above = events.filter(el => el.offsetTop + el.offsetHeight <= top + 4);
+      const below = events.filter(el => el.offsetTop >= bottom - 4);
+      const up = day.querySelector('.cal-more.up'), down = day.querySelector('.cal-more.down');
+      up.hidden = !above.length;
+      up.textContent = `▲ ${above.length} earlier`;
+      up.style.top = `${top + 4}px`;
+      up.dataset.to = above.length ? above[above.length - 1].offsetTop - 8 : '';
+      down.hidden = !below.length;
+      down.textContent = `▼ ${below.length} later`;
+      down.style.top = `${bottom - 26}px`;
+      down.dataset.to = below.length ? below[0].offsetTop - 8 : '';
+    });
+  }
+
+  document.addEventListener('click', e => {
+    const pill = e.target.closest('.cal-more');
+    if (pill) pill.closest('.cal-scroll').scrollTo({ top: Number(pill.dataset.to), behavior: 'smooth' });
+  });
+
   return {
-    minutesAt, blockStyle, topPx, dayHtml, gutterHtml, useSize, maxHeight, pxPerMinute,
+    minutesAt, blockStyle, topPx, dayHtml, gutterHtml, viewWindow, updateHints, pxPerMinute,
     isResizing: () => !!resizing,
   };
 })();
@@ -142,7 +187,7 @@ const Planner = (() => {
   const root = document.getElementById('planner');
   let mode = 'short';          // 'short' (today + next day) or 'week'
   let start = todayISO();      // first day shown
-  let scrolledToNow = false;
+  let userScrolled = false;    // once you scroll the calendar yourself, re-renders keep your position
 
   function days() {
     return Array.from({ length: DAY_VIEWS[mode] }, (_, i) => addDays(start, i));
@@ -159,9 +204,9 @@ const Planner = (() => {
     const list = days();
     const today = todayISO();
     const done = Tasks.doneList(today).filter(Labels.matches);
-    Calendar.useSize(Tasks.usesCalendar(addDays(today, -14), list[list.length - 1]));
-    const scroller = root.querySelector('.cal-scroll');
-    const scrollTop = scroller ? scroller.scrollTop : null;
+    const win = Calendar.viewWindow(list);
+    const oldScroller = root.querySelector('.cal-scroll');
+    const keepScroll = userScrolled && oldScroller ? oldScroller.scrollTop : null;
 
     root.innerHTML = `
       <div class="section-head">
@@ -194,7 +239,7 @@ const Planner = (() => {
                 <button type="button" class="col-add" data-date="${d}">+ Add</button>
               </div>`).join('')}
           </div>
-          <div class="cal-scroll" style="max-height:${Calendar.maxHeight()}px">
+          <div class="cal-scroll" style="height:${win.span * Calendar.pxPerMinute()}px">
             <div class="plan-grid cal-grid">
               ${Calendar.gutterHtml()}
               ${list.map(Calendar.dayHtml).join('')}
@@ -215,13 +260,13 @@ const Planner = (() => {
         </aside>
       </div>`;
 
-    // Keep the calendar's scroll position across re-renders; the first time, scroll to now.
-    const newScroller = root.querySelector('.cal-scroll');
-    if (scrollTop !== null) newScroller.scrollTop = scrollTop;
-    else if (!scrolledToNow) {
-      newScroller.scrollTop = Math.max(0, Calendar.topPx(minutesNow() - 60));
-      scrolledToNow = true;
-    }
+    // Show the window (or keep where you scrolled to), then mark tasks outside the view.
+    const scroller = root.querySelector('.cal-scroll');
+    scroller.scrollTop = keepScroll ?? Calendar.topPx(win.start);
+    Calendar.updateHints(scroller);
+    scroller.addEventListener('scroll', () => Calendar.updateHints(scroller));
+    scroller.addEventListener('wheel', () => { userScrolled = true; }, { passive: true });
+    scroller.addEventListener('touchmove', () => { userScrolled = true; }, { passive: true });
   }
 
   root.addEventListener('click', e => {
@@ -229,12 +274,14 @@ const Planner = (() => {
     if (nav) {
       const step = Number(nav.dataset.nav);
       start = step === 0 ? firstDay() : addDays(start, step * (mode === 'week' ? 7 : 1));
+      userScrolled = false;   // re-centre the calendar
       return render();
     }
     const modeBtn = e.target.closest('[data-mode]');
     if (modeBtn) {
       mode = modeBtn.dataset.mode;
       start = firstDay();
+      userScrolled = false;
       return render();
     }
     if (e.target.matches('.undo')) Tasks.toggleDone(e.target.dataset.id);

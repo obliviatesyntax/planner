@@ -47,11 +47,16 @@ const Tasks = (() => {
     listeners.forEach(fn => fn());
   }
 
-  // Unfinished tasks committed to a past day move into today's plan list.
-  // Runs at start-up and when the app is left open past midnight.
+  // Unfinished tasks that are behind move into today's to-do list:
+  //   • anything committed to a past day
+  //   • today's calendar tasks that ended more than CALENDAR.overdueAfter minutes ago
+  // Runs at start-up and every minute while the app is open. Returns how many moved.
   function rollover() {
     const today = todayISO();
-    const late = tasks.filter(t => !t.doneOn && t.planDate && t.planDate < today);
+    const cutoff = minutesNow() - CALENDAR.overdueAfter;
+    const late = tasks.filter(t => !t.doneOn && t.planDate && (
+      t.planDate < today ||
+      (t.planDate === today && t.startMin != null && t.startMin + t.duration < cutoff)));
     late.forEach(t => { t.planDate = today; t.startMin = null; t.order = 1e6 + t.order; });
     if (late.length) { renumber(planList(today)); commit(); }
     return late.length;
@@ -81,12 +86,6 @@ const Tasks = (() => {
   function doneByDay() {
     const days = [...new Set(tasks.filter(t => t.doneOn).map(t => t.doneOn))].sort().reverse();
     return days.map(day => ({ day, tasks: doneList(day) }));
-  }
-
-  // Has any task (done or not) been given a calendar time between these two days?
-  // Decides whether the calendar is shown compact or roomy.
-  function usesCalendar(fromDate, toDate) {
-    return tasks.some(t => t.startMin != null && t.planDate >= fromDate && t.planDate <= toDate);
   }
 
   function todayStats() {
@@ -239,7 +238,7 @@ const Tasks = (() => {
 
   return {
     init, onChange, rollover, get,
-    triageList, planList, calendarList, doneList, doneByDay, usesCalendar, todayStats,
+    triageList, planList, calendarList, doneList, doneByDay, todayStats,
     add, update, cyclePriority, toggleDone, moveToTriage, moveToPlan, moveToCalendar, remove, restore,
     allLabels, label, findLabel, addLabel, removeLabel,
     exportData, replaceAll,

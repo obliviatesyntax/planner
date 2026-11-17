@@ -157,13 +157,14 @@ const App = (() => {
   Tasks.onChange(renderAll);
   Store.onSaveError(() => toast('Could not save your last change. Check your connection and reload.'));
 
-  // If the app is left open: past midnight, roll unfinished tasks into the new day;
-  // every minute, redraw so the calendar's "now" line moves (skipped while you're dragging/typing).
-  let lastDay = todayISO();
+  // While the app is open, every minute: move anything that's behind into today's to-do list
+  // (see Tasks.rollover; that redraws the page), otherwise just redraw the plan so the calendar's
+  // "now" line moves. Skipped while you're dragging or typing.
   setInterval(() => {
-    if (todayISO() !== lastDay) { lastDay = todayISO(); if (!Tasks.rollover()) renderAll(); return; }
-    const busy = document.querySelector('.dragging, [contenteditable="true"], .col-add-input, .cal-add-input, .label-input') || Calendar.isResizing();
-    if (!busy && !onLogPage()) Planner.render();
+    const busy = document.querySelector('.dragging, [contenteditable="true"], .col-add-input, .cal-add-input, .label-input, .label-picker:not([hidden])') || Calendar.isResizing();
+    if (busy || Tasks.rollover() || onLogPage()) return;
+    renderHeader();
+    Planner.render();
   }, 60 * 1000);
 
   return { toast, renderAll, addFromText, parseQuickAdd };

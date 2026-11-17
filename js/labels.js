@@ -71,11 +71,73 @@ const Labels = (() => {
     if (e.target.matches('.label-input') && !e.target.value.trim()) { adding = false; render(); }
   });
 
+  // ---- label picker: click "#" (or a tag) on a card to add/remove its labels ----
+
+  const picker = document.createElement('div');
+  picker.className = 'label-picker';
+  picker.hidden = true;
+  document.body.appendChild(picker);
+  let pickerTask = null;
+
+  function openPicker(taskId, anchor) {
+    pickerTask = taskId;
+    renderPicker();
+    picker.hidden = false;
+    const r = anchor.getBoundingClientRect();
+    const left = Math.min(r.left, window.innerWidth - picker.offsetWidth - 8);
+    picker.style.left = `${Math.max(8, left) + window.scrollX}px`;
+    picker.style.top = `${r.bottom + 4 + window.scrollY}px`;
+    const input = picker.querySelector('.lp-new');
+    if (!Tasks.allLabels().length) input.focus();
+  }
+
+  function renderPicker() {
+    const task = Tasks.get(pickerTask);
+    if (!task) return closePicker();
+    picker.innerHTML = `
+      <div class="lp-title">Labels for “${escapeHtml(task.title)}”</div>
+      ${Tasks.allLabels().map(l => `
+        <button type="button" class="lp-item ${task.labels.includes(l.id) ? 'on' : ''}" data-id="${l.id}" style="--c:${l.color}">
+          <span class="lp-box"></span>${escapeHtml(l.name)} <span class="sc">#${l.shortcut}</span>
+        </button>`).join('')}
+      <input class="lp-new" placeholder="New label, e.g. Health #h" maxlength="40">`;
+  }
+
+  function closePicker() { picker.hidden = true; pickerTask = null; }
+
+  picker.addEventListener('click', e => {
+    const item = e.target.closest('.lp-item');
+    if (!item) return;
+    const task = Tasks.get(pickerTask);
+    const id = item.dataset.id;
+    Tasks.update(task.id, { labels: task.labels.includes(id) ? task.labels.filter(x => x !== id) : [...task.labels, id] });
+    renderPicker();
+  });
+
+  picker.addEventListener('keydown', e => {
+    if (e.key === 'Escape') return closePicker();
+    if (e.key !== 'Enter' || !e.target.matches('.lp-new')) return;
+    const text = e.target.value;
+    const match = text.match(/#(\w+)/);
+    const result = Tasks.addLabel(text.replace(/#\w+/g, '').trim(), match ? match[1] : '');
+    if (typeof result === 'string') return App.toast(result);
+    const task = Tasks.get(pickerTask);
+    Tasks.update(task.id, { labels: [...task.labels, result.id] });   // new label goes straight onto the task
+    renderPicker();
+    picker.querySelector('.lp-new').focus();
+  });
+
+  // Click anywhere else (or press Escape) to close.
+  document.addEventListener('mousedown', e => {
+    if (!picker.hidden && !picker.contains(e.target) && !e.target.closest('.lbl-btn, .card .tag')) closePicker();
+  });
+  document.addEventListener('keydown', e => { if (e.key === 'Escape' && !picker.hidden) closePicker(); });
+
   // Small coloured tags shown on cards.
   function tagsHtml(task) {
     return task.labels.map(id => Tasks.label(id)).filter(Boolean)
       .map(l => `<span class="tag" style="--c:${l.color}" title="${escapeHtml(l.name)}">#${l.shortcut}</span>`).join('');
   }
 
-  return { render, matches, selectedIds, tagsHtml };
+  return { render, matches, selectedIds, tagsHtml, openPicker };
 })();
