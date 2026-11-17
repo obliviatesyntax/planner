@@ -1,4 +1,5 @@
-// history.js — the "Done log": what you finished each day, plus a 5-week strip and streak.
+// history.js — the full Done log (its own page, at #done): what you finished each day,
+// plus a 5-week strip and your streak.
 
 const History = (() => {
   const root = document.getElementById('history-view');
@@ -11,14 +12,14 @@ const History = (() => {
 
     const strip = [];
     for (let i = DAYS_IN_STRIP - 1; i >= 0; i--) {
-      const date = new Date();
-      date.setDate(date.getDate() - i);
-      const iso = toISO(date);
+      const iso = addDays(todayISO(), -i);
       strip.push({ iso, n: countByDay[iso] || 0 });
     }
 
     root.innerHTML = `
       <div class="history">
+        <a href="#" class="back-link">← Back to planner</a>
+        <h2>Done log</h2>
         <div class="history-summary">
           <div>
             <div class="big">${streak(countByDay)}</div>
@@ -33,7 +34,7 @@ const History = (() => {
           </div>
         </div>
 
-        ${days.length ? days.map(dayHtml).join('') : '<p class="empty">Nothing done yet — tick something off on the board.</p>'}
+        ${days.length ? days.map(dayHtml).join('') : '<p class="empty">Nothing done yet. Tick off a planned task and it shows up here.</p>'}
       </div>`;
   }
 
@@ -45,7 +46,7 @@ const History = (() => {
           <li class="p${t.priority}">
             <span class="dot"></span>
             <span class="t">${escapeHtml(t.title)}</span>
-            <span class="tag tag-${t.area}">${areaLabel(t.area)}</span>
+            ${Labels.tagsHtml(t)}
             <button type="button" class="undo" data-id="${t.id}" title="Mark as not done">undo</button>
           </li>`).join('')}
       </ul>
@@ -63,10 +64,10 @@ const History = (() => {
 
   // Consecutive days with at least one task done, ending today (or yesterday if today is still empty).
   function streak(countByDay) {
-    const date = new Date();
-    if (!countByDay[toISO(date)]) date.setDate(date.getDate() - 1);
+    let day = todayISO();
+    if (!countByDay[day]) day = addDays(day, -1);
     let n = 0;
-    while (countByDay[toISO(date)]) { n++; date.setDate(date.getDate() - 1); }
+    while (countByDay[day]) { n++; day = addDays(day, -1); }
     return n;
   }
 

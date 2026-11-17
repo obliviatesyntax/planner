@@ -12,10 +12,32 @@ function todayISO() {
   return toISO(new Date());
 }
 
+function fromISO(iso) {
+  const [y, m, d] = iso.split('-').map(Number);
+  return new Date(y, m - 1, d);
+}
+
+// "2026-11-17" + 2 -> "2026-11-19"
+function addDays(iso, n) {
+  const date = fromISO(iso);
+  date.setDate(date.getDate() + n);
+  return toISO(date);
+}
+
 // "2026-11-15" -> "Sun, Nov 15"
 function formatDay(iso) {
-  const [y, m, d] = iso.split('-').map(Number);
-  return new Date(y, m - 1, d).toLocaleDateString(undefined, { weekday: 'short', month: 'short', day: 'numeric' });
+  return fromISO(iso).toLocaleDateString(undefined, { weekday: 'short', month: 'short', day: 'numeric' });
+}
+
+// 570 (minutes after midnight) -> "9:30 AM" (in your locale's style)
+function formatTime(minutes) {
+  const date = new Date(2000, 0, 1, Math.floor(minutes / 60), minutes % 60);
+  return date.toLocaleTimeString(undefined, { hour: 'numeric', minute: '2-digit' });
+}
+
+function minutesNow() {
+  const now = new Date();
+  return now.getHours() * 60 + now.getMinutes();
 }
 
 // Always escape user text before putting it into HTML.
@@ -25,10 +47,6 @@ function escapeHtml(text) {
     .replace(/"/g, '&quot;').replace(/'/g, '&#39;');
 }
 
-function areaLabel(id) {
-  return (AREAS.find(a => a.id === id) || {}).label || id;
-}
-
-function bucketLabel(id) {
-  return (BUCKETS.find(b => b.id === id) || {}).label || id;
+function newId() {
+  return Date.now().toString(36) + Math.random().toString(36).slice(2, 6);
 }

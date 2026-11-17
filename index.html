@@ -38,36 +38,29 @@
   <header class="topbar">
     <div class="brand">Planner <span id="today-label" class="muted"></span></div>
     <div id="today-progress" class="progress"></div>
-    <nav class="views">
-      <button type="button" data-view="board" class="active">Board</button>
-      <button type="button" data-view="history">Done log</button>
-    </nav>
+    <a href="#done" id="log-btn" class="nav-link">Done log</a>
     <div class="account"><span id="user-email" class="muted"></span><button type="button" id="signout-btn">Sign out</button></div>
   </header>
 
-  <!-- Quick add: type and press Enter. Shortcuts are parsed out of the text (see app.js → parseQuickAdd). -->
-  <form id="quick-add" class="quick-add" autocomplete="off">
-    <input id="qa-title" placeholder="Add a task…   e.g. “Book dentist !1 #p @week”   (press N to jump here)">
-    <div class="seg" id="qa-area">
-      <button type="button" data-value="work" class="active">Work</button>
-      <button type="button" data-value="personal">Personal</button>
-    </div>
-    <div class="seg" id="qa-priority">
-      <button type="button" data-value="1" class="p1">P1</button>
-      <button type="button" data-value="2" class="p2 active">P2</button>
-      <button type="button" data-value="3" class="p3">P3</button>
-    </div>
-    <select id="qa-bucket" title="When"></select>
-    <button type="submit" class="primary">Add</button>
-  </form>
+  <main id="main-view">
+    <!-- Label filter chips: All · Work #w · Personal #p · + (see js/labels.js) -->
+    <div id="labels-bar" class="labels-bar"></div>
 
-  <main>
-    <section id="board-view"></section>
-    <section id="history-view" hidden></section>
+    <!-- Quick add: type and press Enter. New tasks go to triage. Shortcuts: see app.js → parseQuickAdd. -->
+    <form id="quick-add" class="quick-add" autocomplete="off">
+      <input id="qa-title" placeholder="Add a task…   e.g. “Book dentist !1 #p @week”   (press N to jump here)">
+      <button type="submit" class="primary">Add</button>
+    </form>
+
+    <!-- Top: what you've committed to (js/planner.js). Bottom: triage (js/triage.js). -->
+    <section id="planner" class="section"></section>
+    <section id="triage" class="section"></section>
   </main>
 
+  <section id="history-view" hidden></section>
+
   <footer class="footer">
-    <span class="muted">Shortcuts: <b>!1 !2 !3</b> priority · <b>#w #p</b> work/personal · <b>@today @next3 @week @nextweek @month @later</b> · double-click a task to rename · drag to move</span>
+    <span class="muted">Shortcuts: <b>!1 !2 !3</b> priority · <b>#</b> + a label's shortcut, e.g. <b>#p</b> · <b>@today @week @month @eventually</b> (triage bucket) · double-click a task to rename · drag tasks between triage, days and times</span>
     <span class="spacer"></span>
     <button type="button" id="export-btn">Export backup</button>
     <label class="file-btn">Import backup<input type="file" id="import-input" accept="application/json" hidden></label>
@@ -85,7 +78,11 @@
   <script src="js/auth.js"></script>
   <script src="js/store.js"></script>
   <script src="js/tasks.js"></script>
-  <script src="js/board.js"></script>
+  <script src="js/labels.js"></script>
+  <script src="js/cards.js"></script>
+  <script src="js/planner.js"></script>
+  <script src="js/dnd.js"></script>
+  <script src="js/triage.js"></script>
   <script src="js/history.js"></script>
   <script src="js/app.js"></script>
 </body>

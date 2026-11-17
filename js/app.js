@@ -1,40 +1,46 @@
-// app.js — wires everything together: quick add bar, view switching, header, backup, toast.
+// app.js — wires everything together: quick add, page switching (planner / done log),
+// header, backup, toast, start-up.
 
 const App = (() => {
   // ---- quick add -------------------------------------------------------
 
   const form = document.getElementById('quick-add');
   const titleInput = document.getElementById('qa-title');
-  const areaSeg = segmented(document.getElementById('qa-area'));
-  const prioSeg = segmented(document.getElementById('qa-priority'));
-  const bucketSelect = document.getElementById('qa-bucket');
-  bucketSelect.innerHTML = BUCKETS.map(b => `<option value="${b.id}">${b.label}</option>`).join('');
 
   form.addEventListener('submit', e => {
     e.preventDefault();
-    const parsed = parseQuickAdd(titleInput.value);
-    const task = Tasks.add({
-      title: parsed.title,
-      area: parsed.area || areaSeg.get(),
-      priority: parsed.priority || Number(prioSeg.get()),
-      bucket: parsed.bucket || bucketSelect.value,
-    });
+    const task = App.addFromText(titleInput.value, 'today');
     if (!task) return;
     titleInput.value = '';
-    showView('board');
-    Board.flash(task.id);
+    flash(task.id);
   });
 
-  // Pulls shortcuts out of the text:  "Call bank !1 #p @week"  ->  priority 1, personal, this week
+  // Adds a task to triage from typed text. Shortcuts inside the text:
+  //   !1 !2 !3   priority            #p #work   labels (by shortcut or name, several allowed)
+  //   @today @week @month @eventually (or @t @w @m @e)   triage bucket
+  // With label filters selected at the top and no #label typed, the new task gets the
+  // selected labels, so it doesn't vanish from view.
+  function addFromText(text, defaultBucket) {
+    const parsed = parseQuickAdd(text);
+    return Tasks.add({
+      title: parsed.title,
+      priority: parsed.priority || 2,
+      labels: parsed.labels.length ? parsed.labels : Labels.selectedIds(),
+      bucket: parsed.bucket || defaultBucket,
+    });
+  }
+
   function parseQuickAdd(text) {
-    const out = {};
+    const out = { labels: [] };
     const rest = text.replace(/(^|\s)([!#@])(\w+)/g, (match, space, sym, word) => {
       const w = word.toLowerCase();
       if (sym === '!' && ['1', '2', '3'].includes(w)) { out.priority = Number(w); return space; }
-      if (sym === '#' && (w === 'w' || w === 'work')) { out.area = 'work'; return space; }
-      if (sym === '#' && (w === 'p' || w === 'personal')) { out.area = 'personal'; return space; }
+      if (sym === '#') {
+        const label = Tasks.findLabel(w);
+        if (label) { if (!out.labels.includes(label.id)) out.labels.push(label.id); return space; }
+      }
       if (sym === '@') {
-        const bucket = BUCKETS.find(b => b.id === w || b.aliases.includes(w));
+        const bucket = TRIAGE.find(b => b.id === w || b.aliases.includes(w));
         if (bucket) { out.bucket = bucket.id; return space; }
       }
       return match;   // not a shortcut: keep the text as is
@@ -43,14 +49,9 @@ const App = (() => {
     return out;
   }
 
-  // A row of buttons where exactly one is active.
-  function segmented(container) {
-    container.addEventListener('click', e => {
-      const btn = e.target.closest('button');
-      if (!btn) return;
-      container.querySelectorAll('button').forEach(b => b.classList.toggle('active', b === btn));
-    });
-    return { get: () => container.querySelector('.active').dataset.value };
+  function flash(id) {
+    const card = document.querySelector(`.card[data-task="${id}"]`);
+    if (card) { card.classList.add('flash'); card.scrollIntoView({ block: 'nearest' }); }
   }
 
   // Press "n" anywhere (when not typing) to jump to quick add.
@@ -59,19 +60,10 @@ const App = (() => {
     if (!typing && e.key.toLowerCase() === 'n') { e.preventDefault(); titleInput.focus(); }
   });
 
-  // ---- views & header --------------------------------------------------
+  // ---- pages: planner (main) or the done log (#done) -----------------------
 
-  let view = 'board';
-  document.querySelectorAll('.views button').forEach(btn =>
-    btn.addEventListener('click', () => showView(btn.dataset.view)));
-
-  function showView(name) {
-    view = name;
-    document.querySelectorAll('.views button').forEach(b => b.classList.toggle('active', b.dataset.view === name));
-    document.getElementById('board-view').hidden = name !== 'board';
-    document.getElementById('history-view').hidden = name !== 'history';
-    renderAll();
-  }
+  window.addEventListener('hashchange', renderAll);
+  const onLogPage = () => location.hash === '#done';
 
   function renderHeader() {
     document.getElementById('today-label').textContent = formatDay(todayISO());
@@ -80,18 +72,23 @@ const App = (() => {
     document.getElementById('today-progress').innerHTML = `
       <div class="bar"><div class="fill" style="width:${pct}%"></div></div>
       <span>${done} / ${total} done today${total && done === total ? ' 🎉' : ''}</span>`;
+    document.getElementById('log-btn').classList.toggle('active', onLogPage());
   }
 
   function renderAll() {
     renderHeader();
-    if (view === 'board') Board.render();
-    else History.render();
+    document.getElementById('main-view').hidden = onLogPage();
+    document.getElementById('history-view').hidden = !onLogPage();
+    if (onLogPage()) return History.render();
+    Labels.render();
+    Planner.render();
+    Triage.render();
   }
 
   // ---- backup ----------------------------------------------------------
 
   document.getElementById('export-btn').addEventListener('click', () => {
-    const blob = new Blob([JSON.stringify(Tasks.all(), null, 2)], { type: 'application/json' });
+    const blob = new Blob([JSON.stringify(Tasks.exportData(), null, 2)], { type: 'application/json' });
     const a = document.createElement('a');
     a.href = URL.createObjectURL(blob);
     a.download = `planner-backup-${todayISO()}.json`;
@@ -104,8 +101,10 @@ const App = (() => {
     if (!file) return;
     try {
       const data = JSON.parse(await file.text());
-      if (!Array.isArray(data)) throw new Error('not a task list');
-      if (confirm(`Replace your current tasks with ${data.length} tasks from ${file.name}?`)) Tasks.replaceAll(data);
+      if (!Array.isArray(data.tasks) || !Array.isArray(data.labels)) throw new Error('not a backup');
+      if (confirm(`Replace everything with ${data.tasks.length} tasks and ${data.labels.length} labels from ${file.name}?`)) {
+        Tasks.replaceAll(data);
+      }
     } catch (err) {
       toast('That file is not a planner backup');
     }
@@ -127,17 +126,21 @@ const App = (() => {
   // ---- start -----------------------------------------------------------
 
   Tasks.onChange(renderAll);
-
-  // If the app is left open past midnight, refresh so yesterday's done tasks move to the log.
-  let lastDay = todayISO();
-  setInterval(() => { if (todayISO() !== lastDay) { lastDay = todayISO(); renderAll(); } }, 60 * 1000);
-
   Store.onSaveError(() => toast('Could not save your last change. Check your connection and reload.'));
 
-  return { toast, renderAll, parseQuickAdd };
+  // If the app is left open: past midnight, roll unfinished tasks into the new day;
+  // every minute, redraw so the calendar's "now" line moves (skipped while you're dragging/typing).
+  let lastDay = todayISO();
+  setInterval(() => {
+    if (todayISO() !== lastDay) { lastDay = todayISO(); if (!Tasks.rollover()) renderAll(); return; }
+    const busy = document.querySelector('.dragging, [contenteditable="true"], .col-add-input, .label-input') || Calendar.isResizing();
+    if (!busy && !onLogPage()) Planner.render();
+  }, 60 * 1000);
+
+  return { toast, renderAll, addFromText, parseQuickAdd };
 })();
 
-// Start: sign in if needed, then load this person's tasks from the database and draw the board.
+// Start: sign in if needed, then load this person's data from the database and draw the page.
 (async () => {
   const user = await Auth.currentUser();
   if (!user) return Auth.showSignIn();
