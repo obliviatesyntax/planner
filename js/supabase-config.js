@@ -14,6 +14,6 @@ const EMAIL_HAS_CODE = false;
 
 // The public address of the site. Emailed links go here when the app is opened as a local file.
 // Must also be listed in Supabase → Authentication → URL Configuration → Redirect URLs.
-const SITE_URL = 'https://obliviatesyntax.github.io/';
+const SITE_URL = 'https://obliviatesyntax.github.io/planner/';
 
 const db = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
