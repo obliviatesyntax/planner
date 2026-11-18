@@ -120,14 +120,15 @@ const Landing = (() => {
 
   // ---- the app preview at the top ------------------------------------------------
   // Types "Call mom at 9PM" (the live preview popup shows where it'll go), adds it to today's
-  // calendar, then drags the @overdue task onto today's to-do list; @overdue disappears.
+  // calendar, then drags "Renew passport" from @triage onto tomorrow's to-do list.
 
   const pv = document.getElementById('pv');
   const pvInput = document.getElementById('pv-input');
   const pvPopup = document.getElementById('pv-popup');
   const pvTodo = document.getElementById('pv-todo');
   const pvCal = document.getElementById('pv-cal');
-  const pvOverdue = document.getElementById('pv-overdue');
+  const pvTriage = document.getElementById('pv-triage');
+  const pvTomorrow = document.getElementById('pv-tomorrow');
   const PV_TEXT = 'Call mom at 9PM';
 
   function pvReset() {
@@ -136,9 +137,9 @@ const Landing = (() => {
     pvTodo.innerHTML = '<div class="m-card p1"><i></i>Finish launch doc <s class="m-tag" style="--c:#5f3dc4">#w</s><u>P1</u></div>'
       + '<div class="m-card p2"><i></i>Reply to Sam <u>P2</u></div>';
     pvCal.querySelectorAll('.lp-new').forEach(el => el.remove());
-    pvOverdue.classList.remove('lp-gone');
-    pvOverdue.hidden = false;
-    pvOverdue.innerHTML = '<b>@overdue</b>' + card('Call the insurer');
+    // List tasks have no checkbox in the real app; they get one once planned on a day.
+    pvTriage.innerHTML = '<b>@triage</b><div class="m-card p0">Renew passport</div><div class="m-card p0">Call the bank</div>';
+    pvTomorrow.innerHTML = '<div class="m-card p3"><i></i>Plan weekend trip <u>P3</u></div>';
   }
   function pvShowPopup(text) {
     pvPopup.innerHTML = `${describe(text)}<span class="lp-pv-hint">Enter to add</span>`;
@@ -175,16 +176,11 @@ const Landing = (() => {
       pvPopup.hidden = true;
       pvCal.insertAdjacentHTML('beforeend', pvEvent);
       await sleep(1200);
-      // 3. Drag yesterday's leftover from @overdue onto today's to-do list
-      pvTodo.insertAdjacentHTML('beforeend', card('Call the insurer', 'lp-landing'));
-      const landing = pvTodo.lastElementChild;
-      await a.carry(pvOverdue.querySelector('.m-card'), landing, () => landing.classList.remove('lp-landing'));
-      // …and the now-empty @overdue list goes away
-      await sleep(250);
-      pvOverdue.classList.add('lp-gone');
-      await sleep(450);
-      pvOverdue.hidden = true;
-      await sleep(2800);
+      // 3. Drag "Renew passport" from @triage onto tomorrow's to-do list
+      pvTomorrow.insertAdjacentHTML('beforeend', card('Renew passport', 'lp-landing'));
+      const landing = pvTomorrow.lastElementChild;
+      await a.carry(pvTriage.querySelector('.m-card'), landing, () => landing.classList.remove('lp-landing'));
+      await sleep(3000);
     }
     pvRunning = false;
   }

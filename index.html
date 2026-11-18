@@ -114,8 +114,8 @@
     </section>
 
     <!-- ---- product preview: a picture of the app drawn in HTML, animated by js/landing.js:
-         types "Call mom at 9PM" (with the live preview popup), adds it, then drags the
-         @overdue task onto today. ------------------------------------------------------ -->
+         types "Call mom at 9PM" (with the live preview popup), adds it, then drags a task
+         from @triage onto tomorrow's to-do list. ------------------------------------------ -->
     <section class="lp-preview-wrap" aria-label="What Planner looks like">
       <div class="lp-window" id="pv">
         <div class="lp-window-bar"><span></span><span></span><span></span><em>planner</em></div>
@@ -141,7 +141,7 @@
               </div>
               <div class="lp-day">
                 <div class="lp-day-head"><b>Tomorrow</b> <span data-lp-date="1"></span></div>
-                <div class="lp-todo">
+                <div class="lp-todo" id="pv-tomorrow">
                   <div class="m-card p3"><i></i>Plan weekend trip <u>P3</u></div>
                 </div>
                 <div class="lp-cal">
@@ -157,8 +157,7 @@
             </div>
           </div>
           <div class="lp-app-lists" id="pv-lists">
-            <div class="lp-list lp-list-overdue" id="pv-overdue"><b>@overdue</b><div class="m-card p0">Call the insurer</div></div>
-            <div class="lp-list"><b>@triage</b><div class="m-card p0">Renew passport</div><div class="m-card p0">Call the bank</div></div>
+            <div class="lp-list" id="pv-triage"><b>@triage</b><div class="m-card p0">Renew passport</div><div class="m-card p0">Call the bank</div></div>
             <div class="lp-list"><b>@kitchenReno</b><div class="m-card p1">Get 3 contractor quotes <u>P1</u></div><div class="m-card p0">Pick cabinet colour</div></div>
             <div class="lp-list"><b>@birdhouse</b><div class="m-card p0">Buy cedar planks</div><div class="m-card p3">Find a 1.5" hole saw <u>P3</u></div></div>
           </div>
@@ -168,7 +167,7 @@
       <ul class="lp-preview-notes">
         <li><b>Live preview</b> shows where a task will land before you add it</li>
         <li><b>Calendar or list view</b>: 1 day, 2 days, a week, or one scrolling list</li>
-        <li><b>@overdue</b> holds yesterday's leftovers until you re-plan them</li>
+        <li><b>Drag</b> from any list onto a day or a time</li>
       </ul>
     </section>
 
