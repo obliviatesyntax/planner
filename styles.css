@@ -710,7 +710,7 @@ html { scroll-behavior: smooth; }
 .lp-dnd-title.is-today { color: var(--accent); }
 .lp-dnd-cards { display: flex; flex-direction: column; gap: 7px; min-height: 40px; }
 .lp-dnd .m-card { padding: 8px 10px; }
-.lp-dnd .m-card.lp-landing { visibility: hidden; }
+.m-card.lp-landing { visibility: hidden; }   /* where a dragged card will land (both demos) */
 .lp-dnd-cal {
   position: relative; height: 120px; margin-top: 4px; margin-left: 42px; border-left: 1px solid var(--line);
   background-image: repeating-linear-gradient(to bottom, var(--line-soft) 0 1px, transparent 1px 40px);
