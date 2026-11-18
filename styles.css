@@ -566,7 +566,7 @@ html { scroll-behavior: smooth; }
 .lp-window {
   border-radius: 16px; background: var(--panel); border: 1px solid var(--line); overflow: hidden;
   box-shadow: 0 40px 80px rgba(49, 46, 129, .14), 0 4px 12px rgba(16, 24, 40, .06);
-  transform: perspective(1800px) rotateX(4deg); transform-origin: top center;
+  position: relative;
 }
 .lp-window-bar { display: flex; align-items: center; gap: 7px; padding: 11px 14px; background: #f3f4f6; border-bottom: 1px solid var(--line); }
 .lp-window-bar span { width: 11px; height: 11px; border-radius: 50%; background: #e5e7eb; }
@@ -575,9 +575,29 @@ html { scroll-behavior: smooth; }
 .lp-window-bar span:nth-child(3) { background: #86efac; }
 .lp-window-bar em { margin-left: 12px; font-style: normal; font-size: 12px; color: var(--faint); background: #fff; padding: 2px 40px; border-radius: 6px; }
 .lp-app { padding: 18px; background: var(--bg); display: flex; flex-direction: column; gap: 14px; font-size: 13px; }
-.lp-app-quick { display: flex; gap: 8px; }
-.lp-app-quick span { flex: 1; background: #fff; border: 1px solid var(--accent); box-shadow: 0 0 0 3px var(--accent-soft); border-radius: 7px; padding: 9px 12px; }
-.lp-app-quick b { background: var(--accent); color: #fff; padding: 9px 16px; border-radius: 7px; }
+.lp-app-quick { display: flex; gap: 8px; position: relative; }
+.lp-app-quick b.pressed { transform: scale(.94); filter: brightness(.9); }
+.lp-app-quick b { transition: transform .1s; }
+/* the live preview popup under the mock quick-add box (same look as the real one) */
+.lp-pv-popup {
+  position: absolute; left: 0; top: calc(100% + 6px); z-index: 4; display: flex; flex-wrap: wrap; align-items: center; gap: 6px;
+  padding: 7px 9px; background: #fff; border: 1px solid var(--line); border-radius: 10px; box-shadow: var(--shadow-lg);
+}
+.lp-pv-popup .lp-chip { font-size: 12.5px; padding: 3px 10px; }
+.lp-pv-hint { font-size: 11.5px; color: var(--faint); margin-left: 2px; }
+.lp-app-toolbar { display: flex; align-items: center; gap: 12px; margin-bottom: -4px; }
+.lp-seg { margin-left: auto; display: flex; border: 1px solid var(--line); border-radius: 7px; overflow: hidden; background: #fff; }
+.lp-seg span { padding: 4px 11px; color: var(--muted); font-weight: 500; }
+.lp-seg span + span { border-left: 1px solid var(--line); }
+.lp-seg span.on { background: var(--text); color: #fff; }
+.lp-list.lp-gone { opacity: 0; transform: scale(.96); transition: opacity .4s, transform .4s; }
+.lp-preview-notes {
+  list-style: none; padding: 0; margin: 22px 0 0; display: flex; justify-content: center; gap: 12px 28px; flex-wrap: wrap;
+  color: #4b5563; font-size: 14.5px;
+}
+.lp-preview-notes li::before { content: "✓"; color: var(--done); font-weight: 800; margin-right: 7px; }
+.lp-app-quick > span { flex: 1; background: #fff; border: 1px solid var(--accent); box-shadow: 0 0 0 3px var(--accent-soft); border-radius: 7px; padding: 9px 12px; }
+.lp-app-quick > b { background: var(--accent); color: #fff; padding: 9px 16px; border-radius: 7px; }
 .lp-caret::after { content: ""; display: inline-block; width: 1.5px; height: 1.1em; background: var(--accent); margin-left: 2px; vertical-align: -3px; animation: blink 1s step-end infinite; }
 @keyframes blink { 50% { opacity: 0; } }
 .lp-app-grid { display: grid; grid-template-columns: minmax(0, 1fr) 200px; gap: 12px; }
@@ -595,7 +615,7 @@ html { scroll-behavior: smooth; }
 }
 .lp-done { background: #fff; border: 1px solid var(--line); border-radius: 10px; padding: 10px 12px; display: flex; flex-direction: column; gap: 6px; }
 .lp-done em { font-style: normal; color: var(--done); background: #dcfce7; border-radius: 99px; padding: 0 7px; font-size: 11px; margin-left: 4px; }
-.lp-app-lists { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; padding: 12px; background: #eef0f4; border-radius: 12px; }
+.lp-app-lists { display: grid; grid-template-columns: repeat(auto-fit, minmax(0, 1fr)); gap: 10px; padding: 12px; background: #eef0f4; border-radius: 12px; }
 .lp-list { background: #fff; border: 1px solid var(--line); border-radius: 9px; padding: 8px; display: flex; flex-direction: column; gap: 5px; }
 .lp-list b { padding: 0 2px 2px; }
 .lp-list-overdue { border-color: #fecaca; background: #fffbfb; }
@@ -771,7 +791,6 @@ html { scroll-behavior: smooth; }
   .lp-features, .lp-steps { grid-template-columns: 1fr 1fr; }
   .lp-why { grid-template-columns: 1fr; }
   .lp-price { grid-template-columns: 1fr; padding: 28px; }
-  .lp-window { transform: none; }
 }
 @media (max-width: 640px) {
   .lp-nav { padding: 12px 16px; }

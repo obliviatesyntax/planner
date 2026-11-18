@@ -113,24 +113,30 @@
       </div>
     </section>
 
-    <!-- ---- product preview (a static picture of the app, drawn in HTML) ------- -->
+    <!-- ---- product preview: a picture of the app drawn in HTML, animated by js/landing.js:
+         types "Call mom at 9PM" (with the live preview popup), adds it, then drags the
+         @overdue task onto today. ------------------------------------------------------ -->
     <section class="lp-preview-wrap" aria-label="What Planner looks like">
-      <div class="lp-window">
+      <div class="lp-window" id="pv">
         <div class="lp-window-bar"><span></span><span></span><span></span><em>planner</em></div>
         <div class="lp-app">
-          <div class="lp-app-quick"><span class="lp-caret">Dentist appointment tomorrow at 5 PM</span><b>Add</b></div>
+          <div class="lp-app-quick">
+            <span class="lp-caret" id="pv-input"></span><b id="pv-add">Add</b>
+            <div class="lp-pv-popup" id="pv-popup" hidden></div>
+          </div>
+          <div class="lp-app-toolbar">
+            <b>Plan</b>
+            <div class="lp-seg"><span>1 day</span><span class="on">2 days</span><span>Week</span><span>List</span></div>
+          </div>
           <div class="lp-app-grid">
             <div class="lp-app-days">
               <div class="lp-day">
                 <div class="lp-day-head is-today"><b>Today</b> <span data-lp-date="0"></span></div>
-                <div class="lp-todo">
-                  <div class="m-card p1"><i></i>Finish launch doc <s class="m-tag" style="--c:#5f3dc4">#w</s><u>P1</u></div>
-                  <div class="m-card p2"><i></i>Reply to Sam <u>P2</u></div>
-                </div>
-                <div class="lp-cal">
-                  <div class="m-now" style="top:34%"></div>
-                  <div class="m-event p2" style="top:8%;height:22%"><i></i>Design review<small>10:00–11:00</small></div>
-                  <div class="m-event p3" style="top:56%;height:18%"><i></i>Gym <s class="m-tag" style="--c:#2b8a3e">#p</s><small>6:00–7:00 PM</small></div>
+                <div class="lp-todo" id="pv-todo"></div>
+                <div class="lp-cal" id="pv-cal">
+                  <div class="m-now" style="top:30%"></div>
+                  <div class="m-event p2" style="top:6%;height:20%"><i></i>Design review<small>10:00–11:00 AM</small></div>
+                  <div class="m-event p3" style="top:46%;height:18%"><i></i>Gym <s class="m-tag" style="--c:#2b8a3e">#p</s><small>6:00–7:00 PM</small></div>
                 </div>
               </div>
               <div class="lp-day">
@@ -139,7 +145,7 @@
                   <div class="m-card p3"><i></i>Plan weekend trip <u>P3</u></div>
                 </div>
                 <div class="lp-cal">
-                  <div class="m-event p1" style="top:62%;height:16%"><i></i>Dentist appointment<small>5:00–5:30 PM</small></div>
+                  <div class="m-event p1" style="top:52%;height:16%"><i></i>Dentist appointment<small>5:00–5:30 PM</small></div>
                 </div>
               </div>
             </div>
@@ -150,14 +156,20 @@
               <div class="m-card done"><i class="on"></i>Standup notes</div>
             </div>
           </div>
-          <div class="lp-app-lists">
-            <div class="lp-list lp-list-overdue"><b>@overdue</b><div class="m-card p0">Call the insurer</div></div>
+          <div class="lp-app-lists" id="pv-lists">
+            <div class="lp-list lp-list-overdue" id="pv-overdue"><b>@overdue</b><div class="m-card p0">Call the insurer</div></div>
             <div class="lp-list"><b>@triage</b><div class="m-card p0">Renew passport</div><div class="m-card p0">Call the bank</div></div>
             <div class="lp-list"><b>@kitchenReno</b><div class="m-card p1">Get 3 contractor quotes <u>P1</u></div><div class="m-card p0">Pick cabinet colour</div></div>
-            <div class="lp-list"><b>@weekendBirdhouse</b><div class="m-card p0">Buy cedar planks</div><div class="m-card p3">Find a 1.5" hole saw <u>P3</u></div></div>
+            <div class="lp-list"><b>@birdhouse</b><div class="m-card p0">Buy cedar planks</div><div class="m-card p3">Find a 1.5" hole saw <u>P3</u></div></div>
           </div>
         </div>
+        <svg class="lp-hand" id="pv-cursor" viewBox="0 0 24 24" width="26" height="26" aria-hidden="true"><path d="M5 3l14 8-6 1.5L10 19z" fill="#111827" stroke="#fff" stroke-width="1.5" stroke-linejoin="round"/></svg>
       </div>
+      <ul class="lp-preview-notes">
+        <li><b>Live preview</b> shows where a task will land before you add it</li>
+        <li><b>Calendar or list view</b>: 1 day, 2 days, a week, or one scrolling list</li>
+        <li><b>@overdue</b> holds yesterday's leftovers until you re-plan them</li>
+      </ul>
     </section>
 
 
@@ -237,7 +249,7 @@
       </div>
       <div class="lp-dnd" id="lp-dnd" aria-hidden="true">
         <div class="lp-dnd-panel">
-          <div class="lp-dnd-title">@weekendBirdhouse</div>
+          <div class="lp-dnd-title">@birdhouse</div>
           <div class="lp-dnd-cards" id="dnd-list"></div>
         </div>
         <div class="lp-dnd-panel lp-dnd-today">
@@ -266,13 +278,14 @@
         </article>
         <article class="lp-feature">
           <div class="lp-icon"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/><path d="M8 14h3v3H8z"/></svg></div>
-          <h3>A plan you can see</h3>
-          <p>Each day's to-do list and calendar side by side. Switch between 1 day, 2 days, a week or a scrolling list.</p>
+          <h3>Calendar or list, your call</h3>
+          <p>See your plan as a calendar (1 day, 2 days or a week, with to-do lists above the hours) or as one
+             scrolling list of days. Switch with one click.</p>
         </article>
         <article class="lp-feature">
           <div class="lp-icon"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M8 6h13M8 12h13M8 18h13"/><circle cx="3.5" cy="6" r="1"/><circle cx="3.5" cy="12" r="1"/><circle cx="3.5" cy="18" r="1"/></svg></div>
           <h3>A list for every project</h3>
-          <p>Give each project its own list, like @kitchenReno or @weekendBirdhouse, and grow it as you
+          <p>Give each project its own list, like @kitchenReno or @birdhouse, and grow it as you
              figure it out. @triage catches everything else.</p>
         </article>
         <article class="lp-feature">

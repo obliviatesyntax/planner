@@ -32,7 +32,7 @@ const Landing = (() => {
     'Call mom tonight',
     'Renew passport',
     'Gym Friday 6-7pm',
-    'Buy cedar planks @weekendBirdhouse',
+    'Buy cedar planks @birdhouse',
     'Finish the report today at 2pm p1 #work',
   ];
   const LABEL_COLORS_DEMO = { personal: '#2b8a3e', work: '#5f3dc4', health: '#c2255c' };
@@ -74,61 +74,141 @@ const Landing = (() => {
       await sleep(2600);
     }
   }
+
+  // ---- animation helpers -----------------------------------------------------------
+
+  // A pretend cursor on a "stage" element: move it around, and carry a card from A to B.
+  function animator(stage, cursor) {
+    let cur = { x: 40, y: 40 };
+    // Position of an element inside the stage.
+    function at(el) {
+      const r = el.getBoundingClientRect(), s0 = stage.getBoundingClientRect();
+      return { x: r.left - s0.left, y: r.top - s0.top, w: r.width, h: r.height };
+    }
+    function moveCursor(to, ms = 650) {
+      const from = cur;
+      cur = to;
+      return cursor.animate([{ transform: `translate(${from.x}px, ${from.y}px)` }, { transform: `translate(${to.x}px, ${to.y}px)` }],
+        { duration: ms, easing: 'cubic-bezier(.4,0,.2,1)', fill: 'forwards' }).finished;
+    }
+    // Pick up `el`, carry it (with the cursor) to `target`, then call drop().
+    async function carry(el, target, drop) {
+      const from = at(el);
+      await moveCursor({ x: from.x + 28, y: from.y + from.h / 2 });
+      const ghost = el.cloneNode(true);
+      ghost.classList.add('lp-ghost');
+      Object.assign(ghost.style, { left: `${from.x}px`, top: `${from.y}px`, width: `${from.w}px` });
+      stage.appendChild(ghost);
+      el.style.visibility = 'hidden';
+      await sleep(150);
+      const to = at(target);
+      const dx = to.x - from.x, dy = to.y - from.y;
+      const ms = 900;
+      await Promise.all([
+        ghost.animate([{ transform: 'translate(0,0) rotate(0)' }, { transform: `translate(${dx / 2}px, ${dy / 2}px) rotate(-2deg)` }, { transform: `translate(${dx}px, ${dy}px) rotate(0)` }],
+          { duration: ms, easing: 'cubic-bezier(.4,0,.2,1)', fill: 'forwards' }).finished,
+        moveCursor({ x: to.x + 28, y: to.y + from.h / 2 }, ms),
+      ]);
+      ghost.remove();
+      el.remove();
+      drop();
+    }
+    return { at, moveCursor, carry };
+  }
+
+  const card = (text, extra = '') => `<div class="m-card p0 ${extra}"><i></i>${text}</div>`;
+
+  // ---- the app preview at the top ------------------------------------------------
+  // Types "Call mom at 9PM" (the live preview popup shows where it'll go), adds it to today's
+  // calendar, then drags the @overdue task onto today's to-do list; @overdue disappears.
+
+  const pv = document.getElementById('pv');
+  const pvInput = document.getElementById('pv-input');
+  const pvPopup = document.getElementById('pv-popup');
+  const pvTodo = document.getElementById('pv-todo');
+  const pvCal = document.getElementById('pv-cal');
+  const pvOverdue = document.getElementById('pv-overdue');
+  const PV_TEXT = 'Call mom at 9PM';
+
+  function pvReset() {
+    pvInput.textContent = '';
+    pvPopup.hidden = true;
+    pvTodo.innerHTML = '<div class="m-card p1"><i></i>Finish launch doc <s class="m-tag" style="--c:#5f3dc4">#w</s><u>P1</u></div>'
+      + '<div class="m-card p2"><i></i>Reply to Sam <u>P2</u></div>';
+    pvCal.querySelectorAll('.lp-new').forEach(el => el.remove());
+    pvOverdue.classList.remove('lp-gone');
+    pvOverdue.hidden = false;
+    pvOverdue.innerHTML = '<b>@overdue</b>' + card('Call the insurer');
+  }
+  function pvShowPopup(text) {
+    pvPopup.innerHTML = `${describe(text)}<span class="lp-pv-hint">Enter to add</span>`;
+    pvPopup.hidden = false;
+  }
+  const pvEvent = '<div class="m-event p0 lp-pop lp-new" style="top:78%;height:16%"><i></i>Call mom<small>9:00–9:30 PM</small></div>';
+
+  let pvRunning = false;
+  async function pvLoop() {
+    if (!pv || pvRunning) return;
+    pvRunning = true;
+    const a = animator(pv, document.getElementById('pv-cursor'));
+    while (!page.hidden) {
+      pvReset();
+      if (reduceMotion) {   // a still picture: the text typed, its preview showing
+        pvInput.textContent = PV_TEXT;
+        pvShowPopup(PV_TEXT);
+        return;
+      }
+      await sleep(1000);
+      // 1. Type, with the live preview updating as words arrive
+      await a.moveCursor((({ x, y }) => ({ x: x + 40, y: y + 10 }))(a.at(pvInput)), 500);
+      for (let n = 1; n <= PV_TEXT.length; n++) {
+        pvInput.textContent = PV_TEXT.slice(0, n);
+        if (n >= 4) pvShowPopup(PV_TEXT.slice(0, n));
+        await sleep(n === 8 ? 450 : 70);   // a little pause after "Call mom"
+      }
+      await sleep(1300);
+      // 2. Press Enter: it lands on today's calendar at 9 PM
+      document.getElementById('pv-add').classList.add('pressed');
+      await sleep(160);
+      document.getElementById('pv-add').classList.remove('pressed');
+      pvInput.textContent = '';
+      pvPopup.hidden = true;
+      pvCal.insertAdjacentHTML('beforeend', pvEvent);
+      await sleep(1200);
+      // 3. Drag yesterday's leftover from @overdue onto today's to-do list
+      pvTodo.insertAdjacentHTML('beforeend', card('Call the insurer', 'lp-landing'));
+      const landing = pvTodo.lastElementChild;
+      await a.carry(pvOverdue.querySelector('.m-card'), landing, () => landing.classList.remove('lp-landing'));
+      // …and the now-empty @overdue list goes away
+      await sleep(250);
+      pvOverdue.classList.add('lp-gone');
+      await sleep(450);
+      pvOverdue.hidden = true;
+      await sleep(2800);
+    }
+    pvRunning = false;
+  }
+
   // ---- the drag-and-drop demo ----------------------------------------------------
   // A pretend cursor drags a project task onto today, another onto 6 PM, then ticks one off.
 
   const stage = document.getElementById('lp-dnd');
-  const cursor = document.getElementById('dnd-cursor');
   const listBox = document.getElementById('dnd-list');
   const todoBox = document.getElementById('dnd-todo');
   const calBox = document.getElementById('dnd-cal');
   const slot = document.getElementById('dnd-slot');
-  let cur = { x: 40, y: 40 };
 
-  const card = (text, extra = '') => `<div class="m-card p0 ${extra}"><i></i>${text}</div>`;
   function resetBoard() {
     listBox.innerHTML = card('Buy cedar planks') + card('Cut the roof panels') + card('Paint it blue');
     todoBox.innerHTML = card('Reply to Sam');
     calBox.querySelectorAll('.m-event').forEach(el => el.remove());
-  }
-  // Position of an element inside the stage.
-  function at(el) {
-    const r = el.getBoundingClientRect(), s0 = stage.getBoundingClientRect();
-    return { x: r.left - s0.left, y: r.top - s0.top, w: r.width, h: r.height };
-  }
-  function moveCursor(to, ms = 650) {
-    const from = cur;
-    cur = to;
-    return cursor.animate([{ transform: `translate(${from.x}px, ${from.y}px)` }, { transform: `translate(${to.x}px, ${to.y}px)` }],
-      { duration: ms, easing: 'cubic-bezier(.4,0,.2,1)', fill: 'forwards' }).finished;
-  }
-  // Pick up `el`, carry it (with the cursor) to `target`, then call drop().
-  async function carry(el, target, drop) {
-    const from = at(el);
-    await moveCursor({ x: from.x + 28, y: from.y + from.h / 2 });
-    const ghost = el.cloneNode(true);
-    ghost.classList.add('lp-ghost');
-    Object.assign(ghost.style, { left: `${from.x}px`, top: `${from.y}px`, width: `${from.w}px` });
-    stage.appendChild(ghost);
-    el.style.visibility = 'hidden';
-    await sleep(150);
-    const to = at(target);
-    const dx = to.x - from.x, dy = to.y - from.y;
-    const ms = 900;
-    await Promise.all([
-      ghost.animate([{ transform: 'translate(0,0) rotate(0)' }, { transform: `translate(${dx / 2}px, ${dy / 2}px) rotate(-2deg)` }, { transform: `translate(${dx}px, ${dy}px) rotate(0)` }],
-        { duration: ms, easing: 'cubic-bezier(.4,0,.2,1)', fill: 'forwards' }).finished,
-      moveCursor({ x: to.x + 28, y: to.y + from.h / 2 }, ms),
-    ]);
-    ghost.remove();
-    el.remove();
-    drop();
   }
 
   let dndRunning = false;
   async function dndLoop() {
     if (!stage || dndRunning) return;
     dndRunning = true;
+    const { at, moveCursor, carry } = animator(stage, document.getElementById('dnd-cursor'));
     while (!page.hidden) {
       resetBoard();
       if (reduceMotion) {   // just show the end result
@@ -157,7 +237,7 @@ const Landing = (() => {
     dndRunning = false;
   }
 
-  function start() { play(); dndLoop(); }
+  function start() { play(); pvLoop(); dndLoop(); }
   if (!page.hidden) start();
   return { play: start };
 })();
