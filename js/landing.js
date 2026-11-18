@@ -32,7 +32,7 @@ const Landing = (() => {
     'Call mom tonight',
     'Renew passport',
     'Gym Friday 6-7pm',
-    'Book flights @travel',
+    'Buy cedar planks @weekendBirdhouse',
     'Finish the report today at 2pm p1 #work',
   ];
   const LABEL_COLORS_DEMO = { personal: '#2b8a3e', work: '#5f3dc4', health: '#c2255c' };
@@ -75,7 +75,7 @@ const Landing = (() => {
     }
   }
   // ---- the drag-and-drop demo ----------------------------------------------------
-  // A pretend cursor drags "Renew passport" onto today, "Gym" onto 6 PM, then ticks a task off.
+  // A pretend cursor drags a project task onto today, another onto 6 PM, then ticks one off.
 
   const stage = document.getElementById('lp-dnd');
   const cursor = document.getElementById('dnd-cursor');
@@ -87,7 +87,7 @@ const Landing = (() => {
 
   const card = (text, extra = '') => `<div class="m-card p0 ${extra}"><i></i>${text}</div>`;
   function resetBoard() {
-    listBox.innerHTML = card('Renew passport') + card('Gym') + card('Book flights');
+    listBox.innerHTML = card('Buy cedar planks') + card('Cut the roof panels') + card('Paint it blue');
     todoBox.innerHTML = card('Reply to Sam');
     calBox.querySelectorAll('.m-event').forEach(el => el.remove());
   }
@@ -132,22 +132,22 @@ const Landing = (() => {
     while (!page.hidden) {
       resetBoard();
       if (reduceMotion) {   // just show the end result
-        listBox.innerHTML = card('Book flights');
-        todoBox.innerHTML = card('Reply to Sam') + card('Renew passport', 'done');
-        calBox.insertAdjacentHTML('beforeend', '<div class="m-event p0" style="top:33.3%;height:33.3%"><i></i>Gym<small>6:00–7:00 PM</small></div>');
+        listBox.innerHTML = card('Paint it blue');
+        todoBox.innerHTML = card('Reply to Sam') + card('Buy cedar planks', 'done');
+        calBox.insertAdjacentHTML('beforeend', '<div class="m-event p0" style="top:33.3%;height:33.3%"><i></i>Cut the roof panels<small>6:00–7:00 PM</small></div>');
         return;
       }
       await sleep(900);
-      // 1. "Renew passport" → today's to-do list (a placeholder shows where it lands)
-      todoBox.insertAdjacentHTML('beforeend', card('Renew passport', 'lp-landing'));
+      // 1. "Buy cedar planks" → today's to-do list (a placeholder shows where it lands)
+      todoBox.insertAdjacentHTML('beforeend', card('Buy cedar planks', 'lp-landing'));
       const landing = todoBox.lastElementChild;
       await carry(listBox.children[0], landing, () => landing.classList.remove('lp-landing'));
       await sleep(500);
-      // 2. "Gym" → 6 PM on the calendar
+      // 2. "Cut the roof panels" → 6 PM on the calendar
       await carry(listBox.children[0], slot, () => calBox.insertAdjacentHTML('beforeend',
-        '<div class="m-event p0 lp-pop" style="top:33.3%;height:33.3%"><i></i>Gym<small>6:00–7:00 PM</small></div>'));
+        '<div class="m-event p0 lp-pop" style="top:33.3%;height:33.3%"><i></i>Cut the roof panels<small>6:00–7:00 PM</small></div>'));
       await sleep(600);
-      // 3. Tick "Renew passport" off
+      // 3. Tick "Buy cedar planks" off
       const box = at(landing.querySelector('i'));
       await moveCursor({ x: box.x + 4, y: box.y + 4 });
       landing.classList.add('done');

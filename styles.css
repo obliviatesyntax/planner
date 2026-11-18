@@ -594,6 +594,25 @@ html { scroll-behavior: smooth; }
 .lp-chip-p3 { background: var(--p3-soft); color: var(--p3); border-color: transparent; }
 .lp-chip-label { background: var(--c); color: #fff; border-color: transparent; }
 
+/* why Planner */
+.lp-why { display: grid; grid-template-columns: repeat(3, 1fr); gap: 18px; }
+.lp-why-card { background: var(--panel); border: 1px solid var(--line); border-radius: 14px; padding: 24px; box-shadow: var(--shadow); }
+.lp-why-card h3 { margin: 0 0 6px; font-size: 17px; }
+.lp-why-card p { margin: 0; color: #4b5563; line-height: 1.55; }
+.lp-compare {
+  margin: 28px auto 0; max-width: 900px; background: var(--panel); border: 1px solid var(--line);
+  border-radius: 14px; overflow: hidden; box-shadow: var(--shadow); font-size: 14.5px;
+}
+.lp-compare-row { display: grid; grid-template-columns: 1fr 1.3fr 1.3fr; }
+.lp-compare-row > span { padding: 13px 18px; border-top: 1px solid var(--line-soft); }
+.lp-compare-row > span:first-child { font-weight: 600; }
+.lp-compare-row > span:nth-child(2) { color: var(--muted); }
+.lp-compare-row > span:nth-child(3) { background: #f5f7ff; font-weight: 600; color: #3730a3; }
+.lp-compare-row > span:nth-child(3)::before { content: "✓ "; color: var(--done); }
+.lp-compare-head > span { border-top: 0; font-size: 12px; text-transform: uppercase; letter-spacing: .06em; color: var(--muted) !important; font-weight: 700; }
+.lp-compare-head > span:nth-child(3) { color: var(--accent) !important; }
+.lp-compare-head > span:nth-child(3)::before { content: ""; }
+
 /* "power users" note under the typing demo */
 .lp-power { text-align: center; color: var(--muted); font-size: 14px; margin: 18px 0 0; }
 .lp-power code { font: 12.5px ui-monospace, SFMono-Regular, Menlo, monospace; background: var(--panel); border: 1px solid var(--line); border-radius: 4px; padding: 1px 5px; }
@@ -687,6 +706,7 @@ html { scroll-behavior: smooth; }
   .lp-auth { justify-content: stretch; }
   .lp-auth .signin-card { max-width: none; }
   .lp-features, .lp-steps { grid-template-columns: 1fr 1fr; }
+  .lp-why { grid-template-columns: 1fr; }
   .lp-price { grid-template-columns: 1fr; padding: 28px; }
   .lp-window { transform: none; }
 }
@@ -705,6 +725,11 @@ html { scroll-behavior: smooth; }
   .lp-features, .lp-steps { grid-template-columns: 1fr; }
   .lp-demo-box { padding: 18px; }
   .lp-dnd { grid-template-columns: 1fr; padding: 14px; }
+  .lp-compare { font-size: 13px; }
+  .lp-compare-row { grid-template-columns: 1fr 1fr; }
+  .lp-compare-row > span:first-child { grid-column: 1 / -1; padding-bottom: 0; border-top: 1px solid var(--line); }
+  .lp-compare-row > span:nth-child(2), .lp-compare-row > span:nth-child(3) { border-top: 0; }
+  .lp-compare-head > span:first-child { display: none; }
   .lp-demo-input { font-size: 16px; }
   .lp-final { margin: 48px 16px 0; padding: 44px 20px; }
   .lp-footer .muted:last-child { margin-left: 0; }
