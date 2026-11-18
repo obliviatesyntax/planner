@@ -19,18 +19,19 @@ const CALENDAR = {
   startHour: 0,          // the grid covers the whole day (scroll to see it all)…
   endHour: 24,
   slotMinutes: 30,       // one grid line every 30 minutes
-  slotPx: 24,            // height of one slot in pixels
+  slotPx: 20,            // height of one slot in pixels
   snapMinutes: 15,       // dropped/resized blocks snap to 15 minutes
-  defaultDuration: 30,   // a task dropped on the calendar starts 30 minutes long
-  // …but the visible window starts a little before now and is only as tall as needed:
-  // enough to reach the last task coming up today, between minHours and maxHours.
-  view: { beforeNow: 60, minHours: 4, maxHours: 9 },
+  // …but the visible window starts an hour before now (rounded down to the hour) and is as
+  // tall as needed to reach the end of today's last upcoming task (+30 min), between
+  // minHours (a setting, default 6) and maxHours. The 1-day view always shows at least oneDayHours.
+  view: { beforeNow: 60, maxHours: 12, oneDayHours: 12 },
 };
 
-// The Plan section's three views.
+// The Plan section's views.
 const PLAN_VIEWS = [
-  { id: 'cal2', label: 'Calendar: 2 days', days: 2 },
-  { id: 'week', label: 'Calendar: Week',   days: 7 },
+  { id: 'cal1', label: '1 day', days: 1 },
+  { id: 'cal2', label: '2 days', days: 2 },
+  { id: 'week', label: 'Week',   days: 7 },
   { id: 'list', label: 'List' },
 ];
 

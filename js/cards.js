@@ -22,9 +22,10 @@ const Cards = (() => {
           ${where === 'calendar' ? `<span class="time">${time}</span>` : ''}
           ${Labels.tagsHtml(task)}
         </div>
-        <button type="button" class="lbl-btn" title="Labels">#</button>
-        <button type="button" class="prio" title="${PRIORITIES[task.priority]} (click to change)">P${task.priority}</button>
         ${where === 'list' || where === 'plan' ? '<button type="button" class="del" title="Delete">×</button>' : ''}
+        <button type="button" class="lbl-btn" title="Labels">#</button>
+        <!-- Priority is always last, so it never moves when the hover buttons (× #) appear. -->
+        <button type="button" class="prio" title="${PRIORITIES[task.priority]} (click to change)">P${task.priority}</button>
         ${where === 'calendar' ? '<div class="resize" title="Drag to change length"></div>' : ''}
       </div>`;
   }

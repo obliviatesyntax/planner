@@ -53,15 +53,19 @@ const Tasks = (() => {
     listeners.forEach(fn => fn());
   }
 
-  // Unfinished tasks committed to a past day (to-do list or calendar) go back to @triage,
-  // so each day starts clean. Runs at start-up and every minute (for midnight).
+  // Unfinished tasks committed to a past day (to-do list or calendar) move on: to @triage
+  // (default), or to today's to-do list if the "end of the day" setting says so.
+  // Runs at start-up and every minute (for midnight). Returns how many moved.
   function rollover() {
     const today = todayISO();
+    const toToday = Settings.get('rolloverTo') === 'nextDay';
     const late = tasks.filter(t => !t.doneOn && t.planDate && t.planDate < today);
     late.forEach(t => {
-      Object.assign(t, { planDate: null, startMin: null, list: TRIAGE_LIST.id, order: 1e6 + t.order });
+      Object.assign(t, toToday
+        ? { planDate: today, startMin: null, order: 1e6 + t.order }
+        : { planDate: null, startMin: null, list: TRIAGE_LIST.id, order: 1e6 + t.order });
     });
-    if (late.length) { renumber(listTasks(TRIAGE_LIST.id)); commit(); }
+    if (late.length) { renumber(toToday ? planList(today) : listTasks(TRIAGE_LIST.id)); commit(); }
     return late.length;
   }
 
@@ -103,13 +107,13 @@ const Tasks = (() => {
 
   // New tasks go to a list (default @triage), unless a day (planDate) or a calendar
   // time (planDate + startMin) is given.
-  function add({ title, priority = 2, labels: labelIds = [], list: listId = TRIAGE_LIST.id,
+  function add({ title, priority = Settings.get('defaultPriority'), labels: labelIds = [], list: listId = TRIAGE_LIST.id,
                  planDate = null, startMin = null, duration = null }) {
     title = (title || '').trim();
     if (!title) return null;
     const task = {
       id: newId(), title, priority, labels: labelIds, list: listId,
-      planDate, startMin: planDate ? startMin : null, duration: duration || CALENDAR.defaultDuration,
+      planDate, startMin: planDate ? startMin : null, duration: duration || Settings.get('defaultDuration'),
       order: 0, createdAt: new Date().toISOString(), doneOn: null,
     };
     tasks.push(task);

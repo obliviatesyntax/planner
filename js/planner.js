@@ -29,7 +29,8 @@ const Calendar = (() => {
   // Which part of the day to show for these dates: { start, span } in minutes.
   // With today on screen: from an hour before now, tall enough to reach today's last
   // upcoming task. Otherwise: from just before the earliest task on the days shown.
-  function viewWindow(dates) {
+  // minHours: the smallest window (a setting; bigger for the 1-day view).
+  function viewWindow(dates, minHours = Settings.get('minHours')) {
     const today = todayISO();
     const now = minutesNow();
     const events = dates.flatMap(d => Tasks.calendarList(d).filter(Labels.matches).map(t => ({ ...t, date: d })));
@@ -41,10 +42,10 @@ const Calendar = (() => {
       anchor = events.length ? Math.min(...events.map(t => t.startMin)) - 30 : 8 * 60;
       relevant = events;
     }
-    const maxStart = endHour * 60 - view.minHours * 60;
+    const maxStart = endHour * 60 - minHours * 60;
     const start = Math.max(startHour * 60, Math.min(maxStart, Math.floor(anchor / 60) * 60));
     const lastEnd = Math.max(0, ...relevant.filter(t => t.startMin + t.duration > start).map(t => t.startMin + t.duration));
-    const span = Math.min(endHour * 60 - start, view.maxHours * 60, Math.max(view.minHours * 60, lastEnd + 30 - start));
+    const span = Math.min(endHour * 60 - start, Math.max(view.maxHours, minHours) * 60, Math.max(minHours * 60, lastEnd + 30 - start));
     return { start, span };
   }
 
@@ -188,7 +189,7 @@ const Calendar = (() => {
 
 const Planner = (() => {
   const root = document.getElementById('planner');
-  let view = 'cal2';           // one of PLAN_VIEWS
+  let view = null;             // one of PLAN_VIEWS; starts as the "Plan opens in" setting
   let start = todayISO();      // first day shown (calendar views)
   let userScrolled = false;    // once you scroll yourself, re-renders keep your position
 
@@ -240,6 +241,7 @@ const Planner = (() => {
   // ---- calendar views (2 days / week) ----------------------------------------
 
   function calendarHtml(days) {
+    if (days.length === 1) return oneDayHtml(days[0]);
     const today = todayISO();
     const upcoming = days.filter(d => !isPast(d));
     const win = upcoming.length ? Calendar.viewWindow(upcoming) : null;
@@ -265,6 +267,37 @@ const Planner = (() => {
     return { html, win };
   }
 
+  // 1-day view: the day's to-do list on the left, a tall calendar on the right, so a wide
+  // screen is used side by side instead of stacking a short calendar under the list.
+  function oneDayHtml(date) {
+    const today = todayISO();
+    const head = `
+      <div class="day-head ${date === today ? 'is-today' : ''} ${isPast(date) ? 'is-past' : ''}">
+        <b>${dayName(date)}</b> <span class="muted">${shortDate(date)}</span>
+      </div>`;
+    if (isPast(date)) {
+      return { html: `<div class="plan-days one-day past">${head}${doneCellHtml(date, 'tall')}</div>`, win: null };
+    }
+    const win = Calendar.viewWindow([date], Math.max(Settings.get('minHours'), CALENDAR.view.oneDayHours));
+    const html = `
+      <div class="plan-days one-day">
+        <div class="od-todo">
+          ${head}
+          <div class="row-label od-label">To do</div>
+          ${todoCellHtml(date)}
+        </div>
+        <div class="od-cal">
+          <div class="cal-scroll" style="height:${win.span * Calendar.pxPerMinute()}px">
+            <div class="plan-grid cal-grid" style="--days:1">
+              ${Calendar.gutterHtml()}
+              ${Calendar.dayHtml(date)}
+            </div>
+          </div>
+        </div>
+      </div>`;
+    return { html, win };
+  }
+
   // ---- list view ----------------------------------------------------------------
 
   function listViewHtml() {
@@ -284,6 +317,7 @@ const Planner = (() => {
   // ---- render -------------------------------------------------------------------
 
   function render() {
+    if (!view) { view = Settings.get('defaultView'); start = firstDay(); }
     const info = viewInfo();
     const days = info.days ? Array.from({ length: info.days }, (_, i) => addDays(start, i)) : null;
     const old = root.querySelector('.cal-scroll, .plan-listview');
@@ -297,7 +331,7 @@ const Planner = (() => {
           ${days ? '<button type="button" data-nav="-1" title="Earlier">‹</button>' : ''}
           <button type="button" data-nav="0">Today</button>
           ${days ? `<button type="button" data-nav="1" title="Later">›</button>
-          <span class="muted">${formatDay(days[0])} – ${formatDay(days[days.length - 1])}</span>` : ''}
+          <span class="muted">${days.length > 1 ? `${formatDay(days[0])} – ${formatDay(days[days.length - 1])}` : formatDay(days[0])}</span>` : ''}
         </div>
         <div class="seg">
           ${PLAN_VIEWS.map(v => `<button type="button" data-view="${v.id}" class="${v.id === view ? 'active' : ''}">${v.label}</button>`).join('')}
@@ -312,7 +346,7 @@ const Planner = (() => {
     const scroller = root.querySelector('.cal-scroll, .plan-listview');
     if (scroller) {
       if (keepScroll !== null) scroller.scrollTop = keepScroll;
-      else if (cal) scroller.scrollTop = Calendar.topPx(cal.win.start);
+      else if (cal && cal.win) scroller.scrollTop = Calendar.topPx(cal.win.start);
       else scroller.scrollTop = root.querySelector('#lv-today').offsetTop - scroller.offsetTop;
       if (cal) {
         Calendar.updateHints(scroller);
@@ -340,12 +374,19 @@ const Planner = (() => {
     }
   });
 
-  // 2-day view starts today; the week view starts on this week's Monday.
+  // Day views start today; the week view starts on this week's Monday (or Sunday, per settings).
   function firstDay() {
     if (view !== 'week') return todayISO();
-    const weekday = (fromISO(todayISO()).getDay() + 6) % 7;   // Monday = 0
-    return addDays(todayISO(), -weekday);
+    const offset = Settings.get('weekStart') === 'sun' ? 0 : 1;
+    const back = (fromISO(todayISO()).getDay() - offset + 7) % 7;
+    return addDays(todayISO(), -back);
   }
 
-  return { render };
+  function setView(id) {
+    view = id;
+    start = firstDay();
+    userScrolled = false;
+  }
+
+  return { render, setView };
 })();

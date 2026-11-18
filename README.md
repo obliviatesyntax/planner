@@ -2,12 +2,15 @@
 
 A daily planner on one page:
 
-- **Top: Plan.** Three views: **Calendar: 2 days** (default), **Calendar: Week**, and **List** (days
-  scrolling down, with times shown). Each day has a **to-do list** and a **calendar**. Tick a task, or
+- **Top: Plan.** Four views: **1 day** (to-do and a tall calendar side by side), **2 days**
+  (default), **Week**, and **List** (days scrolling down, with times shown). Each day has a **to-do list** and a **calendar**. Tick a task, or
   drag it onto **Done today**, to complete it. Past days show only what was done (crossed out), so
   going back on the calendar *is* the done log. Unfinished tasks from past days go to **@triage**.
 - **Bottom: Lists.** **@triage** (always first) plus your own lists, like **@weekly** or **@upcomingE**.
   New tasks without a day land in @triage. Drag a list's header to reorder; × deletes it and its tasks.
+- **Settings** (header): default view, where unfinished tasks go at day end (@triage or the next
+  day), week start, 12/24-hour time, minimum calendar height, new task length and priority.
+  Saved on the account (Supabase user metadata), so they follow you across devices.
 - **Labels** (top chips): create your own (e.g. *Work #w*, *Personal #p*). Click chips to show only
   those labels' tasks; **All** shows everything.
 
@@ -61,6 +64,7 @@ contain both `{{ .Token }}` (the code) and `{{ .ConfirmationURL }}` (the link).
 | `js/cards.js` | How a task looks; checkbox, priority, delete, rename. |
 | `js/planner.js` | Top section: calendar and list views, past days' done tasks, Done today. |
 | `js/lists.js` | Bottom section: @triage and your lists; create, reorder, delete. |
+| `js/settings.js` | Per-person settings and the Settings window. Add new settings here. |
 | `js/dnd.js` | Drag and drop: tasks between lists, days, times and done; reordering lists. |
 | `js/app.js` | Quick add, page switching, header, backup, toast, start-up. |
 | `styles.css` | All styling; colours are variables at the top. |

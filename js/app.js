@@ -45,7 +45,7 @@ const App = (() => {
     const listId = named && typeof named !== 'string' ? named.id : where.list || TRIAGE_LIST.id;
     return Tasks.add({
       title: parsed.title,
-      priority: parsed.priority || 2,
+      priority: parsed.priority || Settings.get('defaultPriority'),
       labels: parsed.labels.length ? parsed.labels : Labels.selectedIds(),
       list: listId,
       planDate: named ? null : where.planDate || null,
@@ -180,6 +180,7 @@ const App = (() => {
   if (!user) return Auth.showSignIn();
   if (Auth.isFinishingSignup()) return Auth.showFinishSignup(user);   // back from a "Create account" link
   Auth.showApp(user);
+  Settings.load(user);
   try {
     await Tasks.init();
   } catch (err) {

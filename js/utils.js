@@ -29,10 +29,11 @@ function formatDay(iso) {
   return fromISO(iso).toLocaleDateString(undefined, { weekday: 'short', month: 'short', day: 'numeric' });
 }
 
-// 570 (minutes after midnight) -> "9:30 AM" (in your locale's style)
+// 570 (minutes after midnight) -> "9:30 AM", or "09:30" with the 24-hour setting
 function formatTime(minutes) {
   const date = new Date(2000, 0, 1, Math.floor(minutes / 60), minutes % 60);
-  return date.toLocaleTimeString(undefined, { hour: 'numeric', minute: '2-digit' });
+  const hour12 = typeof Settings === 'undefined' || Settings.get('clock') !== '24';
+  return date.toLocaleTimeString(undefined, { hour: hour12 ? 'numeric' : '2-digit', minute: '2-digit', hour12 });
 }
 
 function minutesNow() {
