@@ -148,8 +148,6 @@ button { cursor: pointer; }
 .tv-labels { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; }
 .tv-label-chip { border: 1px solid var(--line); background: var(--panel); border-radius: 99px; padding: 3px 10px; font-size: 12.5px; font-weight: 600; color: var(--muted); }
 .tv-label-chip.on { background: var(--c); border-color: var(--c); color: #fff; }
-.tv-new-label { border: 1px dashed var(--line); border-radius: 99px; padding: 3px 10px; font-size: 12.5px; outline: none; width: 190px; }
-.tv-new-label:focus { border-style: solid; border-color: var(--accent); }
 .tv-desc { display: flex; flex-direction: column; gap: 6px; }
 .tv-notes {
   font: inherit; font-size: 14px; line-height: 1.5; padding: 10px 12px; border: 1px solid var(--line); border-radius: 8px;
@@ -494,8 +492,6 @@ main { padding: 0 24px; max-width: 1480px; margin: 0 auto; }
 .lp-item .sc { color: var(--faint); font-size: 12px; margin-left: auto; }
 .lp-box { width: 14px; height: 14px; border-radius: 4px; border: 2px solid var(--c); flex: none; }
 .lp-item.on .lp-box { background: var(--c); box-shadow: inset 0 0 0 2px #fff; }
-.lp-new { margin-top: 4px; padding: 6px 8px; border: 1px solid var(--line); border-radius: var(--radius-sm); outline: none; }
-.lp-new:focus { border-color: var(--accent); }
 
 /* ---- footer & toast ----------------------------------------------------- */
 

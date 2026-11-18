@@ -5,7 +5,7 @@
 //   move         (at the bottom) Day (Today / Tomorrow / pick a date) · Time (optional; with a
 //                length) · List (choosing one takes it off the plan)
 //   priority     None / P1 / P2 / P3
-//   labels       tick on/off, or make a new one
+//   labels       tick on/off (only shown once labels exist; new ones are made at the top)
 //   description  free-form notes ("call before 5", links, addresses…)
 //   delete       with Undo
 //
@@ -55,14 +55,14 @@ const TaskView = (() => {
           </div>
         </div>
 
-        <div class="tv-row">
-          <span class="tv-label">Labels</span>
-          <div class="tv-labels">
-            ${Tasks.allLabels().map(l => `
-              <button type="button" class="tv-label-chip ${t.labels.includes(l.id) ? 'on' : ''}" data-label="${l.id}" style="--c:${l.color}">#${escapeHtml(l.shortcut)} ${escapeHtml(l.name)}</button>`).join('')}
-            <input class="tv-new-label" placeholder="+ New label, e.g. Health #h" maxlength="40">
-          </div>
-        </div>
+        ${Tasks.allLabels().length ? `
+          <div class="tv-row">
+            <span class="tv-label">Labels</span>
+            <div class="tv-labels">
+              ${Tasks.allLabels().map(l => `
+                <button type="button" class="tv-label-chip ${t.labels.includes(l.id) ? 'on' : ''}" data-label="${l.id}" style="--c:${l.color}">#${escapeHtml(l.shortcut)} ${escapeHtml(l.name)}</button>`).join('')}
+            </div>
+          </div>` : ''}
 
         <label class="tv-desc">
           <span class="tv-label">Description</span>
@@ -181,16 +181,6 @@ const TaskView = (() => {
 
   dialog.addEventListener('keydown', e => {
     if (e.target.matches('.tv-title') && e.key === 'Enter') { e.preventDefault(); e.target.blur(); }
-    if (e.target.matches('.tv-new-label') && e.key === 'Enter') {
-      e.preventDefault();
-      const text = e.target.value;
-      const match = text.match(/#(\w+)/);
-      const result = Tasks.addLabel(text.replace(/#\w+/g, '').trim(), match ? match[1] : '');
-      if (typeof result === 'string') return App.toast(result);
-      Tasks.update(id, { labels: [...Tasks.get(id).labels, result.id] });
-      draw();
-      dialog.querySelector('.tv-new-label').focus();
-    }
   });
 
   dialog.addEventListener('focusout', e => {

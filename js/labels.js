@@ -72,6 +72,8 @@ const Labels = (() => {
   });
 
   // ---- label picker: click "#" (or a tag) on a card to add/remove its labels ----
+  // Only tick existing labels here; new labels are made with "+" in the bar at the top.
+  // (The "#" button only shows on cards once at least one label exists.)
 
   const picker = document.createElement('div');
   picker.className = 'label-picker';
@@ -87,8 +89,6 @@ const Labels = (() => {
     const left = Math.min(r.left, window.innerWidth - picker.offsetWidth - 8);
     picker.style.left = `${Math.max(8, left) + window.scrollX}px`;
     picker.style.top = `${r.bottom + 4 + window.scrollY}px`;
-    const input = picker.querySelector('.lp-new');
-    if (!Tasks.allLabels().length) input.focus();
   }
 
   function renderPicker() {
@@ -99,8 +99,7 @@ const Labels = (() => {
       ${Tasks.allLabels().map(l => `
         <button type="button" class="lp-item ${task.labels.includes(l.id) ? 'on' : ''}" data-id="${l.id}" style="--c:${l.color}">
           <span class="lp-box"></span>${escapeHtml(l.name)} <span class="sc">#${l.shortcut}</span>
-        </button>`).join('')}
-      <input class="lp-new" placeholder="New label, e.g. Health #h" maxlength="40">`;
+        </button>`).join('')}`;
   }
 
   function closePicker() { picker.hidden = true; pickerTask = null; }
@@ -114,18 +113,7 @@ const Labels = (() => {
     renderPicker();
   });
 
-  picker.addEventListener('keydown', e => {
-    if (e.key === 'Escape') return closePicker();
-    if (e.key !== 'Enter' || !e.target.matches('.lp-new')) return;
-    const text = e.target.value;
-    const match = text.match(/#(\w+)/);
-    const result = Tasks.addLabel(text.replace(/#\w+/g, '').trim(), match ? match[1] : '');
-    if (typeof result === 'string') return App.toast(result);
-    const task = Tasks.get(pickerTask);
-    Tasks.update(task.id, { labels: [...task.labels, result.id] });   // new label goes straight onto the task
-    renderPicker();
-    picker.querySelector('.lp-new').focus();
-  });
+  picker.addEventListener('keydown', e => { if (e.key === 'Escape') closePicker(); });
 
   // Click anywhere else (or press Escape) to close.
   document.addEventListener('mousedown', e => {
