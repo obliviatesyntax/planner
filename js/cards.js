@@ -4,7 +4,7 @@
 //   P1/P2/P3  → click to cycle priority
 //   # / tags  → click to pick labels (labels.js → openPicker)
 //   ×         → delete (lists and to-do lists), with Undo
-//   title     → double-click to rename; shortcuts work there too ("… !1 #p" sets priority, adds label)
+//   title     → double-click to rename; shortcuts work there too ("… p1 #p" sets priority, adds label)
 //   drag      → see dnd.js
 
 const Cards = (() => {
@@ -65,7 +65,7 @@ const Cards = (() => {
       title.removeEventListener('keydown', onKey);
       title.removeEventListener('blur', onBlur);
       const text = title.textContent.trim();
-      const parsed = App.parseQuickAdd(text, { lists: false });   // "!1" and "#p" typed while renaming work too
+      const parsed = App.parseQuickAdd(text, { lists: false });   // "p1" and "#p" typed while renaming work too
       const task = Tasks.get(id);
       const changes = {};
       if (parsed.title && parsed.title !== task.title) changes.title = parsed.title;

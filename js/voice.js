@@ -7,10 +7,10 @@
 //   "… list weekly" / "… in list upcoming E"   → @weekly / @upcomingE
 //   "… at weekly"  (only if @weekly exists)     → @weekly
 //   "… label personal" / "… tag work"           → #p / #w   (the label's shortcut)
-//   "… priority one" / "… P1"                   → !1
+//   "… priority one" / "… P 1"                  → p1
 //   "5 p.m."                                    → 5pm        (dates/times then work as typed)
 //
-// Example: "Renew passport list weekly priority one" → "Renew passport @weekly !1"
+// Example: "Renew passport list weekly priority one" → "Renew passport @weekly p1"
 
 const Voice = (() => {
   const Recognition = window.SpeechRecognition || window.webkitSpeechRecognition;
@@ -55,8 +55,8 @@ const Voice = (() => {
   function toShortcuts(text) {
     let t = ` ${text} `;
     t = t.replace(/(\d)\s*([ap])\.?\s?m\.?(?=\W)/gi, '$1$2m');                       // 5 p.m. -> 5pm
-    t = t.replace(/\s(?:with\s+)?priority\s+(one|two|three|[123])(?=\W)/gi, (_, n) => ` !${NUMBERS[n.toLowerCase()]}`);
-    t = t.replace(/\sp\s?([123])(?=\W)/gi, ' !$1');                                    // "P1"
+    t = t.replace(/\s(?:with\s+)?priority\s+(one|two|three|[123])(?=\W)/gi, (_, n) => ` p${NUMBERS[n.toLowerCase()]}`);
+    t = t.replace(/\sp\s?([123])(?=\W)/gi, ' p$1');                                    // "P 1" -> p1
     t = t.replace(/\s(?:with\s+)?(?:label|tag|hashtag)\s+([a-z0-9]+)(?=\W)/gi, (m, word) => {
       const label = Tasks.findLabel(word);
       return label ? ` #${label.shortcut}` : m;

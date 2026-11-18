@@ -41,15 +41,15 @@ contain both `{{ .Token }}` (the code) and `{{ .ConfirmationURL }}` (the link).
   - `@listName` puts it in that list, creating the list if needed: `Renew passport @weekly`.
     (One word; camelCase is fine. An @list wins over a day/time.)
   - **Mic button:** speak instead of typing (Chrome, Edge, Safari). Say "list weekly" for `@weekly`,
-    "label personal" for `#p`, "priority one" for `!1`; the text appears in the box, press Enter.
-  - Neither: it goes to **@triage**. Also: `!1 !2 !3` priority · `#` + a label's shortcut.
+    "label personal" for `#p`, "priority one" for `p1`; the text appears in the box, press Enter.
+  - Neither: it goes to **@triage**. Also: `p1 p2 p3` priority · `#` + a label's shortcut.
 - **+ Add** under a day or list adds straight there; **click an empty calendar spot** to add at that
   time. The calendar shows from an hour before now (blue line) to today's last upcoming task;
   scroll for more, or click the "▲ earlier / ▼ later" pills.
 - **Drag** tasks between lists, days, times, "Done today" and past days (= done on that day).
   Drag a calendar block's bottom edge to change its length.
 - Hover a task: **#** labels · **×** delete · click **P1/P2/P3** to change priority ·
-  **double-click** the title to rename (`#p` / `!1` work there too).
+  **double-click** the title to rename (`#p` / `p1` work there too).
 
 ## Code map (read in this order)
 

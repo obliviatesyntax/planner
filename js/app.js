@@ -35,7 +35,7 @@ const App = (() => {
   //   { planDate: '2026-11-17' }                 that day's to-do list
   //   { planDate: '2026-11-17', startMin: 570 }  that day's calendar at 9:30
   // Shortcuts inside the text:
-  //   !1 !2 !3   priority            #p #work   labels (by shortcut or name, several allowed)
+  //   p1 p2 p3   priority            #p #work   labels (by shortcut or name, several allowed)
   //   @listName  that list (created if it doesn't exist yet)
   // With label filters selected at the top and no #label typed, the new task gets the
   // selected labels, so it doesn't vanish from view.
@@ -80,9 +80,10 @@ const App = (() => {
   // Pulls shortcuts out of the text. With { lists: false } (used when renaming), "@words" stay.
   function parseQuickAdd(text, { lists = true } = {}) {
     const out = { labels: [] };
-    const rest = text.replace(/(^|\s)([!#@])(\w+)/g, (match, space, sym, word) => {
+    // p1 / p2 / p3 as a word of its own (any case): priority
+    let rest = text.replace(/(^|\s)p([123])(?=\s|$)/gi, (match, space, n) => { out.priority = Number(n); return space; });
+    rest = rest.replace(/(^|\s)([#@])(\w+)/g, (match, space, sym, word) => {
       const w = word.toLowerCase();
-      if (sym === '!' && ['1', '2', '3'].includes(w)) { out.priority = Number(w); return space; }
       if (sym === '#') {
         const label = Tasks.findLabel(w);
         if (label) { if (!out.labels.includes(label.id)) out.labels.push(label.id); return space; }
