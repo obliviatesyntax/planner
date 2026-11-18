@@ -3,8 +3,8 @@
 // Sign in
 //   • Continue with Google / Apple / Facebook — only the providers turned on in Supabase
 //     (Authentication → Sign In / Providers) are shown; the page asks Supabase which ones.
-//   • Continue with email → then: password, or "Email me a sign-in link instead",
-//     or "Forgot password?" (emails a link to choose a new one).
+//   • Email + password on one screen; or "Email me a sign-in link"; or "Forgot password?"
+//     (emails a link to choose a new one — also how you change your password).
 // Create account
 //   • First name + email + password → Supabase stores the account and emails a confirmation
 //     link; clicking it confirms the address and signs you in. (If "Confirm email" is turned off
@@ -46,7 +46,7 @@ const Auth = (() => {
 
   // ---- panes ---------------------------------------------------------------
 
-  const PANES = ['signin-form', 'password-form', 'signup-form', 'sent-pane', 'newpass-form'];
+  const PANES = ['signin-form', 'signup-form', 'sent-pane', 'newpass-form'];
   function showPane(id, text = '', focus = true) {
     PANES.forEach(p => { $(p).hidden = p !== id; });
     const choosing = id === 'signin-form' || id === 'signup-form';
@@ -112,19 +112,28 @@ const Auth = (() => {
 
   // ---- sign in with email --------------------------------------------------------
 
-  $('signin-form').addEventListener('submit', e => {
-    e.preventDefault();
+  // The email box is needed for every option here; ask for it if it's empty.
+  function readEmail() {
     email = $('signin-email').value.trim();
-    $('who-email').textContent = email;
-    showPane('password-form');
-  });
+    if (!email || !$('signin-email').checkValidity()) {
+      say('Enter your email address first.', true);
+      $('signin-email').focus();
+      return false;
+    }
+    return true;
+  }
 
-  $('password-form').addEventListener('submit', async e => {
+  $('signin-form').addEventListener('submit', async e => {
     e.preventDefault();
-    busy($('password-form'), true);
+    if (!readEmail()) return;
+    if (!$('signin-password').value) {
+      say('Enter your password, or use "Email me a sign-in link".', true);
+      return $('signin-password').focus();
+    }
+    busy($('signin-form'), true);
     say('Signing in…');
     const { error } = await db.auth.signInWithPassword({ email, password: $('signin-password').value });
-    busy($('password-form'), false);
+    busy($('signin-form'), false);
     if (!error) return location.reload();
     if (/not confirmed/i.test(error.message)) {
       lastSend = { kind: 'confirm' };
@@ -133,12 +142,12 @@ const Auth = (() => {
       return sentText(`Please confirm your email first: we sent a link to ${email} when you signed up.`);
     }
     say(error.message === 'Invalid login credentials'
-      ? 'Wrong email or password. Try again, or use a sign-in link or "Forgot password?" below.'
+      ? 'Wrong email or password. Try again, or use "Email me a sign-in link" or "Forgot password?".'
       : `Could not sign in: ${error.message}`, true);
   });
 
-  $('send-link-btn').addEventListener('click', () => send({ kind: 'link' }));
-  $('forgot-btn').addEventListener('click', () => send({ kind: 'reset' }));
+  $('send-link-btn').addEventListener('click', () => readEmail() && send({ kind: 'link' }));
+  $('forgot-btn').addEventListener('click', () => readEmail() && send({ kind: 'reset' }));
   $('resend-btn').addEventListener('click', () => lastSend && send(lastSend));
 
   // Sends one of our emails and shows the "check your email" pane.
@@ -234,5 +243,11 @@ const Auth = (() => {
 
   function busy(form, on) { form.querySelectorAll('button').forEach(b => { b.disabled = on; }); }
 
-  return { currentUser, showSignIn, showApp, needsNewPassword, showNewPassword };
+  // Used by Settings → Password too. Returns an error, or null.
+  async function sendPasswordReset(address) {
+    const { error } = await db.auth.resetPasswordForEmail(address, { redirectTo: `${home()}?${RESET_PARAM}` });
+    return error;
+  }
+
+  return { currentUser, showSignIn, showApp, needsNewPassword, showNewPassword, displayName, sendPasswordReset };
 })();

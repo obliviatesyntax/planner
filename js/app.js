@@ -45,7 +45,7 @@ const App = (() => {
     const listId = named && typeof named !== 'string' ? named.id : where.list || TRIAGE_LIST.id;
     return Tasks.add({
       title: parsed.title,
-      priority: parsed.priority || Settings.get('defaultPriority'),
+      priority: parsed.priority || Settings.get('defaultPriority') || null,
       labels: parsed.labels.length ? parsed.labels : Labels.selectedIds(),
       list: listId,
       planDate: named ? null : where.planDate || null,

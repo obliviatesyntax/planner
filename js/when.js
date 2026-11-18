@@ -8,7 +8,7 @@
 //
 // Understands:
 //   days:      today, tonight, tomorrow (tmrw, tmr), monday…sunday (mon, tue, wed, thu, fri),
-//              "next friday", "nov 20", "20 nov"
+//              "next friday", "nov 20", "20 nov"; "tomorrow morning", "this evening", "friday night"
 //   times:     5pm, 5 PM, 5 p.m., 5:30pm, 17:00, noon, ranges like 5-6pm or 5pm to 6:30pm
 //   length:    "for 45 min", "for 1h", "for 1.5 hours"
 //   connectors "at", "on", "from" in front of these are removed too.
@@ -77,10 +77,14 @@ const When = (() => {
     });
 
     // ---- days ----------------------------------------------------------------
+    // A part of the day right after a day word belongs to it: "tomorrow morning", "friday evening".
+    // ("Morning yoga" is left alone: "morning" only goes when it follows a day, or "this"/"in the".)
+    const PART = '(?:\\s+(?:morning|afternoon|evening|night))?';
     const today = todayISO();
-    take(new RegExp(`\\s(?:on\\s+)?(today|tonight)${END}`, 'i'), () => { date = today; });
-    if (!date) take(new RegExp(`\\s(?:on\\s+)?(tomorrow|tmrw|tmr)${END}`, 'i'), () => { date = addDays(today, 1); });
-    if (!date) take(new RegExp(`\\s(?:on\\s+)?(next\\s+|this\\s+)?(${Object.keys(WEEKDAYS).join('|')})${END}`, 'i'), (_, which, day) => {
+    take(new RegExp(`\\s(?:this\\s+)(morning|afternoon|evening)${END}`, 'i'), () => { date = today; });
+    if (!date) take(new RegExp(`\\s(?:on\\s+)?(today|tonight)${PART}${END}`, 'i'), () => { date = today; });
+    if (!date) take(new RegExp(`\\s(?:on\\s+)?(tomorrow|tmrw|tmr)${PART}${END}`, 'i'), () => { date = addDays(today, 1); });
+    if (!date) take(new RegExp(`\\s(?:on\\s+)?(next\\s+|this\\s+)?(${Object.keys(WEEKDAYS).join('|')})${PART}${END}`, 'i'), (_, which, day) => {
       let ahead = (WEEKDAYS[day.toLowerCase()] - fromISO(today).getDay() + 7) % 7;
       if (ahead === 0 && which && /next/i.test(which)) ahead = 7;
       date = addDays(today, ahead);
@@ -95,6 +99,9 @@ const When = (() => {
         if (toISO(candidate) < today) candidate = new Date(now.getFullYear() + 1, month, day);
         date = toISO(candidate);
       });
+
+    // "… at 10am in the morning": with a day or time found, a leftover "in the morning" goes too.
+    if (date || startMin != null) take(new RegExp(`\\s(?:in\\s+the)\\s+(morning|afternoon|evening)${END}`, 'i'), () => {});
 
     if (startMin != null && !date) date = today;   // "5pm" alone means today
     if (startMin == null) duration = null;          // a length only matters on the calendar

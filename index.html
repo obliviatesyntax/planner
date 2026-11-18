@@ -67,19 +67,15 @@
           <div id="oauth-buttons" class="oauth-buttons"></div>
           <div class="or" id="oauth-or" hidden><span>or</span></div>
 
-          <!-- Sign in, step 1: email -->
+          <!-- Sign in: email + password, or an emailed link, or reset a forgotten password -->
           <form id="signin-form" class="signin-step" data-pane="signin">
             <input id="signin-email" type="email" required placeholder="Email address" autocomplete="email">
-            <button type="submit" class="primary">Continue with email</button>
-          </form>
-
-          <!-- Sign in, step 2: password, or an emailed link/code -->
-          <form id="password-form" class="signin-step" hidden>
-            <div class="who"><span id="who-email"></span><button type="button" class="link-btn" data-back>Change</button></div>
-            <input id="signin-password" type="password" required placeholder="Password" autocomplete="current-password">
+            <input id="signin-password" type="password" placeholder="Password" autocomplete="current-password">
             <button type="submit" class="primary">Sign in</button>
-            <button type="button" id="send-link-btn" class="secondary">Email me a sign-in link instead</button>
-            <button type="button" id="forgot-btn" class="link-btn">Forgot password?</button>
+            <div class="signin-alt">
+              <button type="button" id="send-link-btn" class="link-btn">Email me a sign-in link</button>
+              <button type="button" id="forgot-btn" class="link-btn">Forgot password?</button>
+            </div>
           </form>
 
           <!-- Create account -->
@@ -121,7 +117,7 @@
       <div class="lp-window">
         <div class="lp-window-bar"><span></span><span></span><span></span><em>planner</em></div>
         <div class="lp-app">
-          <div class="lp-app-quick"><span class="lp-caret">Dentist tomorrow 5pm p1 #personal</span><b>Add</b></div>
+          <div class="lp-app-quick"><span class="lp-caret">Dentist appointment tomorrow at 5 PM</span><b>Add</b></div>
           <div class="lp-app-grid">
             <div class="lp-app-days">
               <div class="lp-day">
@@ -142,7 +138,7 @@
                   <div class="m-card p3"><i></i>Plan weekend trip <u>P3</u></div>
                 </div>
                 <div class="lp-cal">
-                  <div class="m-event p1" style="top:62%;height:16%"><i></i>Dentist <s class="m-tag" style="--c:#2b8a3e">#p</s><small>5:00–5:30 PM</small></div>
+                  <div class="m-event p1" style="top:62%;height:16%"><i></i>Dentist appointment<small>5:00–5:30 PM</small></div>
                 </div>
               </div>
             </div>
@@ -166,13 +162,40 @@
     <section class="lp-section lp-demo" id="demo">
       <div class="lp-section-head">
         <span class="lp-eyebrow">Quick add</span>
-        <h2>Type it like you'd say it.</h2>
-        <p>Days, times, lists, priorities and labels, all in one line. Or tap the mic and just say it.</p>
+        <h2>Just type it.</h2>
+        <p>Write tasks the way you'd say them. Planner spots the day and time and puts them on your plan.
+           Anything without a date waits in your list until you're ready. Or tap the mic and say it.</p>
       </div>
       <div class="lp-demo-box">
         <div class="lp-demo-input"><span id="lp-typed"></span><span class="lp-cursor"></span></div>
         <div class="lp-demo-arrow">↓</div>
         <div class="lp-demo-result" id="lp-result"></div>
+      </div>
+      <p class="lp-power">Power users: add a priority (<code>p1</code>), labels (<code>#work</code>) or a list (<code>@travel</code>) in the same line.</p>
+    </section>
+
+
+    <!-- ---- drag and drop (animated, js/landing.js) ----------------------------------- -->
+    <section class="lp-section" id="drag">
+      <div class="lp-section-head">
+        <span class="lp-eyebrow">Drag and drop</span>
+        <h2>Drag it where it fits.</h2>
+        <p>Pull a task from your list onto today, or onto a time. Tick it off when it's done.</p>
+      </div>
+      <div class="lp-dnd" id="lp-dnd" aria-hidden="true">
+        <div class="lp-dnd-panel">
+          <div class="lp-dnd-title">Your list</div>
+          <div class="lp-dnd-cards" id="dnd-list"></div>
+        </div>
+        <div class="lp-dnd-panel lp-dnd-today">
+          <div class="lp-dnd-title is-today">Today</div>
+          <div class="lp-dnd-cards" id="dnd-todo"></div>
+          <div class="lp-dnd-cal" id="dnd-cal">
+            <span class="h" style="top:0">5 PM</span><span class="h" style="top:33.3%">6 PM</span><span class="h" style="top:66.6%">7 PM</span>
+            <div class="lp-dnd-slot" id="dnd-slot"></div>
+          </div>
+        </div>
+        <svg class="lp-hand" id="dnd-cursor" viewBox="0 0 24 24" width="26" height="26"><path d="M5 3l14 8-6 1.5L10 19z" fill="#111827" stroke="#fff" stroke-width="1.5" stroke-linejoin="round"/></svg>
       </div>
     </section>
 
@@ -186,7 +209,7 @@
         <article class="lp-feature">
           <div class="lp-icon"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 7V4h16v3"/><path d="M9 20h6"/><path d="M12 4v16"/></svg></div>
           <h3>Plain-English quick add</h3>
-          <p>“Dentist tomorrow 5pm” lands on tomorrow's calendar at 5. “Renew passport @weekly” goes to your weekly list.</p>
+          <p>“Dentist appointment tomorrow at 5 PM” goes straight onto tomorrow at 5. No forms, no date pickers.</p>
         </article>
         <article class="lp-feature">
           <div class="lp-icon"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/><path d="M8 14h3v3H8z"/></svg></div>
@@ -196,12 +219,12 @@
         <article class="lp-feature">
           <div class="lp-icon"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M8 6h13M8 12h13M8 18h13"/><circle cx="3.5" cy="6" r="1"/><circle cx="3.5" cy="12" r="1"/><circle cx="3.5" cy="18" r="1"/></svg></div>
           <h3>Lists for everything else</h3>
-          <p>@triage catches whatever isn't planned yet. Make your own: @weekly, @someday, @projectX.</p>
+          <p>Anything without a date waits in your list until you're ready. Add more lists for trips, projects or someday.</p>
         </article>
         <article class="lp-feature">
           <div class="lp-icon"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 22V4"/><path d="M4 4h12l-2 4 2 4H4"/></svg></div>
           <h3>Priorities and labels</h3>
-          <p>p1, p2 and p3 show what matters at a glance. Colour labels like #work and #personal filter in one click.</p>
+          <p>Mark what matters most, and colour-code work and personal. Show just one with a single click.</p>
         </article>
         <article class="lp-feature">
           <div class="lp-icon"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"/><path d="m8 12 3 3 5-6"/></svg></div>
@@ -211,7 +234,7 @@
         <article class="lp-feature">
           <div class="lp-icon"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="9" y="2" width="6" height="12" rx="3"/><path d="M5 10a7 7 0 0 0 14 0"/><path d="M12 17v4"/></svg></div>
           <h3>Speak instead of typing</h3>
-          <p>Tap the mic: “call mom tomorrow at 5 p.m. priority one”. It fills in the rest.</p>
+          <p>Tap the mic and say “call mom tomorrow at 5 PM”. That's it.</p>
         </article>
       </div>
     </section>
@@ -226,7 +249,7 @@
         <li>
           <span class="lp-step-n">1</span>
           <h3>Capture</h3>
-          <p>Get it out of your head. Anything without a day lands in <b>@triage</b>, so nothing slips.</p>
+          <p>Get it out of your head. Anything without a day waits in your list, so nothing slips.</p>
         </li>
         <li>
           <span class="lp-step-n">2</span>
@@ -236,7 +259,7 @@
         <li>
           <span class="lp-step-n">3</span>
           <h3>Complete</h3>
-          <p>Tick it off. Anything unfinished goes back to @triage overnight, so every morning starts clean.</p>
+          <p>Tick it off. Anything unfinished goes back to your list overnight, so every morning starts clean.</p>
         </li>
       </ol>
     </section>
@@ -321,7 +344,7 @@
     <!-- Quick add: type and press Enter. A day/time puts it on the plan, @list or nothing puts it in a list.
          See app.js (form submit) and when.js. -->
     <form id="quick-add" class="quick-add" autocomplete="off">
-      <input id="qa-title" placeholder="Add a task…   “Dentist tomorrow 5pm p1 #p” goes on the plan · “Renew passport @weekly” goes to a list   (press N)">
+      <input id="qa-title" placeholder="Add a task…   e.g. “Dentist appointment tomorrow at 5 PM”   (press N, or i for tips)">
       <button type="button" id="mic-btn" class="mic-btn" title="Speak a task">
         <svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="9" y="2" width="6" height="12" rx="3"/><path d="M5 10a7 7 0 0 0 14 0"/><path d="M12 17v4"/></svg>
       </button>

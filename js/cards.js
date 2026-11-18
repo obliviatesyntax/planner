@@ -8,12 +8,16 @@
 //   drag      → see dnd.js
 
 const Cards = (() => {
-  // where: "list" | "plan" | "calendar" | "done"   (style: position, for calendar blocks)
-  function html(task, where, style = '') {
+  // where: "list" | "plan" | "calendar" | "done"
+  // style: position (calendar blocks); size: "short" / "short tiny" for short calendar blocks.
+  function html(task, where, style = '', size = '') {
     const timed = task.startMin != null;
     const time = timed ? `${formatTime(task.startMin)}${where === 'calendar' ? `–${formatTime(task.startMin + task.duration)}` : ''}` : '';
+    const p = task.priority || 0;   // 0 = no priority set
+    const canDelete = where === 'list' || where === 'plan';
+    const hasLabels = Tasks.allLabels().length > 0;   // no labels exist yet: no "#" button
     return `
-      <div class="card p${task.priority} ${where === 'calendar' ? 'event' : ''} ${where === 'done' ? 'done' : ''}" draggable="true"
+      <div class="card p${p} ${where === 'calendar' ? `event ${size}` : ''} ${where === 'done' ? 'done' : ''}" draggable="true"
            data-task="${task.id}" ${style ? `style="${style}"` : ''}>
         ${where === 'list' ? '' : `<input type="checkbox" class="check" ${where === 'done' ? 'checked title="Mark as not done"' : 'title="Mark done"'}>`}
         <div class="body">
@@ -22,10 +26,13 @@ const Cards = (() => {
           ${where === 'calendar' ? `<span class="time">${time}</span>` : ''}
           ${Labels.tagsHtml(task)}
         </div>
-        ${where === 'list' || where === 'plan' ? '<button type="button" class="del" title="Delete">×</button>' : ''}
-        <button type="button" class="lbl-btn" title="Labels">#</button>
-        <!-- Priority is always last, so it never moves when the hover buttons (× #) appear. -->
-        <button type="button" class="prio" title="${PRIORITIES[task.priority]} (click to change)">P${task.priority}</button>
+        <!-- Priority is always last and never moves. The hover buttons (× #) float over the
+             text just left of it, on a see-through background, so nothing reflows. -->
+        <button type="button" class="prio" title="${PRIORITIES[p]} (click to change)">${p ? `P${p}` : 'P–'}</button>
+        ${canDelete || hasLabels ? `<div class="card-actions">
+          ${hasLabels ? '<button type="button" class="lbl-btn" title="Labels">#</button>' : ''}
+          ${canDelete ? '<button type="button" class="del" title="Delete">×</button>' : ''}
+        </div>` : ''}
         ${where === 'calendar' ? '<div class="resize" title="Drag to change length"></div>' : ''}
       </div>`;
   }

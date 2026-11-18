@@ -7,8 +7,9 @@ const TRIAGE_LIST = { id: 'triage', name: 'triage' };
 // List names: one word after "@", letters and digits, camelCase welcome ("@upcomingE", "@weekly").
 const LIST_NAME = /^[A-Za-z][A-Za-z0-9]{0,29}$/;
 
-// Priorities. Colours live in styles.css (.p1 / .p2 / .p3).
+// Priorities. Colours live in styles.css (.p1 / .p2 / .p3). A task can also have none (0 / null).
 const PRIORITIES = {
+  0: 'No priority',
   1: 'P1 · must do',
   2: 'P2 · should do',
   3: 'P3 · nice to have',

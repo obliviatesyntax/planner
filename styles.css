@@ -97,6 +97,12 @@ button { cursor: pointer; }
   padding: 7px 10px; border: 1px solid var(--line); border-radius: var(--radius-sm); background: var(--panel);
   font-weight: 400;
 }
+.setting input {
+  padding: 7px 10px; border: 1px solid var(--line); border-radius: var(--radius-sm); font-weight: 400;
+}
+.setting input:focus { outline: none; border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-soft); }
+.setting .secondary { align-self: flex-start; font-weight: 500; }
+.settings-group { display: flex; flex-direction: column; gap: 14px; padding-bottom: 14px; border-bottom: 1px solid var(--line); }
 .setting select:focus { outline: none; border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-soft); }
 .settings-note { margin: 0; font-size: 12px; }
 
@@ -223,8 +229,11 @@ main { padding: 0 24px; max-width: 1480px; margin: 0 auto; }
   position: absolute; left: 3px; right: 3px; z-index: 4; padding: 3px 6px; font-size: 12px;
   border: 1px solid var(--accent); border-radius: var(--radius-sm); outline: none; background: #fff; box-shadow: var(--shadow-lg);
 }
+.cal-hints { border-top: 1px solid var(--line-soft); }
+.cal-hints.bottom { border-top: 1px solid var(--line); }
+.cal-hints.empty { display: none; }
+.cal-hint { display: flex; justify-content: center; padding: 3px 0; border-left: 1px solid var(--line); min-height: 0; }
 .cal-more {
-  position: absolute; left: 50%; transform: translateX(-50%); z-index: 3;
   border: 1px solid var(--line); background: #fff; color: var(--accent); font-size: 11px; font-weight: 500;
   padding: 1px 9px; border-radius: 99px; box-shadow: var(--shadow); white-space: nowrap;
 }
@@ -291,12 +300,13 @@ main { padding: 0 24px; max-width: 1480px; margin: 0 auto; }
 /* ---- cards (a task, anywhere) ------------------------------------------ */
 
 .card {
-  display: flex; align-items: flex-start; gap: 7px;
+  position: relative; display: flex; align-items: flex-start; gap: 7px;
   padding: 6px 7px 6px 9px; border-radius: var(--radius-sm);
   border: 1px solid var(--line); border-left: 3px solid; background: var(--panel);
   cursor: grab; user-select: none; box-shadow: var(--shadow);
 }
 .card:hover { border-top-color: #d1d5db; border-right-color: #d1d5db; border-bottom-color: #d1d5db; }
+.card.p0 { border-left-color: #d1d5db; }
 .card.p1 { border-left-color: var(--p1); }
 .card.p2 { border-left-color: var(--p2); }
 .card.p3 { border-left-color: var(--p3); }
@@ -309,32 +319,49 @@ main { padding: 0 24px; max-width: 1480px; margin: 0 auto; }
 .card .title { overflow-wrap: break-word; min-width: 0; }
 .card .title[contenteditable="true"] { background: #fff; outline: 2px solid var(--accent); border-radius: 3px; padding: 0 3px; cursor: text; user-select: text; }
 .card .time { font-size: 11.5px; color: var(--muted); font-variant-numeric: tabular-nums; }
-.card .prio { border: 0; border-radius: 4px; padding: 0 5px; font-size: 10.5px; font-weight: 700; flex: none; }
+.card .prio { border: 0; border-radius: 4px; padding: 0 5px; font-size: 10.5px; font-weight: 700; flex: none; line-height: 18px; }
+.card.p0 .prio { background: none; color: var(--faint); box-shadow: inset 0 0 0 1px var(--line); }
 .card.p1 .prio { background: var(--p1-soft); color: var(--p1); }
 .card.p2 .prio { background: var(--p2-soft); color: var(--p2); }
 .card.p3 .prio { background: var(--p3-soft); color: var(--p3); }
-.card .del, .card .lbl-btn {
-  border: 0; background: none; color: var(--faint); line-height: 1; padding: 1px 3px; border-radius: 4px;
-  display: none; flex: none;   /* shown on hover, so narrow columns keep room for the title */
+
+/* Hover buttons (# ×): float over the text just left of the priority, on a see-through
+   background, so the card never reflows when you hover it. */
+.card-actions {
+  position: absolute; top: 4px; right: 34px; display: none; gap: 2px; padding: 1px 3px;
+  background: rgba(255, 255, 255, .82); backdrop-filter: blur(3px); -webkit-backdrop-filter: blur(3px);
+  border-radius: 6px; box-shadow: 0 0 0 1px var(--line-soft); z-index: 2;
 }
+.card:hover .card-actions { display: flex; }
+.card-actions button { border: 0; background: none; color: var(--muted); line-height: 18px; padding: 0 5px; border-radius: 4px; }
 .card .del { font-size: 15px; }
 .card .lbl-btn { font-size: 12px; font-weight: 700; }
-.card:hover .del, .card:hover .lbl-btn { display: inline-block; }
 .card .del:hover { color: var(--p1); background: var(--p1-soft); }
 .card .lbl-btn:hover { color: var(--text); background: rgba(0,0,0,.06); }
 
 /* A card placed on the calendar */
-.card.event { position: absolute; padding: 2px 4px 2px 6px; overflow: hidden; z-index: 1; gap: 4px; }
+.card.event { position: absolute; padding: 2px 4px 2px 6px; overflow: hidden; z-index: 1; gap: 5px; }
 .card.event .body { gap: 0 5px; }
 .card.event .check { width: 15px; height: 15px; margin-top: 2px; }
-.card.event .prio { font-size: 10.5px; }
-.card .resize { position: absolute; left: 0; right: 0; bottom: 0; height: 6px; cursor: ns-resize; }
+.card.event .card-actions { top: 1px; right: 30px; }
+/* Up to 30 minutes: a single line, title cut with "…" rather than wrapping out of the box */
+.card.event.short { align-items: center; padding-top: 0; padding-bottom: 0; line-height: 18px; }
+.card.event.short .check { margin: 0; }
+.card.event.short .body { flex-wrap: nowrap; overflow: hidden; align-items: center; }
+.card.event.short .title { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; flex: 0 1 auto; }
+.card.event.short .time, .card.event.short .tag { flex: none; white-space: nowrap; }
+/* Under 30 minutes: smaller text */
+.card.event.tiny { font-size: 11.5px; }
+.card.event.tiny .check { width: 12px; height: 12px; }
+.card.event.tiny .time { font-size: 10.5px; }
+.card.event.tiny .prio { font-size: 9.5px; padding: 0 4px; line-height: 15px; }
+.card .resize { position: absolute; left: 0; right: 0; bottom: 0; height: 5px; cursor: ns-resize; }
 .card.event:hover .resize { background: rgba(0,0,0,.06); }
 
 /* A done card: crossed out and quiet */
 .card.done { background: #fafafa; border-left-color: #d1d5db; box-shadow: none; }
 .card.done .title { text-decoration: line-through; color: var(--muted); }
-.card.done .prio { background: #f3f4f6; color: var(--faint); }
+.card.done .prio { background: #f3f4f6; color: var(--faint); box-shadow: none; }
 
 .tag { font-size: 10.5px; padding: 0 6px; border-radius: 99px; color: #fff; background: var(--c); font-weight: 600; cursor: pointer; }
 
@@ -410,8 +437,7 @@ main { padding: 0 24px; max-width: 1480px; margin: 0 auto; }
 }
 .secondary:hover { background: var(--bg); }
 .link-btn { border: 0; background: none; color: var(--accent); padding: 0; font-weight: 500; }
-.who { display: flex; align-items: center; gap: 8px; padding: 8px 12px; background: var(--bg); border-radius: var(--radius-sm); }
-.who span { flex: 1; overflow: hidden; text-overflow: ellipsis; font-weight: 500; }
+.signin-alt { display: flex; justify-content: space-between; gap: 12px; flex-wrap: wrap; font-size: 13px; }
 .fine { margin: 0; font-size: 12px; color: var(--muted); text-align: center; }
 .sent { text-align: center; }
 .sent p { margin: 0; }
@@ -568,6 +594,35 @@ html { scroll-behavior: smooth; }
 .lp-chip-p3 { background: var(--p3-soft); color: var(--p3); border-color: transparent; }
 .lp-chip-label { background: var(--c); color: #fff; border-color: transparent; }
 
+/* "power users" note under the typing demo */
+.lp-power { text-align: center; color: var(--muted); font-size: 14px; margin: 18px 0 0; }
+.lp-power code { font: 12.5px ui-monospace, SFMono-Regular, Menlo, monospace; background: var(--panel); border: 1px solid var(--line); border-radius: 4px; padding: 1px 5px; }
+
+/* drag-and-drop demo */
+.lp-dnd {
+  position: relative; max-width: 760px; margin: 0 auto; display: grid; grid-template-columns: 1fr 1.25fr; gap: 18px;
+  padding: 24px; background: #eef0f4; border: 1px solid var(--line); border-radius: 18px; font-size: 14px;
+}
+.lp-dnd-panel { background: var(--panel); border: 1px solid var(--line); border-radius: 12px; padding: 12px; display: flex; flex-direction: column; gap: 8px; box-shadow: var(--shadow); }
+.lp-dnd-title { font-weight: 700; padding: 0 2px 2px; }
+.lp-dnd-title.is-today { color: var(--accent); }
+.lp-dnd-cards { display: flex; flex-direction: column; gap: 7px; min-height: 40px; }
+.lp-dnd .m-card { padding: 8px 10px; }
+.lp-dnd .m-card.lp-landing { visibility: hidden; }
+.lp-dnd-cal {
+  position: relative; height: 120px; margin-top: 4px; margin-left: 42px; border-left: 1px solid var(--line);
+  background-image: repeating-linear-gradient(to bottom, var(--line-soft) 0 1px, transparent 1px 40px);
+}
+.lp-dnd-cal .h { position: absolute; left: -44px; font-size: 11px; color: var(--faint); transform: translateY(-50%); }
+.lp-dnd-cal .h:first-child { transform: none; }
+.lp-dnd-slot { position: absolute; left: 6px; right: 6px; top: 33.3%; height: 33.3%; }
+.lp-dnd .m-event { left: 6px; right: 6px; }
+.lp-ghost { position: absolute; z-index: 5; margin: 0; box-shadow: 0 12px 30px rgba(16, 24, 40, .2); pointer-events: none; }
+.lp-pop { animation: pop .35s ease-out; }
+@keyframes pop { from { transform: scale(.92); opacity: .4; } to { transform: none; opacity: 1; } }
+.lp-hand { position: absolute; left: 0; top: 0; z-index: 6; pointer-events: none; filter: drop-shadow(0 2px 3px rgba(0,0,0,.25)); }
+.m-card.p0, .m-event.p0 { border-left-color: #d1d5db; }
+
 /* features */
 .lp-features { display: grid; grid-template-columns: repeat(3, 1fr); gap: 18px; }
 .lp-feature {
@@ -649,6 +704,7 @@ html { scroll-behavior: smooth; }
   .lp-app-lists .lp-list:nth-child(3) { display: none; }
   .lp-features, .lp-steps { grid-template-columns: 1fr; }
   .lp-demo-box { padding: 18px; }
+  .lp-dnd { grid-template-columns: 1fr; padding: 14px; }
   .lp-demo-input { font-size: 16px; }
   .lp-final { margin: 48px 16px 0; padding: 44px 20px; }
   .lp-footer .muted:last-child { margin-left: 0; }

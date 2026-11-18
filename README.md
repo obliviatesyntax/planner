@@ -42,7 +42,8 @@ contain both `{{ .Token }}` (the code) and `{{ .ConfirmationURL }}` (the link).
     (One word; camelCase is fine. An @list wins over a day/time.)
   - **Mic button:** speak instead of typing (Chrome, Edge, Safari). Say "list weekly" for `@weekly`,
     "label personal" for `#p`, "priority one" for `p1`; the text appears in the box, press Enter.
-  - Neither: it goes to **@triage**. Also: `p1 p2 p3` priority · `#` + a label's shortcut.
+  - Neither: it goes to **@triage**. Also: `p1 p2 p3` priority (none by default) · `#` + a label's shortcut.
+  - Parts of the day go with the day: `dentist tomorrow morning at 10AM` ("Morning yoga" stays as typed).
 - **+ Add** under a day or list adds straight there; **click an empty calendar spot** to add at that
   time. The calendar shows from an hour before now (blue line) to today's last upcoming task;
   scroll for more, or click the "▲ earlier / ▼ later" pills.

@@ -4,7 +4,7 @@
 //   {
 //     id:        "lq3k9a2x",
 //     title:     "Renew passport",
-//     priority:  1 | 2 | 3,
+//     priority:  null | 1 | 2 | 3       null = not set
 //     labels:    ["k2j3", ...]          ids of labels; can be empty
 //     list:      "triage" | "k9x2…"     id of the list it sits in while not planned
 //     planDate:  null | "2026-11-17"    null = in its list; a date = committed to that day
@@ -87,7 +87,7 @@ const Tasks = (() => {
   }
   function doneList(date) {
     return tasks.filter(t => t.doneOn === date)
-      .sort((a, b) => (a.startMin ?? 1e4) - (b.startMin ?? 1e4) || a.priority - b.priority);
+      .sort((a, b) => (a.startMin ?? 1e4) - (b.startMin ?? 1e4) || (a.priority || 9) - (b.priority || 9));
   }
 
   // ---- ordering helpers -------------------------------------------------------
@@ -112,7 +112,7 @@ const Tasks = (() => {
     title = (title || '').trim();
     if (!title) return null;
     const task = {
-      id: newId(), title, priority, labels: labelIds, list: listId,
+      id: newId(), title, priority: priority || null, labels: labelIds, list: listId,
       planDate, startMin: planDate ? startMin : null, duration: duration || Settings.get('defaultDuration'),
       order: 0, createdAt: new Date().toISOString(), doneOn: null,
     };
@@ -130,7 +130,7 @@ const Tasks = (() => {
 
   function cyclePriority(id) {
     const task = get(id);
-    task.priority = (task.priority % 3) + 1;   // 1 -> 2 -> 3 -> 1
+    task.priority = { null: 1, 1: 2, 2: 3, 3: null }[task.priority || null];   // none -> P1 -> P2 -> P3 -> none
     commit();
   }
 

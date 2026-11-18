@@ -35,7 +35,7 @@ create table public.tasks (
   user_id      uuid        not null default auth.uid() references auth.users on delete cascade,
   id           text        not null,               -- the app's own task id, e.g. "lq3k9a2x"
   title        text        not null,
-  priority     smallint    not null check (priority in (1, 2, 3)),
+  priority     smallint    check (priority is null or priority in (1, 2, 3)),   -- null = not set
   labels       text[]      not null default '{}',  -- label ids
   list_id      text        not null default 'triage', -- the list it sits in while not planned
   plan_date    date,                               -- null = in its list; set = committed to that day

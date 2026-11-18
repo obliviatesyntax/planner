@@ -58,11 +58,17 @@ const Calendar = (() => {
 
   function topPx(startMin) { return (startMin - startHour * 60) * pxPerMinute(); }
 
+  // A block is never drawn shorter than one slot (so its text fits on one line). Short tasks
+  // therefore take up more room than their length: visibleEnd() is where the block's box ends,
+  // so two back-to-back 15-minute tasks are placed side by side instead of on top of each other.
+  const minBlockMinutes = () => Math.ceil(slotPx / pxPerMinute());
+  const visibleEnd = t => t.startMin + Math.max(t.duration, minBlockMinutes());
+
   function blockStyle(startMin, duration) {
-    return { top: `${topPx(startMin)}px`, height: `${Math.max(duration * pxPerMinute(), 18)}px` };
+    return { top: `${topPx(startMin)}px`, height: `${Math.max(duration, minBlockMinutes()) * pxPerMinute()}px` };
   }
 
-  // Blocks that overlap in time sit side by side: returns { id: { col, cols } }.
+  // Blocks whose boxes overlap sit side by side: returns { id: { col, cols } }.
   function columns(events) {
     const result = {};
     let cluster = [], clusterEnd = -1;
@@ -71,7 +77,7 @@ const Calendar = (() => {
       cluster.forEach(t => {
         let col = colEnds.findIndex(end => end <= t.startMin);
         if (col < 0) { col = colEnds.length; colEnds.push(0); }
-        colEnds[col] = t.startMin + t.duration;
+        colEnds[col] = visibleEnd(t);
         result[t.id] = { col };
       });
       cluster.forEach(t => { result[t.id].cols = colEnds.length; });
@@ -80,7 +86,7 @@ const Calendar = (() => {
     events.forEach(t => {
       if (cluster.length && t.startMin >= clusterEnd) flush();
       cluster.push(t);
-      clusterEnd = Math.max(clusterEnd, t.startMin + t.duration);
+      clusterEnd = Math.max(clusterEnd, visibleEnd(t));
     });
     flush();
     return result;
@@ -97,12 +103,12 @@ const Calendar = (() => {
         ${events.map(t => {
           const { top, height: h } = blockStyle(t.startMin, t.duration);
           const { col, cols: n } = cols[t.id];
-          return Cards.html(t, 'calendar', `top:${top};height:${h};left:calc(${col} * 100% / ${n});width:calc(100% / ${n} - 2px)`);
+          // Up to 30 minutes: one line (title, then time); under 30: smaller text too.
+          const size = t.duration < 30 ? 'short tiny' : t.duration <= 30 ? 'short' : '';
+          return Cards.html(t, 'calendar', `top:${top};height:${h};left:calc(${col} * 100% / ${n});width:calc(100% / ${n} - 2px)`, size);
         }).join('')}
         ${isToday && now >= startHour * 60 && now < endHour * 60
           ? `<div class="now-line" style="top:${topPx(now)}px"></div>` : ''}
-        <button type="button" class="cal-more up" hidden></button>
-        <button type="button" class="cal-more down" hidden></button>
       </div>`;
   }
 
@@ -157,32 +163,38 @@ const Calendar = (() => {
     if (duration) Tasks.update(id, { duration }); else App.renderAll();
   });
 
-  // "▲ 2 earlier" / "▼ 1 later" pills for tasks scrolled out of view; click to scroll to them.
+  // A thin row above and below the calendar holds "▲ 2 earlier" / "▼ 1 later" pills for tasks
+  // scrolled out of view (outside the calendar, so they never cover a task). Click to scroll.
+  function hintsRowHtml(dates, where) {
+    return `<div class="plan-grid cal-hints ${where}" style="--days:${dates.length}"><div></div>${
+      dates.map(d => `<div class="cal-hint" data-date="${d}"></div>`).join('')}</div>`;
+  }
+
   function updateHints(scroller) {
+    const box = scroller.closest('.plan-days');
     const top = scroller.scrollTop, bottom = top + scroller.clientHeight;
     scroller.querySelectorAll('.cal-day').forEach(day => {
       const events = [...day.querySelectorAll('.card.event')];
       const above = events.filter(el => el.offsetTop + el.offsetHeight <= top + 4);
       const below = events.filter(el => el.offsetTop >= bottom - 4);
-      const up = day.querySelector('.cal-more.up'), down = day.querySelector('.cal-more.down');
-      up.hidden = !above.length;
-      up.textContent = `▲ ${above.length} earlier`;
-      up.style.top = `${top + 4}px`;
-      up.dataset.to = above.length ? above[above.length - 1].offsetTop - 8 : '';
-      down.hidden = !below.length;
-      down.textContent = `▼ ${below.length} later`;
-      down.style.top = `${bottom - 26}px`;
-      down.dataset.to = below.length ? below[0].offsetTop - 8 : '';
+      const fill = (where, list, text, to) => {
+        const cell = box.querySelector(`.cal-hints.${where} .cal-hint[data-date="${day.dataset.date}"]`);
+        if (!cell) return;
+        cell.innerHTML = list.length ? `<button type="button" class="cal-more" data-to="${to}">${text}</button>` : '';
+      };
+      fill('top', above, `▲ ${above.length} earlier`, above.length ? above[above.length - 1].offsetTop - 8 : 0);
+      fill('bottom', below, `▼ ${below.length} later`, below.length ? below[0].offsetTop - 8 : 0);
     });
+    box.querySelectorAll('.cal-hints').forEach(row => row.classList.toggle('empty', !row.querySelector('.cal-more')));
   }
 
   document.addEventListener('click', e => {
     const pill = e.target.closest('.cal-more');
-    if (pill) pill.closest('.cal-scroll').scrollTo({ top: Number(pill.dataset.to), behavior: 'smooth' });
+    if (pill) pill.closest('.plan-days').querySelector('.cal-scroll').scrollTo({ top: Number(pill.dataset.to), behavior: 'smooth' });
   });
 
   return {
-    minutesAt, blockStyle, topPx, dayHtml, gutterHtml, viewWindow, updateHints, pxPerMinute,
+    minutesAt, blockStyle, topPx, dayHtml, gutterHtml, hintsRowHtml, viewWindow, updateHints, pxPerMinute,
     isResizing: () => !!resizing,
   };
 })();
@@ -257,12 +269,14 @@ const Planner = (() => {
           ${days.map(d => isPast(d) ? doneCellHtml(d, 'tall') : todoCellHtml(d)).join('')}
         </div>
         ${win ? `
+          ${Calendar.hintsRowHtml(days, 'top')}
           <div class="cal-scroll" style="height:${win.span * Calendar.pxPerMinute()}px">
             <div class="plan-grid cal-grid">
               ${Calendar.gutterHtml()}
               ${days.map(d => isPast(d) ? '<div class="cal-past"></div>' : Calendar.dayHtml(d)).join('')}
             </div>
-          </div>` : ''}
+          </div>
+          ${Calendar.hintsRowHtml(days, 'bottom')}` : ''}
       </div>`;
     return { html, win };
   }
@@ -287,12 +301,14 @@ const Planner = (() => {
           ${todoCellHtml(date)}
         </div>
         <div class="od-cal">
+          ${Calendar.hintsRowHtml([date], 'top')}
           <div class="cal-scroll" style="height:${win.span * Calendar.pxPerMinute()}px">
             <div class="plan-grid cal-grid" style="--days:1">
               ${Calendar.gutterHtml()}
               ${Calendar.dayHtml(date)}
             </div>
           </div>
+          ${Calendar.hintsRowHtml([date], 'bottom')}
         </div>
       </div>`;
     return { html, win };
