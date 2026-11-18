@@ -2,6 +2,8 @@
 //
 //   name         edit it here (the only place to rename a task)
 //   where        where it is: a list, a day's to-do list, a calendar time, or done
+//   move         Day (Today / Tomorrow / pick a date) · Time (optional; with a length)
+//                · List (choosing one takes it off the plan)
 //   priority     None / P1 / P2 / P3
 //   labels       tick on/off, or make a new one
 //   description  free-form notes ("call before 5", links, addresses…)
@@ -46,6 +48,8 @@ const TaskView = (() => {
         </div>
         <textarea class="tv-title" rows="1" maxlength="300" aria-label="Task name">${escapeHtml(t.title)}</textarea>
 
+        ${moveHtml(t)}
+
         <div class="tv-row">
           <span class="tv-label">Priority</span>
           <div class="tv-prio">
@@ -74,6 +78,78 @@ const TaskView = (() => {
       </form>`;
     fitTitle();
   }
+
+  // ---- moving: a day, a day + time, or a list ------------------------------------
+
+  const hhmm = min => `${String(Math.floor(min / 60)).padStart(2, '0')}:${String(min % 60).padStart(2, '0')}`;
+
+  function moveHtml(t) {
+    const today = todayISO(), tomorrow = addDays(today, 1);
+    const date = t.doneOn ? null : t.planDate;           // the day it's planned for (if any)
+    const timed = date && t.startMin != null;
+    const otherDate = date && date !== today && date !== tomorrow ? date : '';
+    const lists = Tasks.allLists();
+    const inList = !date && !t.doneOn ? t.list : '';
+    return `
+      <section class="tv-move" aria-label="Move this task">
+        <div class="tv-row">
+          <span class="tv-label">Day</span>
+          <div class="tv-when">
+            <button type="button" data-day="${today}" class="${date === today ? 'on' : ''}">Today</button>
+            <button type="button" data-day="${tomorrow}" class="${date === tomorrow ? 'on' : ''}">Tomorrow</button>
+            <input type="date" class="tv-date ${otherDate ? 'on' : ''}" min="${today}" value="${otherDate}" title="Pick a day">
+          </div>
+        </div>
+        <div class="tv-row">
+          <span class="tv-label">Time</span>
+          <div class="tv-when">
+            <input type="time" class="tv-time ${timed ? 'on' : ''}" step="900" value="${timed ? hhmm(t.startMin) : ''}" title="Put it on the calendar at this time">
+            ${timed
+              ? `<select class="tv-dur" title="How long">${[15, 30, 45, 60, 90, 120, 180].map(m =>
+                  `<option value="${m}" ${m === t.duration ? 'selected' : ''}>${m < 60 ? `${m} min` : `${m / 60} h`}</option>`).join('')}</select>
+                 <button type="button" class="tv-notime">No time</button>`
+              : `<span class="tv-hint">${date ? "Optional. Without a time it stays on the day's to-do list" : 'Optional. Picks today if no day is chosen'}</span>`}
+          </div>
+        </div>
+        <div class="tv-row">
+          <span class="tv-label">List</span>
+          <div class="tv-when">
+            <select class="tv-list ${inList ? 'on' : ''}">
+              ${inList ? '' : `<option value="" selected>Choose a list…</option>`}
+              ${inList === OVERDUE_LIST.id ? '<option value="overdue" selected>@overdue</option>' : ''}
+              ${lists.map(l => `<option value="${l.id}" ${l.id === inList ? 'selected' : ''}>@${escapeHtml(l.name)}</option>`).join('')}
+            </select>
+          </div>
+        </div>
+      </section>`;
+  }
+
+  // Pick a day: keep the time if it had one, otherwise it goes on that day's to-do list.
+  function moveToDay(date) {
+    const t = Tasks.get(id);
+    if (t.startMin != null && t.planDate && !t.doneOn) Tasks.moveToCalendar(id, date, t.startMin);
+    else Tasks.moveToPlan(id, date, null);
+  }
+
+  function afterMove() {
+    saveNotes();   // keep anything typed in the description before redrawing
+    draw();
+    fitTitle();
+  }
+
+  dialog.addEventListener('change', e => {
+    if (!id) return;
+    const t = Tasks.get(id);
+    if (e.target.matches('.tv-date') && e.target.value) { moveToDay(e.target.value); afterMove(); }
+    if (e.target.matches('.tv-time') && e.target.value) {
+      const [h, m] = e.target.value.split(':').map(Number);
+      const date = t.planDate && !t.doneOn ? t.planDate : todayISO();
+      Tasks.moveToCalendar(id, date, h * 60 + m);
+      afterMove();
+    }
+    if (e.target.matches('.tv-dur')) { Tasks.update(id, { duration: Number(e.target.value) }); afterMove(); }
+    if (e.target.matches('.tv-list') && e.target.value) { Tasks.moveToList(id, e.target.value, null); afterMove(); }
+  });
 
   // The name box grows with the text.
   function fitTitle() {
@@ -124,6 +200,9 @@ const TaskView = (() => {
 
   dialog.addEventListener('click', e => {
     if (e.target === dialog) return dialog.close();   // click outside closes
+    const day = e.target.closest('[data-day]');
+    if (day) { moveToDay(day.dataset.day); return afterMove(); }
+    if (e.target.closest('.tv-notime')) { Tasks.moveToPlan(id, Tasks.get(id).planDate, null); return afterMove(); }
     const prio = e.target.closest('[data-prio]');
     if (prio) { Tasks.update(id, { priority: Number(prio.dataset.prio) || null }); return draw(); }
     const chip = e.target.closest('[data-label]');

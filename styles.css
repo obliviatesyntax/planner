@@ -123,8 +123,21 @@ button { cursor: pointer; }
 }
 .tv-title:hover { border-color: var(--line); }
 .tv-title:focus { outline: none; border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-soft); }
+.tv-move { display: flex; flex-direction: column; gap: 8px; padding: 12px 14px; background: var(--bg); border-radius: 10px; }
+.tv-when { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; }
+.tv-when button, .tv-when input, .tv-when select {
+  border: 1px solid var(--line); background: var(--panel); border-radius: 7px; padding: 5px 10px;
+  font: inherit; font-size: 13px; font-weight: 500; color: var(--text); height: 32px;
+}
+.tv-when button { cursor: pointer; }
+.tv-when button:hover { border-color: #d1d5db; }
+.tv-when .on { border-color: var(--accent); box-shadow: 0 0 0 2px var(--accent-soft); color: var(--accent); font-weight: 600; }
+.tv-when input:focus, .tv-when select:focus { outline: none; border-color: var(--accent); }
+.tv-when .tv-notime { color: var(--muted); }
+.tv-list { max-width: 100%; }
+.tv-hint { font-size: 12px; color: var(--faint); }
 .tv-row { display: grid; grid-template-columns: 90px 1fr; align-items: start; gap: 10px; }
-.tv-label { font-size: 12.5px; font-weight: 600; color: var(--muted); padding-top: 5px; }
+.tv-label { font-size: 12.5px; font-weight: 600; color: var(--muted); padding-top: 7px; }
 .tv-prio { display: flex; border: 1px solid var(--line); border-radius: 8px; overflow: hidden; width: fit-content; }
 .tv-prio button { border: 0; background: var(--panel); padding: 5px 14px; font-weight: 600; color: var(--muted); }
 .tv-prio button + button { border-left: 1px solid var(--line); }

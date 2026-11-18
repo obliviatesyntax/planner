@@ -52,7 +52,8 @@ contain both `{{ .Token }}` (the code) and `{{ .ConfirmationURL }}` (the link).
   On phones, a bar with Today · Tomorrow · @triage · Done slides up while dragging; or swipe a task
   right (done) or left (next day / today).
   Drag a calendar block's bottom edge to change its length.
-- **Click a task** to open it: rename it, write a description, set priority and labels, delete it.
+- **Click a task** to open it: move it (Today / Tomorrow / a date, an optional time and length, or a list),
+  rename it, write a description, set priority and labels, delete it.
   Hover a task for quick buttons: **P** / **#** / **×**, or click its P1/P2/P3 tag to change priority.
 
 ## Code map (read in this order)
@@ -70,7 +71,7 @@ contain both `{{ .Token }}` (the code) and `{{ .ConfirmationURL }}` (the link).
 | `js/store.js` | **Where data is saved:** loads from and saves changes to the Supabase tables. |
 | `js/tasks.js` | Tasks, lists, labels and every action (add, move, done…). Data model documented at top. |
 | `js/labels.js` | Label chips: filter, create, delete. |
-| `js/taskview.js` | The task window (click a task): rename, description, priority, labels, delete. |
+| `js/taskview.js` | The task window (click a task): move it (day / time / list), rename, description, priority, labels, delete. |
 | `js/cards.js` | How a task looks; checkbox, priority, delete, rename. |
 | `js/planner.js` | Top section: calendar and list views, past days' done tasks, Done today. |
 | `js/lists.js` | Bottom section: @triage and your lists; create, reorder, delete. |
