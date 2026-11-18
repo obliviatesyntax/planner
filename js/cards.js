@@ -3,11 +3,14 @@
 //   checkbox  → mark done / not done (planned and done tasks; or drag a task onto "Done today")
 //   P1/P2/P3  → click to cycle priority (no priority: no tag; hover shows a small "P" to set one)
 //   # / tags  → click to pick labels (labels.js → openPicker)
-//   ×         → delete (lists, to-do lists and calendar), with Undo
+//   🗑         → delete (lists, to-do lists and calendar), with Undo
 //   anywhere else on the card → open it (taskview.js): rename, description, priority, labels, delete
 //   drag      → see dnd.js
 
 const Cards = (() => {
+  // A small trash can (× is kept for closing windows, so it never means "delete").
+  const TRASH_ICON = '<svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 6h18"/><path d="M8 6V4h8v2"/><path d="M19 6l-1 14H6L5 6"/><path d="M10 11v6M14 11v6"/></svg>';
+
   // where: "list" | "plan" | "calendar" | "done"
   // style: position (calendar blocks); size: "short" / "short tiny" for short calendar blocks.
   // Calendar blocks show a short time ("10–11") — or none when the calendar is cramped
@@ -37,7 +40,7 @@ const Cards = (() => {
         ${!p || canDelete || hasLabels ? `<div class="card-actions">
           ${p ? '' : '<button type="button" class="prio-set" title="Set a priority">P</button>'}
           ${hasLabels ? '<button type="button" class="lbl-btn" title="Labels">#</button>' : ''}
-          ${canDelete ? '<button type="button" class="del" title="Delete">×</button>' : ''}
+          ${canDelete ? `<button type="button" class="del" title="Delete">${TRASH_ICON}</button>` : ''}
         </div>` : ''}
         ${where === 'calendar' ? '<div class="resize" title="Drag to change length"></div>' : ''}
       </div>`;
@@ -57,7 +60,7 @@ const Cards = (() => {
     }
     if (e.target.matches('.prio, .prio-set')) return Tasks.cyclePriority(id);
     if (e.target.matches('.lbl-btn, .tag')) return Labels.openPicker(id, e.target);
-    if (e.target.matches('.del')) {
+    if (e.target.closest('.del')) {
       const removed = Tasks.remove(id);
       return App.toast(`Deleted “${removed.title}”`, 'Undo', () => Tasks.restore(removed));
     }

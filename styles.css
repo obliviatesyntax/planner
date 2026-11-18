@@ -364,7 +364,8 @@ main { padding: 0 24px; max-width: 1480px; margin: 0 auto; }
 .overdue-col .list-name { color: var(--p1); }
 .overdue-col .count { background: var(--p1-soft); color: var(--p1); }
 .overdue-note { margin: 0 4px 2px; font-size: 12px; color: var(--muted); }
-.list-del { margin-left: auto; border: 0; background: none; color: var(--faint); font-size: 16px; line-height: 1; visibility: hidden; }
+.list-del { margin-left: auto; border: 0; background: none; color: var(--faint); line-height: 1; visibility: hidden; display: inline-grid; place-items: center; padding: 2px; }
+.list-del svg { pointer-events: none; display: block; }
 .list-col:hover .list-del { visibility: visible; }
 .list-del:hover { color: var(--p1); }
 .list-col .col-add { margin-top: auto; }
@@ -416,7 +417,8 @@ main { padding: 0 24px; max-width: 1480px; margin: 0 auto; }
 .card.p0 .card-actions { right: 6px; }   /* no priority tag to sit next to */
 .card-actions .prio-set { font-size: 11px; font-weight: 800; }
 .card-actions button { border: 0; background: none; color: var(--muted); line-height: 18px; padding: 0 5px; border-radius: 4px; }
-.card .del { font-size: 15px; }
+.card .del { display: inline-grid; place-items: center; }
+.card .del svg { pointer-events: none; display: block; }
 .card .lbl-btn { font-size: 12px; font-weight: 700; }
 .card .del:hover { color: var(--p1); background: var(--p1-soft); }
 .card .lbl-btn:hover { color: var(--text); background: rgba(0,0,0,.06); }

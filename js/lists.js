@@ -1,6 +1,6 @@
 // lists.js — the bottom section: your lists. New tasks without a day land in @triage; make your
 // own with "+ New list" or by typing "@name" in quick add ("Renew passport @weekly" creates
-// @weekly if needed). Drag a list's header to reorder; × deletes a list and its tasks (with Undo).
+// @weekly if needed). Drag a list's header to reorder; the trash icon deletes a list and its tasks (with Undo).
 // Drag a task up to a day or a time when you commit to it.
 //
 // @overdue (built in) comes first, but only while it has tasks: yesterday's unfinished ones.
@@ -26,7 +26,7 @@ const Lists = (() => {
               <div class="list-head" ${isTriage ? '' : `draggable="true" data-list-drag="${l.id}" title="Drag to reorder"`}>
                 <span class="list-name">@${escapeHtml(l.name)}</span>
                 <span class="count">${tasks.length}</span>
-                ${isTriage ? '' : '<button type="button" class="list-del" title="Delete list and its tasks">×</button>'}
+                ${isTriage ? '' : '<button type="button" class="list-del" title="Delete list and its tasks"><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 6h18"/><path d="M8 6V4h8v2"/><path d="M19 6l-1 14H6L5 6"/><path d="M10 11v6M14 11v6"/></svg></button>'}
               </div>
               <div class="list">${tasks.map(t => Cards.html(t, 'list')).join('')}</div>
               <button type="button" class="col-add" data-list="${l.id}">+ Add</button>
