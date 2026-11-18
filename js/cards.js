@@ -3,7 +3,7 @@
 //   checkbox  → mark done / not done (planned and done tasks; or drag a task onto "Done today")
 //   P1/P2/P3  → click to cycle priority (no priority: no tag; hover shows a small "P" to set one)
 //   # / tags  → click to pick labels (labels.js → openPicker)
-//   ×         → delete (lists and to-do lists), with Undo
+//   ×         → delete (lists, to-do lists and calendar), with Undo
 //   title     → double-click to rename; shortcuts work there too ("… p1 #p" sets priority, adds label)
 //   drag      → see dnd.js
 
@@ -14,7 +14,7 @@ const Cards = (() => {
     const timed = task.startMin != null;
     const time = timed ? `${formatTime(task.startMin)}${where === 'calendar' ? `–${formatTime(task.startMin + task.duration)}` : ''}` : '';
     const p = task.priority || 0;   // 0 = no priority set
-    const canDelete = where === 'list' || where === 'plan';
+    const canDelete = where !== 'done';   // lists, to-do lists and calendar blocks
     const hasLabels = Tasks.allLabels().length > 0;   // no labels exist yet: no "#" button
     return `
       <div class="card p${p} ${where === 'calendar' ? `event ${size}` : ''} ${where === 'done' ? 'done' : ''}" draggable="true"
