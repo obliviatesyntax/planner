@@ -47,7 +47,7 @@ const Auth = (() => {
   // ---- panes ---------------------------------------------------------------
 
   const PANES = ['signin-form', 'password-form', 'signup-form', 'sent-pane', 'newpass-form'];
-  function showPane(id, text = '') {
+  function showPane(id, text = '', focus = true) {
     PANES.forEach(p => { $(p).hidden = p !== id; });
     const choosing = id === 'signin-form' || id === 'signup-form';
     $('auth-tabs').hidden = !choosing;
@@ -55,7 +55,7 @@ const Auth = (() => {
     $('oauth-or').hidden = !choosing || !$('oauth-buttons').children.length;
     say(text);
     const first = $(id).querySelector('input:not([hidden])');
-    if (first) first.focus();
+    if (first && focus) first.focus({ preventScroll: true });
   }
   function say(text, isError = false) {
     message.textContent = text;
@@ -65,8 +65,9 @@ const Auth = (() => {
   function showSignIn() {
     $('signin').hidden = false;
     $('app').hidden = true;
-    showPane('signin-form');
+    showPane('signin-form', '', false);   // don't jump the landing page down to the form
     loadProviders();
+    Landing.play();
   }
 
   $('auth-tabs').addEventListener('click', e => {

@@ -175,8 +175,9 @@ const App = (() => {
   return { toast, renderAll, addFromText, parseQuickAdd };
 })();
 
-// Start: sign in if needed, then load this person's data from the database and draw the page.
-(async () => {
+// Start (once every script on the page has loaded): sign in if needed, then load this
+// person's data from the database and draw the page.
+window.addEventListener('DOMContentLoaded', async () => {
   const user = await Auth.currentUser();
   if (!user) return Auth.showSignIn();
   if (Auth.needsNewPassword()) return Auth.showNewPassword(user);   // back from a "Forgot password" email
@@ -189,4 +190,4 @@ const App = (() => {
     App.toast('Could not load your tasks. Check your connection and reload.');
   }
   App.renderAll();
-})();
+});

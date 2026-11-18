@@ -58,6 +58,7 @@ contain both `{{ .Token }}` (the code) and `{{ .ConfirmationURL }}` (the link).
 | `js/config.js` | @triage, priorities, calendar sizes, plan views, label colours. Change the page's shape here. |
 | `js/utils.js` | Date, time and text helpers. |
 | `js/when.js` | Reads days and times from plain English for quick add ("today 5pm"). |
+| `js/landing.js` | The signed-out landing page: buttons that open the sign-in card, the typing demo. (Page text is in `index.html`.) |
 | `js/help.js` | The **i** button next to quick add: "Adding tasks" help (examples live in `index.html`). |
 | `js/voice.js` | Mic button: speech to text (browser built-in), spoken "list weekly" → `@weekly` etc. |
 | `js/supabase-config.js` | Which Supabase project to use (URL + public key), code-or-link switch. |
