@@ -1,7 +1,7 @@
 // cards.js — how one task looks, and what clicking on it does (anywhere on the page).
 //
 //   checkbox  → mark done / not done (planned and done tasks; or drag a task onto "Done today")
-//   P1/P2/P3  → click to cycle priority
+//   P1/P2/P3  → click to cycle priority (no priority: no tag; hover shows a small "P" to set one)
 //   # / tags  → click to pick labels (labels.js → openPicker)
 //   ×         → delete (lists and to-do lists), with Undo
 //   title     → double-click to rename; shortcuts work there too ("… p1 #p" sets priority, adds label)
@@ -26,10 +26,11 @@ const Cards = (() => {
           ${where === 'calendar' ? `<span class="time">${time}</span>` : ''}
           ${Labels.tagsHtml(task)}
         </div>
-        <!-- Priority is always last and never moves. The hover buttons (× #) float over the
-             text just left of it, on a see-through background, so nothing reflows. -->
-        <button type="button" class="prio" title="${PRIORITIES[p]} (click to change)">${p ? `P${p}` : 'P–'}</button>
-        ${canDelete || hasLabels ? `<div class="card-actions">
+        <!-- Priority (when set) is always last and never moves. The hover buttons (P # ×) float
+             over the text just left of it, on a see-through background, so nothing reflows. -->
+        ${p ? `<button type="button" class="prio" title="${PRIORITIES[p]} (click to change)">P${p}</button>` : ''}
+        ${!p || canDelete || hasLabels ? `<div class="card-actions">
+          ${p ? '' : '<button type="button" class="prio-set" title="Set a priority">P</button>'}
           ${hasLabels ? '<button type="button" class="lbl-btn" title="Labels">#</button>' : ''}
           ${canDelete ? '<button type="button" class="del" title="Delete">×</button>' : ''}
         </div>` : ''}
@@ -49,7 +50,7 @@ const Cards = (() => {
       if (!wasDone) App.toast(`Done: “${task.title}”`, 'Undo', () => Tasks.toggleDone(id));
       return;
     }
-    if (e.target.matches('.prio')) return Tasks.cyclePriority(id);
+    if (e.target.matches('.prio, .prio-set')) return Tasks.cyclePriority(id);
     if (e.target.matches('.lbl-btn, .tag')) return Labels.openPicker(id, e.target);
     if (e.target.matches('.del')) {
       const removed = Tasks.remove(id);
