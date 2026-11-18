@@ -627,10 +627,19 @@ html { scroll-behavior: smooth; }
 .lp-chip-label { background: var(--c); color: #fff; border-color: transparent; }
 
 /* why Planner */
-.lp-why { display: grid; grid-template-columns: repeat(3, 1fr); gap: 18px; }
+.lp-why { display: grid; gap: 18px; }
 .lp-why-card { background: var(--panel); border: 1px solid var(--line); border-radius: 14px; padding: 24px; box-shadow: var(--shadow); }
 .lp-why-card h3 { margin: 0 0 6px; font-size: 17px; }
 .lp-why-card p { margin: 0; color: #4b5563; line-height: 1.55; }
+/* The lead card (Capture → Commit → Complete) spans the full width, above the other two */
+.lp-why { grid-template-columns: 1fr 1fr; }
+.lp-why-lead { grid-column: 1 / -1; background: linear-gradient(135deg, #ffffff, #f5f3ff); border-color: #e0e7ff; }
+.lp-why-lead h3 { font-size: 20px; }
+.lp-why-lead p { max-width: 760px; }
+.lp-flow { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; margin-top: 18px; }
+.lp-flow span { background: #fff; border: 1px solid #e0e7ff; border-radius: 99px; padding: 6px 14px; font-size: 14px; color: #4b5563; box-shadow: var(--shadow); }
+.lp-flow b { color: var(--accent); }
+.lp-flow i { font-style: normal; color: var(--faint); }
 .lp-compare {
   margin: 28px auto 0; max-width: 900px; background: var(--panel); border: 1px solid var(--line);
   border-radius: 14px; overflow: hidden; box-shadow: var(--shadow); font-size: 14.5px;
