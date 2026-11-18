@@ -29,8 +29,8 @@ const CALENDAR = {
   snapMinutes: 15,       // dropped/resized blocks snap to 15 minutes
   // …but the visible window starts an hour before now (rounded down to the hour) and is as
   // tall as needed to reach the end of today's last upcoming task (+30 min), between
-  // minHours (a setting, default 6) and maxHours. The 1-day view always shows at least oneDayHours.
-  view: { beforeNow: 60, maxHours: 12, oneDayHours: 12 },
+  // minHours (a setting, default 4) and maxHours. Same for every view, the 1-day view included.
+  view: { beforeNow: 60, maxHours: 9 },
 };
 
 // The Plan section's views.

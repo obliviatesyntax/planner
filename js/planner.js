@@ -29,7 +29,7 @@ const Calendar = (() => {
   // Which part of the day to show for these dates: { start, span } in minutes.
   // With today on screen: from an hour before now, tall enough to reach today's last
   // upcoming task. Otherwise: from just before the earliest task on the days shown.
-  // minHours: the smallest window (a setting; bigger for the 1-day view).
+  // minHours: the smallest window (a setting).
   function viewWindow(dates, minHours = Settings.get('minHours')) {
     const today = todayISO();
     const now = minutesNow();
@@ -292,7 +292,7 @@ const Planner = (() => {
     if (isPast(date)) {
       return { html: `<div class="plan-days one-day past">${head}${doneCellHtml(date, 'tall')}</div>`, win: null };
     }
-    const win = Calendar.viewWindow([date], Math.max(Settings.get('minHours'), CALENDAR.view.oneDayHours));
+    const win = Calendar.viewWindow([date]);
     const html = `
       <div class="plan-days one-day">
         <div class="od-todo">

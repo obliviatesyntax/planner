@@ -16,8 +16,8 @@ const Settings = (() => {
       choices: [['mon', 'Monday'], ['sun', 'Sunday']] },
     { key: 'clock', label: 'Time format', default: '12',
       choices: [['12', '1:30 PM'], ['24', '13:30']] },
-    { key: 'minHours', label: 'Calendar shows at least', default: 6,
-      choices: [4, 6, 8, 10, 12].map(h => [h, `${h} hours`]) },
+    { key: 'minHours', label: 'Calendar shows at least', default: 4,
+      choices: [4, 5, 6, 7, 8, 9].map(h => [h, `${h} hours`]) },
     { key: 'defaultDuration', label: 'New calendar tasks last', default: 30,
       choices: [15, 30, 45, 60, 90].map(m => [m, `${m} minutes`]) },
     { key: 'defaultPriority', label: 'New tasks get priority', default: 0,
@@ -26,7 +26,8 @@ const Settings = (() => {
 
   // Bump when a default changes and existing accounts should get the new default too.
   //   2: "New tasks get priority" became None (it used to be P2).
-  const VERSION = 2;
+  //   3: "Calendar shows at least" back to 4 hours (it was 6; the window is now 4–9 hours).
+  const VERSION = 3;
 
   let values = Object.fromEntries(OPTIONS.map(o => [o.key, o.default]));
   let user = null;
@@ -37,8 +38,10 @@ const Settings = (() => {
     const saved = (user && user.user_metadata && user.user_metadata.settings) || {};
     OPTIONS.forEach(o => { if (saved[o.key] !== undefined) values[o.key] = saved[o.key]; });
     if (values.rolloverTo === 'triage') values.rolloverTo = 'overdue';   // older setting name
-    if ((saved.version || 1) < VERSION && Object.keys(saved).length) {
-      values.defaultPriority = 0;   // version 2: everyone starts with "None"
+    const version = saved.version || 1;
+    if (version < VERSION && Object.keys(saved).length) {
+      if (version < 2) values.defaultPriority = 0;   // version 2: everyone starts with "None"
+      if (version < 3) values.minHours = 4;          // version 3: 4–9 hour calendar window
       save();
     }
   }
