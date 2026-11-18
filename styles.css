@@ -295,10 +295,10 @@ main { padding: 0 24px; max-width: 1480px; margin: 0 auto; }
 .card .lbl-btn:hover { color: var(--text); background: rgba(0,0,0,.06); }
 
 /* A card placed on the calendar */
-.card.event { position: absolute; padding: 2px 4px 2px 6px; overflow: hidden; z-index: 1; font-size: 12px; gap: 4px; }
+.card.event { position: absolute; padding: 2px 4px 2px 6px; overflow: hidden; z-index: 1; gap: 4px; }
 .card.event .body { gap: 0 5px; }
-.card.event .check { width: 13px; height: 13px; margin-top: 1px; }
-.card.event .prio { font-size: 10px; }
+.card.event .check { width: 15px; height: 15px; margin-top: 2px; }
+.card.event .prio { font-size: 10.5px; }
 .card .resize { position: absolute; left: 0; right: 0; bottom: 0; height: 6px; cursor: ns-resize; }
 .card.event:hover .resize { background: rgba(0,0,0,.06); }
 
