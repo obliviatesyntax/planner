@@ -23,12 +23,54 @@ const App = (() => {
       : addFromText(text, {});
     if (!task) return;
     titleInput.value = '';
+    renderPreview();
     flash(task.id);
     const where = task.planDate
       ? When.describe({ date: task.planDate, startMin: task.startMin, duration: task.startMin != null ? task.duration : null })
       : `@${Tasks.list(task.list).name}`;
     toast(`Added “${task.title}” to ${where}`, 'Undo', () => Tasks.remove(task.id));
   });
+
+  // ---- live preview: what Enter would do, shown under the box as you type -----------
+
+  const preview = document.getElementById('qa-preview');
+
+  // Reads the text exactly the way the submit handler above does, without adding anything.
+  function previewOf(text) {
+    const parsed = parseQuickAdd(text);
+    if (parsed.badList) return { error: `@${parsed.badList} isn't a valid list name: one word, letters and digits.` };
+    if (parsed.listName && Tasks.isOverdue(parsed.listName)) return { error: '@overdue is a built-in list; pick another name.' };
+    const when = parsed.listName ? null : When.parse(text);
+    const planned = when && when.date;
+    const title = planned ? parseQuickAdd(when.title).title : parsed.title;
+    let where;
+    if (planned) where = `📅 ${When.describe(when)}`;
+    else if (parsed.listName) {
+      const existing = Tasks.findList(parsed.listName);
+      where = existing ? `☰ @${existing.name}` : `☰ @${parsed.listName} (new list)`;
+    } else where = `☰ @${TRIAGE_LIST.name}`;
+    const labels = (parsed.labels.length ? parsed.labels : Labels.selectedIds()).map(id => Tasks.label(id)).filter(Boolean);
+    return { title, where, priority: parsed.priority || Settings.get('defaultPriority') || 0, labels };
+  }
+
+  function renderPreview() {
+    const text = titleInput.value.trim();
+    if (!text || document.activeElement !== titleInput) { preview.hidden = true; return; }
+    const p = previewOf(text);
+    preview.innerHTML = p.error
+      ? `<span class="qa-chip qa-chip-error">${escapeHtml(p.error)}</span>`
+      : `${p.title ? `<span class="qa-chip qa-chip-title">${escapeHtml(p.title)}</span>` : ''}
+         <span class="qa-chip">${escapeHtml(p.where)}</span>
+         ${p.priority ? `<span class="qa-chip qa-chip-p${p.priority}">P${p.priority}</span>` : ''}
+         ${p.labels.map(l => `<span class="qa-chip qa-chip-label" style="--c:${l.color}">#${escapeHtml(l.shortcut)}</span>`).join('')}
+         <span class="qa-hint">Enter to add</span>`;
+    preview.hidden = false;
+  }
+
+  titleInput.addEventListener('input', renderPreview);
+  titleInput.addEventListener('focus', renderPreview);
+  titleInput.addEventListener('blur', () => setTimeout(renderPreview, 150));
+  titleInput.addEventListener('keydown', e => { if (e.key === 'Escape') { preview.hidden = true; titleInput.blur(); } });
 
   // Adds a task from typed text. `where` says where it goes:
   //   { list: 'triage' }                         a list (default @triage)

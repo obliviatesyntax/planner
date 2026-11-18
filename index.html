@@ -401,6 +401,8 @@
       </button>
       <button type="button" id="help-btn" class="mic-btn help-btn" title="How to add tasks (press ?)">i</button>
       <button type="submit" class="primary">Add</button>
+      <!-- Live preview of what Enter would add, and where (js/app.js → renderPreview) -->
+      <div id="qa-preview" class="qa-preview" hidden aria-live="polite"></div>
     </form>
 
     <!-- Top: what you've committed to (js/planner.js). Bottom: your lists (js/lists.js). -->
