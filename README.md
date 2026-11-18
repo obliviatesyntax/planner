@@ -35,7 +35,7 @@ contain both `{{ .Token }}` (the code) and `{{ .ConfirmationURL }}` (the link).
 
 ## Using it
 
-- **Quick add** (or press `N`): type and hit Enter.
+- **Quick add** (or press `N`): type and hit Enter. The **i** button (or `?`) shows every way to add.
   - A day/time in plain English puts it on the **plan**: `Setup dentist appointment today 5PM`,
     `Call mom tomorrow`, `Gym fri 6-7pm`, `Review doc nov 20 at 14:00 for 1h` (see `js/when.js`).
   - `@listName` puts it in that list, creating the list if needed: `Renew passport @weekly`.
@@ -58,6 +58,7 @@ contain both `{{ .Token }}` (the code) and `{{ .ConfirmationURL }}` (the link).
 | `js/config.js` | @triage, priorities, calendar sizes, plan views, label colours. Change the page's shape here. |
 | `js/utils.js` | Date, time and text helpers. |
 | `js/when.js` | Reads days and times from plain English for quick add ("today 5pm"). |
+| `js/help.js` | The **i** button next to quick add: "Adding tasks" help (examples live in `index.html`). |
 | `js/voice.js` | Mic button: speech to text (browser built-in), spoken "list weekly" → `@weekly` etc. |
 | `js/supabase-config.js` | Which Supabase project to use (URL + public key), code-or-link switch. |
 | `js/auth.js` | Sign in (password or emailed link/code), create account, sign out. |

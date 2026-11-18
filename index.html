@@ -62,6 +62,7 @@
       <button type="button" id="mic-btn" class="mic-btn" title="Speak a task">
         <svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="9" y="2" width="6" height="12" rx="3"/><path d="M5 10a7 7 0 0 0 14 0"/><path d="M12 17v4"/></svg>
       </button>
+      <button type="button" id="help-btn" class="mic-btn help-btn" title="How to add tasks (press ?)">i</button>
       <button type="submit" class="primary">Add</button>
     </form>
 
@@ -78,6 +79,57 @@
   </footer>
 
   </div>
+
+  <!-- "How to add tasks" help, opened by the i button next to quick add (js/help.js).
+       Edit the examples here; your own labels and lists are filled in below them. -->
+  <dialog id="help-dialog">
+    <div class="help">
+      <div class="settings-head">
+        <h2>Adding tasks</h2>
+        <button type="button" class="icon-btn" data-close title="Close">×</button>
+      </div>
+      <p class="muted">Type in the box and press <kbd>Enter</kbd>, or click the mic and speak. Mix and match anything below in one line.</p>
+
+      <h3>Where it goes</h3>
+      <table class="help-table">
+        <tr><td><code>Dentist today 5pm</code></td><td>Today's calendar at 5:00 PM</td></tr>
+        <tr><td><code>Gym fri 6-7pm</code></td><td>Friday's calendar, 6:00 to 7:00 PM</td></tr>
+        <tr><td><code>Review doc nov 20 at 14:00 for 1h</code></td><td>Nov 20, 2:00 PM, one hour long</td></tr>
+        <tr><td><code>Call mom tomorrow</code></td><td>Tomorrow's to-do list (a day, no time)</td></tr>
+        <tr><td><code>Renew passport @weekly</code></td><td>The @weekly list (created if it's new)</td></tr>
+        <tr><td><code>Buy groceries</code></td><td>@triage (no day, time or list)</td></tr>
+      </table>
+      <p class="help-note">Days: today, tonight, tomorrow, monday…friday (or mon, tue…), next monday, nov 20.
+        Times: 5pm, 5:30pm, 17:00, noon, 6-7pm. Length: for 45 min, for 1h. An <code>@list</code> wins over a day or time.</p>
+
+      <h3>Priority and labels</h3>
+      <table class="help-table">
+        <tr><td><code>p1</code> <code>p2</code> <code>p3</code></td><td>Priority: must do, should do, nice to have</td></tr>
+        <tr><td><code>#p</code> <code>#work</code></td><td>Labels, by shortcut or name; add several</td></tr>
+        <tr><td><code>Dentist tomorrow 5pm p1 #p</code></td><td>All together</td></tr>
+      </table>
+      <p class="help-note" id="help-yours"></p>
+
+      <h3>Speaking</h3>
+      <table class="help-table">
+        <tr><td>“… <b>list weekly</b>”, “… <b>in list upcoming E</b>”</td><td><code>@weekly</code>, <code>@upcomingE</code></td></tr>
+        <tr><td>“… <b>at weekly</b>” (an existing list)</td><td><code>@weekly</code></td></tr>
+        <tr><td>“… <b>label personal</b>”, “… <b>tag work</b>”</td><td><code>#p</code>, <code>#w</code></td></tr>
+        <tr><td>“… <b>priority one</b>”, “… <b>P 1</b>”</td><td><code>p1</code></td></tr>
+        <tr><td>“Call mom tomorrow at 5 p.m.”</td><td>Days and times as above</td></tr>
+      </table>
+      <p class="help-note">The words appear in the box: check them, then press <kbd>Enter</kbd>. Works in Chrome, Edge and Safari.</p>
+
+      <h3>Other ways</h3>
+      <ul class="help-list">
+        <li><b>+ Add</b> under a day or a list adds straight there.</li>
+        <li><b>Click an empty spot on the calendar</b> to add a task at that time.</li>
+        <li><b>Drag</b> tasks between lists, days, times and “Done today”.</li>
+        <li><b>Double-click</b> a task to rename it; <code>p1</code> and <code>#p</code> work there too.</li>
+        <li>Press <kbd>N</kbd> to jump to the box, <kbd>?</kbd> to open this help.</li>
+      </ul>
+    </div>
+  </dialog>
 
   <!-- Settings window, filled in by js/settings.js -->
   <dialog id="settings-dialog"></dialog>
@@ -101,5 +153,6 @@
   <script src="js/settings.js"></script>
   <script src="js/app.js"></script>
   <script src="js/voice.js"></script>
+  <script src="js/help.js"></script>
 </body>
 </html>
