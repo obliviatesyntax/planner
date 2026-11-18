@@ -151,6 +151,7 @@
             </div>
           </div>
           <div class="lp-app-lists">
+            <div class="lp-list lp-list-overdue"><b>@overdue</b><div class="m-card p0">Call the insurer</div></div>
             <div class="lp-list"><b>@triage</b><div class="m-card p0">Renew passport</div><div class="m-card p0">Call the bank</div></div>
             <div class="lp-list"><b>@kitchenReno</b><div class="m-card p1">Get 3 contractor quotes <u>P1</u></div><div class="m-card p0">Pick cabinet colour</div></div>
             <div class="lp-list"><b>@weekendBirdhouse</b><div class="m-card p0">Buy cedar planks</div><div class="m-card p3">Find a 1.5" hole saw <u>P3</u></div></div>
@@ -200,7 +201,7 @@
         <div class="lp-compare-row" role="row"><span role="rowheader">Adding a task</span><span>Asks for a due date right away</span><span>Waits in a list until you decide</span></div>
         <div class="lp-compare-row" role="row"><span role="rowheader">Seeing your day</span><span>Today, calendar and projects on separate screens</span><span>All on one page</span></div>
         <div class="lp-compare-row" role="row"><span role="rowheader">Planning a task</span><span>Open it, edit the date, save</span><span>Drag it onto a day or a time</span></div>
-        <div class="lp-compare-row" role="row"><span role="rowheader">Tasks you didn't get to</span><span>Pile up as red "overdue"</span><span>Go back to your list overnight</span></div>
+        <div class="lp-compare-row" role="row"><span role="rowheader">Tasks you didn't get to</span><span>A growing red "overdue" pile</span><span>One short @overdue list to re-plan, gone once it's empty</span></div>
         <div class="lp-compare-row" role="row"><span role="rowheader">What you got done</span><span>Hidden in an archive</span><span>Right there when you look back a day</span></div>
         <div class="lp-compare-row" role="row"><span role="rowheader">Getting started</span><span>Free trial, then a subscription</span><span>Free, no card needed</span></div>
       </div>
@@ -307,7 +308,7 @@
         <li>
           <span class="lp-step-n">3</span>
           <h3>Complete</h3>
-          <p>Tick it off. Anything unfinished goes back to your list overnight, so every morning starts clean.</p>
+          <p>Tick it off. Anything unfinished waits in <b>@overdue</b> the next morning. Re-plan it, and the list disappears.</p>
         </li>
       </ol>
     </section>
@@ -348,8 +349,9 @@
       <details><summary>Do I need to install anything?</summary>
         <p>No. Planner runs in your browser on desktop, tablet and phone. Sign in anywhere and your plan is there.</p></details>
       <details><summary>What happens to tasks I don't finish?</summary>
-        <p>At the end of the day they move to @triage, so you can decide again tomorrow. Prefer them to roll
-           straight into the next day? That's a setting.</p></details>
+        <p>The next morning they wait in an <b>@overdue</b> list at the top of your lists. Give each one a day
+           or move it to another list, and @overdue disappears. Prefer them to roll straight into the next
+           day? That's a setting.</p></details>
       <details><summary>Can I get my data out?</summary>
         <p>Any time. “Export backup” downloads all your tasks, lists and labels as a file.</p></details>
       <details><summary>Does voice input work everywhere?</summary>
@@ -461,6 +463,7 @@
         <li><b>Click an empty spot on the calendar</b> to add a task at that time.</li>
         <li><b>Drag</b> tasks between lists, days, times and “Done today”.</li>
         <li><b>Double-click</b> a task to rename it; <code>p1</code> and <code>#p</code> work there too.</li>
+        <li>Unfinished tasks from past days wait in <code>@overdue</code> (top of your lists) until you re-plan them.</li>
         <li>Press <kbd>N</kbd> to jump to the box, <kbd>?</kbd> to open this help.</li>
       </ul>
     </div>

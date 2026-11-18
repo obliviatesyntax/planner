@@ -5,7 +5,8 @@ A daily planner on one page:
 - **Top: Plan.** Four views: **1 day** (to-do and a tall calendar side by side), **2 days**
   (default), **Week**, and **List** (days scrolling down, with times shown). Each day has a **to-do list** and a **calendar**. Tick a task, or
   drag it onto **Done today**, to complete it. Past days show only what was done (crossed out), so
-  going back on the calendar *is* the done log. Unfinished tasks from past days go to **@triage**.
+  going back on the calendar *is* the done log. Unfinished tasks from past days go to **@overdue** (a built-in list shown first, only while it has
+  tasks; re-plan them and it disappears). A setting can roll them into the next day instead.
 - **Bottom: Lists.** **@triage** (always first) plus your own lists, like **@weekly** or **@upcomingE**.
   New tasks without a day land in @triage. Drag a list's header to reorder; × deletes it and its tasks.
 - **Settings** (header): default view, where unfinished tasks go at day end (@triage or the next

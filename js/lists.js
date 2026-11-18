@@ -1,7 +1,10 @@
-// lists.js — the bottom section: your lists. New tasks without a day land in @triage (always
-// first); make your own with "+ New list" or by typing "@name" in quick add ("Renew passport
-// @weekly" creates @weekly if needed). Drag a list's header to reorder; × deletes a list and
-// its tasks (with Undo). Drag a task up to a day or a time when you commit to it.
+// lists.js — the bottom section: your lists. New tasks without a day land in @triage; make your
+// own with "+ New list" or by typing "@name" in quick add ("Renew passport @weekly" creates
+// @weekly if needed). Drag a list's header to reorder; × deletes a list and its tasks (with Undo).
+// Drag a task up to a day or a time when you commit to it.
+//
+// @overdue (built in) comes first, but only while it has tasks: yesterday's unfinished ones.
+// Move each to a day or another list and it disappears. You can't add to it or drop into it.
 
 const Lists = (() => {
   const root = document.getElementById('lists');
@@ -14,6 +17,7 @@ const Lists = (() => {
         <span class="muted">Not planned yet. Drag a task up to a day or a time when you commit to it.</span>
       </div>
       <div class="lists-grid">
+        ${overdueHtml()}
         ${Tasks.allLists().map(l => {
           const tasks = Tasks.listTasks(l.id).filter(Labels.matches);
           const isTriage = l.id === TRIAGE_LIST.id;
@@ -35,6 +39,22 @@ const Lists = (() => {
         </div>
       </div>`;
     if (creating) root.querySelector('.list-new-input').focus();
+  }
+
+  // The @overdue column: no drop target, no "+ Add", no delete, not draggable.
+  function overdueHtml() {
+    const all = Tasks.listTasks(OVERDUE_LIST.id);
+    if (!all.length) return '';
+    const tasks = all.filter(Labels.matches);
+    return `
+      <div class="list-col overdue-col" data-list="${OVERDUE_LIST.id}">
+        <div class="list-head">
+          <span class="list-name">@overdue</span>
+          <span class="count">${all.length}</span>
+        </div>
+        <p class="overdue-note">Not done in time. Drag each to a day or a list; this list goes away once it's empty.</p>
+        <div class="list">${tasks.map(t => Cards.html(t, 'list')).join('')}</div>
+      </div>`;
   }
 
   root.addEventListener('click', e => {

@@ -11,7 +11,7 @@ const App = (() => {
   //   "Call mom tomorrow"                    → tomorrow's to-do list
   //   "Renew passport @weekly"               → the @weekly list (created if it doesn't exist;
   //                                            an @list always wins over a day/time)
-  //   "Renew passport"                       → @triage
+  //   "Renew passport"                       → @triage   (@overdue is built in: can't be typed)
   form.addEventListener('submit', e => {
     e.preventDefault();
     const text = titleInput.value;
@@ -42,7 +42,8 @@ const App = (() => {
   function addFromText(text, where) {
     const parsed = parseQuickAdd(text);
     const named = parsed.listName ? Tasks.addList(parsed.listName) : null;   // finds or creates
-    const listId = named && typeof named !== 'string' ? named.id : where.list || TRIAGE_LIST.id;
+    if (typeof named === 'string') { toast(named); return null; }              // e.g. "@overdue"
+    const listId = named ? named.id : where.list || TRIAGE_LIST.id;
     return Tasks.add({
       title: parsed.title,
       priority: parsed.priority || Settings.get('defaultPriority') || null,

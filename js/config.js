@@ -4,6 +4,11 @@
 // New tasks without a day/time or an @list land here, and so do unfinished tasks from past days.
 const TRIAGE_LIST = { id: 'triage', name: 'triage' };
 
+// The built-in @overdue list: where unfinished tasks from past days land each morning, so you can
+// re-plan them. It only shows (first, before @triage) while it has tasks, and you can't create,
+// rename, delete or drop tasks into it. Not stored in the lists table.
+const OVERDUE_LIST = { id: 'overdue', name: 'overdue' };
+
 // List names: one word after "@", letters and digits, camelCase welcome ("@upcomingE", "@weekly").
 const LIST_NAME = /^[A-Za-z][A-Za-z0-9]{0,29}$/;
 

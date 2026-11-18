@@ -6,7 +6,7 @@
 //     title:     "Renew passport",
 //     priority:  null | 1 | 2 | 3       null = not set
 //     labels:    ["k2j3", ...]          ids of labels; can be empty
-//     list:      "triage" | "k9x2…"     id of the list it sits in while not planned
+//     list:      "triage" | "overdue" | "k9x2…"   id of the list it sits in while not planned
 //     planDate:  null | "2026-11-17"    null = in its list; a date = committed to that day
 //     startMin:  null | 570             null = in that day's to-do list; a number = on the
 //                                       calendar at that many minutes after midnight (570 = 9:30)
@@ -53,7 +53,7 @@ const Tasks = (() => {
     listeners.forEach(fn => fn());
   }
 
-  // Unfinished tasks committed to a past day (to-do list or calendar) move on: to @triage
+  // Unfinished tasks committed to a past day (to-do list or calendar) move on: to @overdue
   // (default), or to today's to-do list if the "end of the day" setting says so.
   // Runs at start-up and every minute (for midnight). Returns how many moved.
   function rollover() {
@@ -63,9 +63,9 @@ const Tasks = (() => {
     late.forEach(t => {
       Object.assign(t, toToday
         ? { planDate: today, startMin: null, order: 1e6 + t.order }
-        : { planDate: null, startMin: null, list: TRIAGE_LIST.id, order: 1e6 + t.order });
+        : { planDate: null, startMin: null, list: OVERDUE_LIST.id, order: 1e6 + t.order });
     });
-    if (late.length) { renumber(toToday ? planList(today) : listTasks(TRIAGE_LIST.id)); commit(); }
+    if (late.length) { renumber(toToday ? planList(today) : listTasks(OVERDUE_LIST.id)); commit(); }
     return late.length;
   }
 
@@ -140,7 +140,7 @@ const Tasks = (() => {
     const task = get(id);
     if (task.doneOn) {
       task.doneOn = null;
-      if (task.planDate && task.planDate < todayISO()) Object.assign(task, { planDate: null, startMin: null, list: TRIAGE_LIST.id });
+      if (task.planDate && task.planDate < todayISO()) Object.assign(task, { planDate: null, startMin: null, list: OVERDUE_LIST.id });
     } else {
       task.doneOn = todayISO();
     }
@@ -193,12 +193,17 @@ const Tasks = (() => {
   function allLists() {
     return [...lists].sort((a, b) => (b.id === TRIAGE_LIST.id) - (a.id === TRIAGE_LIST.id) || a.order - b.order);
   }
-  function list(id) { return lists.find(l => l.id === id); }
-  function findList(name) { return lists.find(l => l.name.toLowerCase() === name.toLowerCase()); }
+  function list(id) { return id === OVERDUE_LIST.id ? OVERDUE_LIST : lists.find(l => l.id === id); }
+  function findList(name) {
+    if (name.toLowerCase() === OVERDUE_LIST.name) return OVERDUE_LIST;
+    return lists.find(l => l.name.toLowerCase() === name.toLowerCase());
+  }
+  const isOverdue = name => name.replace(/^@/, '').trim().toLowerCase() === OVERDUE_LIST.name;
 
   // Returns the list (existing or new), or an error message string.
   function addList(name) {
     name = name.replace(/^@/, '').trim();
+    if (isOverdue(name)) return '@overdue is a built-in list: it collects unfinished tasks from past days. Pick another name.';
     if (!LIST_NAME.test(name)) return 'A list name is one word: letters and digits, like @weekly or @upcomingE.';
     const existing = findList(name);
     if (existing) return existing;
@@ -210,7 +215,8 @@ const Tasks = (() => {
 
   // Drag-to-reorder: put list `id` just before `beforeId` (or last). @triage stays first.
   function moveList(id, beforeId) {
-    if (id === TRIAGE_LIST.id || id === beforeId) return;
+    if (id === TRIAGE_LIST.id || id === OVERDUE_LIST.id || id === beforeId) return;
+    if (beforeId === OVERDUE_LIST.id) beforeId = null;
     const others = allLists().filter(l => l.id !== TRIAGE_LIST.id && l.id !== id);
     let index = beforeId ? others.findIndex(l => l.id === beforeId) : -1;
     if (index < 0) index = others.length;
@@ -221,7 +227,7 @@ const Tasks = (() => {
 
   // Deletes the list AND its (not yet planned) tasks. Returns what was removed, for Undo.
   function removeList(id) {
-    if (id === TRIAGE_LIST.id) return null;
+    if (id === TRIAGE_LIST.id || id === OVERDUE_LIST.id) return null;
     const removedList = list(id);
     const removedTasks = listTasks(id);
     lists = lists.filter(l => l.id !== id);
@@ -298,7 +304,7 @@ const Tasks = (() => {
     init, onChange, rollover, get,
     listTasks, planList, calendarList, doneList,
     add, update, cyclePriority, toggleDone, markDone, moveToList, moveToPlan, moveToCalendar, remove, restore,
-    allLists, list, findList, addList, moveList, removeList, restoreList,
+    allLists, list, findList, isOverdue, addList, moveList, removeList, restoreList,
     allLabels, label, findLabel, addLabel, removeLabel,
     exportData, replaceAll,
   };

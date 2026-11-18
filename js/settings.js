@@ -10,8 +10,8 @@ const Settings = (() => {
   const OPTIONS = [
     { key: 'defaultView', label: 'Plan opens in', default: 'cal2',
       choices: PLAN_VIEWS.map(v => [v.id, v.days ? `Calendar: ${v.label}` : v.label]) },
-    { key: 'rolloverTo', label: 'At the end of the day, unfinished planned tasks go to', default: 'triage',
-      choices: [['triage', '@triage'], ['nextDay', "The next day's to-do list"]] },
+    { key: 'rolloverTo', label: 'At the end of the day, unfinished planned tasks go to', default: 'overdue',
+      choices: [['overdue', '@overdue, to re-plan'], ['nextDay', "The next day's to-do list"]] },
     { key: 'weekStart', label: 'Week starts on', default: 'mon',
       choices: [['mon', 'Monday'], ['sun', 'Sunday']] },
     { key: 'clock', label: 'Time format', default: '12',
@@ -36,6 +36,7 @@ const Settings = (() => {
     user = signedIn;
     const saved = (user && user.user_metadata && user.user_metadata.settings) || {};
     OPTIONS.forEach(o => { if (saved[o.key] !== undefined) values[o.key] = saved[o.key]; });
+    if (values.rolloverTo === 'triage') values.rolloverTo = 'overdue';   // older setting name
     if ((saved.version || 1) < VERSION && Object.keys(saved).length) {
       values.defaultPriority = 0;   // version 2: everyone starts with "None"
       save();
