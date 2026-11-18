@@ -2,8 +2,8 @@
 //
 //   name         edit it here (the only place to rename a task)
 //   where        where it is: a list, a day's to-do list, a calendar time, or done
-//   move         Day (Today / Tomorrow / pick a date) · Time (optional; with a length)
-//                · List (choosing one takes it off the plan)
+//   move         (at the bottom) Day (Today / Tomorrow / pick a date) · Time (optional; with a
+//                length) · List (choosing one takes it off the plan)
 //   priority     None / P1 / P2 / P3
 //   labels       tick on/off, or make a new one
 //   description  free-form notes ("call before 5", links, addresses…)
@@ -48,8 +48,6 @@ const TaskView = (() => {
         </div>
         <textarea class="tv-title" rows="1" maxlength="300" aria-label="Task name">${escapeHtml(t.title)}</textarea>
 
-        ${moveHtml(t)}
-
         <div class="tv-row">
           <span class="tv-label">Priority</span>
           <div class="tv-prio">
@@ -70,6 +68,8 @@ const TaskView = (() => {
           <span class="tv-label">Description</span>
           <textarea class="tv-notes" rows="5" placeholder="Notes, links, details…">${escapeHtml(t.notes || '')}</textarea>
         </label>
+
+        ${moveHtml(t)}
 
         <div class="tv-foot">
           <button type="button" class="tv-delete">Delete task</button>
