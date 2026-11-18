@@ -4,6 +4,9 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Planner</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap">
   <link rel="stylesheet" href="styles.css">
 </head>
 <body>
@@ -36,9 +39,7 @@
 
   <div id="app" hidden>
   <header class="topbar">
-    <div class="brand">Planner <span id="today-label" class="muted"></span></div>
-    <div id="today-progress" class="progress"></div>
-    <a href="#done" id="log-btn" class="nav-link">Done log</a>
+    <div class="brand"><span class="logo">P</span>Planner <span id="today-label" class="muted"></span></div>
     <div class="account"><span id="user-email" class="muted"></span><button type="button" id="signout-btn">Sign out</button></div>
   </header>
 
@@ -46,21 +47,20 @@
     <!-- Label filter chips: All · Work #w · Personal #p · + (see js/labels.js) -->
     <div id="labels-bar" class="labels-bar"></div>
 
-    <!-- Quick add: type and press Enter. New tasks go to triage. Shortcuts: see app.js → parseQuickAdd. -->
+    <!-- Quick add: type and press Enter. A day/time puts it on the plan, @list or nothing puts it in a list.
+         See app.js (form submit) and when.js. -->
     <form id="quick-add" class="quick-add" autocomplete="off">
-      <input id="qa-title" placeholder="Add a task…   “Dentist tomorrow 5pm #p” puts it on the plan · “Renew passport @month” goes to triage   (N)">
+      <input id="qa-title" placeholder="Add a task…   “Dentist tomorrow 5pm #p” goes on the plan · “Renew passport @weekly” goes to a list   (press N)">
       <button type="submit" class="primary">Add</button>
     </form>
 
-    <!-- Top: what you've committed to (js/planner.js). Bottom: triage (js/triage.js). -->
+    <!-- Top: what you've committed to (js/planner.js). Bottom: your lists (js/lists.js). -->
     <section id="planner" class="section"></section>
-    <section id="triage" class="section"></section>
+    <section id="lists" class="section"></section>
   </main>
 
-  <section id="history-view" hidden></section>
-
   <footer class="footer">
-    <span class="muted">Quick add: a day/time like <b>today 5pm</b>, <b>tomorrow</b>, <b>fri 6-7pm</b> puts a task on the plan; otherwise it goes to triage · <b>!1 !2 !3</b> priority · <b>#</b> + a label's shortcut, e.g. <b>#p</b> · <b>@today @week @month @eventually</b> (triage bucket) · click an empty calendar spot to add a task at that time · double-click a task to rename · drag tasks between triage, days and times</span>
+    <span class="muted"><b>today 5pm</b>, <b>tomorrow</b>, <b>fri 6-7pm</b> → plan · <b>@listName</b> → list · <b>!1 !2 !3</b> priority · <b>#p</b> label · click the calendar to add at a time · drag to “Done today” to complete · double-click to rename</span>
     <span class="spacer"></span>
     <button type="button" id="export-btn">Export backup</button>
     <label class="file-btn">Import backup<input type="file" id="import-input" accept="application/json" hidden></label>
@@ -83,8 +83,7 @@
   <script src="js/cards.js"></script>
   <script src="js/planner.js"></script>
   <script src="js/dnd.js"></script>
-  <script src="js/triage.js"></script>
-  <script src="js/history.js"></script>
+  <script src="js/lists.js"></script>
   <script src="js/app.js"></script>
 </body>
 </html>

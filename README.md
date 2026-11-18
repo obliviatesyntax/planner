@@ -2,14 +2,14 @@
 
 A daily planner on one page:
 
-- **Top: Plan.** Today and tomorrow (or a full week): each day has a **to-do list** and a
-  **calendar** with time slots. Tick tasks off here; they move to **Done today** on the right.
-  Unfinished tasks from past days roll into today's list automatically.
-- **Bottom: Triage.** Every new task lands here first, in **Today / This week / This month /
-  Eventually**. Drag it up to a day or a time when you commit to it.
+- **Top: Plan.** Three views: **Calendar: 2 days** (default), **Calendar: Week**, and **List** (days
+  scrolling down, with times shown). Each day has a **to-do list** and a **calendar**. Tick a task, or
+  drag it onto **Done today**, to complete it. Past days show only what was done (crossed out), so
+  going back on the calendar *is* the done log. Unfinished tasks from past days go to **@triage**.
+- **Bottom: Lists.** **@triage** (always first) plus your own lists, like **@weekly** or **@upcomingE**.
+  New tasks without a day land in @triage. Drag a list's header to reorder; × deletes it and its tasks.
 - **Labels** (top chips): create your own (e.g. *Work #w*, *Personal #p*). Click chips to show only
   those labels' tasks; **All** shows everything.
-- **Done log** (its own page): everything you've finished, by day, with a streak.
 
 ## Run it
 
@@ -33,39 +33,38 @@ contain both `{{ .Token }}` (the code) and `{{ .ConfirmationURL }}` (the link).
 ## Using it
 
 - **Quick add** (or press `N`): type and hit Enter.
-  - With a day/time in plain English it goes on the **plan**: `Setup dentist appointment today 5PM`,
+  - A day/time in plain English puts it on the **plan**: `Setup dentist appointment today 5PM`,
     `Call mom tomorrow`, `Gym fri 6-7pm`, `Review doc nov 20 at 14:00 for 1h` (see `js/when.js`).
-  - Otherwise, or with `@today @week @month @eventually`, it goes to **triage**.
-  - Also: `!1 !2 !3` priority · `#` + a label's shortcut (several allowed).
-- **Drag** any task between triage buckets, a day's to-do list and the calendar. Drag a calendar
-  block's bottom edge to change its length.
-- **+ Add** under a day's to-do list adds straight to that day; **click an empty calendar spot** to
-  add a task at that time. The calendar shows from an hour before now (blue line) down to today's
-  last upcoming task (3–8 hours); scroll for more, or click the "▲ earlier / ▼ later" pills.
-- Today's calendar tasks that ended over 2 hours ago without being ticked off move to today's to-do list.
-- **Labels on existing tasks:** hover a task and click **#** (or click one of its tags) to tick labels
-  on/off or create a new one. Typing `#p` or `!1` while renaming a task works too.
-- **Click P1/P2/P3** to cycle priority · **double-click** a title to rename · **×** deletes (triage and to-do lists).
+  - `@listName` puts it in that list, creating the list if needed: `Renew passport @weekly`.
+    (One word; camelCase is fine. An @list wins over a day/time.)
+  - Neither: it goes to **@triage**. Also: `!1 !2 !3` priority · `#` + a label's shortcut.
+- **+ Add** under a day or list adds straight there; **click an empty calendar spot** to add at that
+  time. The calendar shows from an hour before now (blue line) to today's last upcoming task;
+  scroll for more, or click the "▲ earlier / ▼ later" pills.
+- **Drag** tasks between lists, days, times, "Done today" and past days (= done on that day).
+  Drag a calendar block's bottom edge to change its length.
+- Hover a task: **#** labels · **×** delete · click **P1/P2/P3** to change priority ·
+  **double-click** the title to rename (`#p` / `!1` work there too).
 
 ## Code map (read in this order)
 
 | File | What it does |
 |---|---|
-| `js/config.js` | Triage buckets, priorities, calendar hours, label colours. Change the page's shape here. |
+| `js/config.js` | @triage, priorities, calendar sizes, plan views, label colours. Change the page's shape here. |
 | `js/utils.js` | Date, time and text helpers. |
 | `js/when.js` | Reads days and times from plain English for quick add ("today 5pm"). |
 | `js/supabase-config.js` | Which Supabase project to use (URL + public key), code-or-link switch. |
 | `js/auth.js` | Sign in (password or emailed link/code), create account, sign out. |
 | `js/store.js` | **Where data is saved:** loads from and saves changes to the Supabase tables. |
-| `js/tasks.js` | Tasks + labels and every action (add, move, done…). Data model documented at top. |
+| `js/tasks.js` | Tasks, lists, labels and every action (add, move, done…). Data model documented at top. |
 | `js/labels.js` | Label chips: filter, create, delete. |
 | `js/cards.js` | How a task looks; checkbox, priority, delete, rename. |
-| `js/planner.js` | Top section: day columns, to-do lists, calendar, Done today. |
-| `js/dnd.js` | Drag and drop between triage, lists and calendar. |
-| `js/triage.js` | Bottom section: the four triage buckets. |
-| `js/history.js` | Done log page (`#done`): by day, streak, 5-week strip. |
+| `js/planner.js` | Top section: calendar and list views, past days' done tasks, Done today. |
+| `js/lists.js` | Bottom section: @triage and your lists; create, reorder, delete. |
+| `js/dnd.js` | Drag and drop: tasks between lists, days, times and done; reordering lists. |
 | `js/app.js` | Quick add, page switching, header, backup, toast, start-up. |
 | `styles.css` | All styling; colours are variables at the top. |
-| `supabase/schema.sql` | The database tables and the rules that keep each person's data private. |
+| `supabase/schema.sql` | Full database setup for a fresh install (wipes data). |
+| `supabase/migrations/` | Upgrades for an existing database, run in order (keep your data). |
 
 Plain JavaScript loaded with `<script>` tags — no framework, no build step.

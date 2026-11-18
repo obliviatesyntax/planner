@@ -1,6 +1,6 @@
 // store.js — the ONLY file that knows where data is saved.
 //
-// Two Supabase (Postgres) tables: `tasks` and `labels` (see supabase/schema.sql). Each
+// Three Supabase (Postgres) tables: `tasks`, `lists` and `labels` (see supabase/schema.sql). Each
 // signed-in person only ever sees their own rows (enforced by the database).
 //
 // The rest of the app thinks in terms of "load everything" and "save everything".
@@ -12,15 +12,19 @@ const Store = (() => {
   const TABLES = {
     tasks: {
       toRow: t => ({
-        id: t.id, title: t.title, priority: t.priority, labels: t.labels, bucket: t.bucket,
+        id: t.id, title: t.title, priority: t.priority, labels: t.labels, list_id: t.list,
         plan_date: t.planDate, start_min: t.startMin, duration_min: t.duration,
         sort_order: t.order, created_at: t.createdAt, done_on: t.doneOn,
       }),
       fromRow: r => ({
-        id: r.id, title: r.title, priority: r.priority, labels: r.labels || [], bucket: r.bucket,
+        id: r.id, title: r.title, priority: r.priority, labels: r.labels || [], list: r.list_id,
         planDate: r.plan_date, startMin: r.start_min, duration: r.duration_min,
         order: r.sort_order, createdAt: r.created_at, doneOn: r.done_on,
       }),
+    },
+    lists: {
+      toRow: l => ({ id: l.id, name: l.name, sort_order: l.order }),
+      fromRow: r => ({ id: r.id, name: r.name, order: r.sort_order }),
     },
     labels: {
       toRow: l => ({ id: l.id, name: l.name, shortcut: l.shortcut, color: l.color, sort_order: l.order }),
@@ -28,11 +32,11 @@ const Store = (() => {
     },
   };
 
-  const lastSaved = { tasks: new Map(), labels: new Map() };   // id -> JSON as the database has it
+  const lastSaved = { tasks: new Map(), lists: new Map(), labels: new Map() };   // id -> JSON as the database has it
   let queue = Promise.resolve();      // saves run one after another, never overlapping
   let onError = () => {};
 
-  // Returns { tasks: [...], labels: [...] } for the signed-in person.
+  // Returns { tasks: [...], lists: [...], labels: [...] } for the signed-in person.
   async function load() {
     const result = {};
     for (const table of Object.keys(TABLES)) {

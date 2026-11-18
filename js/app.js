@@ -1,5 +1,4 @@
-// app.js — wires everything together: quick add, page switching (planner / done log),
-// header, backup, toast, start-up.
+// app.js — wires everything together: quick add, "+ Add" boxes, header, backup, toast, start-up.
 
 const App = (() => {
   // ---- quick add -------------------------------------------------------
@@ -10,54 +9,58 @@ const App = (() => {
   // The top box understands plain English for committing to the plan:
   //   "Setup dentist appointment today 5PM"  → today's calendar at 5 PM   (see when.js)
   //   "Call mom tomorrow"                    → tomorrow's to-do list
-  //   "Setup dentist appt @today"            → triage, Today bucket (@ always means triage)
-  //   "Setup dentist appt"                   → triage, Today bucket
+  //   "Renew passport @weekly"               → the @weekly list (created if it doesn't exist;
+  //                                            an @list always wins over a day/time)
+  //   "Renew passport"                       → @triage
   form.addEventListener('submit', e => {
     e.preventDefault();
     const text = titleInput.value;
-    const hasBucket = parseQuickAdd(text).bucket;
-    const when = hasBucket ? null : When.parse(text);
+    const parsed = parseQuickAdd(text);
+    if (parsed.badList) return toast(`@${parsed.badList} isn't a valid list name: one word, letters and digits.`);
+    const when = parsed.listName ? null : When.parse(text);
     const task = when && when.date
       ? addFromText(when.title, { planDate: when.date, startMin: when.startMin, duration: when.duration })
-      : addFromText(text, { bucket: 'today' });
+      : addFromText(text, {});
     if (!task) return;
     titleInput.value = '';
     flash(task.id);
     const where = task.planDate
       ? When.describe({ date: task.planDate, startMin: task.startMin, duration: task.startMin != null ? task.duration : null })
-      : `triage: ${TRIAGE.find(b => b.id === task.bucket).label}`;
+      : `@${Tasks.list(task.list).name}`;
     toast(`Added “${task.title}” to ${where}`, 'Undo', () => Tasks.remove(task.id));
   });
 
   // Adds a task from typed text. `where` says where it goes:
-  //   { bucket: 'week' }                         a triage bucket
+  //   { list: 'triage' }                         a list (default @triage)
   //   { planDate: '2026-11-17' }                 that day's to-do list
   //   { planDate: '2026-11-17', startMin: 570 }  that day's calendar at 9:30
   // Shortcuts inside the text:
   //   !1 !2 !3   priority            #p #work   labels (by shortcut or name, several allowed)
-  //   @today @week @month @eventually (or @t @w @m @e)   triage bucket
+  //   @listName  that list (created if it doesn't exist yet)
   // With label filters selected at the top and no #label typed, the new task gets the
   // selected labels, so it doesn't vanish from view.
   function addFromText(text, where) {
     const parsed = parseQuickAdd(text);
+    const named = parsed.listName ? Tasks.addList(parsed.listName) : null;   // finds or creates
+    const listId = named && typeof named !== 'string' ? named.id : where.list || TRIAGE_LIST.id;
     return Tasks.add({
       title: parsed.title,
       priority: parsed.priority || 2,
       labels: parsed.labels.length ? parsed.labels : Labels.selectedIds(),
-      bucket: parsed.bucket || where.bucket || 'today',
-      planDate: where.planDate || null,
+      list: listId,
+      planDate: named ? null : where.planDate || null,
       startMin: where.startMin ?? null,
       duration: where.duration || null,
     });
   }
 
-  // "+ Add" buttons under triage buckets and day lists (data-bucket or data-date say where).
+  // "+ Add" buttons under lists and day to-do lists (data-list or data-date say where).
   // Type, Enter adds (and the box stays open for the next one), Escape or clicking away closes.
   document.addEventListener('click', e => {
     const btn = e.target.closest('.col-add');
     if (!btn) return;
-    const { bucket, date } = btn.dataset;
-    const selector = bucket ? `.col-add[data-bucket="${bucket}"]` : `.col-add[data-date="${date}"]`;
+    const { list, date } = btn.dataset;
+    const selector = list ? `.col-add[data-list="${list}"]` : `.col-add[data-date="${date}"]`;
     const input = document.createElement('input');
     input.className = 'col-add-input';
     input.placeholder = 'Task name, Enter to add';
@@ -66,7 +69,7 @@ const App = (() => {
     input.addEventListener('keydown', ev => {
       if (ev.key === 'Escape') return renderAll();
       if (ev.key !== 'Enter') return;
-      const task = addFromText(input.value, bucket ? { bucket } : { planDate: date });
+      const task = addFromText(input.value, list ? { list } : { planDate: date });
       if (!task) return;
       const again = document.querySelector(selector);   // the page re-rendered: reopen the box
       if (again) again.click();
@@ -74,7 +77,8 @@ const App = (() => {
     input.addEventListener('blur', () => { if (!input.value.trim()) setTimeout(renderAll); });
   });
 
-  function parseQuickAdd(text) {
+  // Pulls shortcuts out of the text. With { lists: false } (used when renaming), "@words" stay.
+  function parseQuickAdd(text, { lists = true } = {}) {
     const out = { labels: [] };
     const rest = text.replace(/(^|\s)([!#@])(\w+)/g, (match, space, sym, word) => {
       const w = word.toLowerCase();
@@ -83,9 +87,10 @@ const App = (() => {
         const label = Tasks.findLabel(w);
         if (label) { if (!out.labels.includes(label.id)) out.labels.push(label.id); return space; }
       }
-      if (sym === '@') {
-        const bucket = TRIAGE.find(b => b.id === w || b.aliases.includes(w));
-        if (bucket) { out.bucket = bucket.id; return space; }
+      if (sym === '@' && lists && !out.listName) {
+        if (!LIST_NAME.test(word)) { out.badList = word; return match; }
+        out.listName = word;   // keeps its case: "@upcomingE"
+        return space;
       }
       return match;   // not a shortcut: keep the text as is
     });
@@ -104,29 +109,13 @@ const App = (() => {
     if (!typing && e.key.toLowerCase() === 'n') { e.preventDefault(); titleInput.focus(); }
   });
 
-  // ---- pages: planner (main) or the done log (#done) -----------------------
-
-  window.addEventListener('hashchange', renderAll);
-  const onLogPage = () => location.hash === '#done';
-
-  function renderHeader() {
-    document.getElementById('today-label').textContent = formatDay(todayISO());
-    const { done, total } = Tasks.todayStats();
-    const pct = total ? Math.round((done / total) * 100) : 0;
-    document.getElementById('today-progress').innerHTML = `
-      <div class="bar"><div class="fill" style="width:${pct}%"></div></div>
-      <span>${done} / ${total} done today${total && done === total ? ' 🎉' : ''}</span>`;
-    document.getElementById('log-btn').classList.toggle('active', onLogPage());
-  }
+  // ---- drawing ---------------------------------------------------------
 
   function renderAll() {
-    renderHeader();
-    document.getElementById('main-view').hidden = onLogPage();
-    document.getElementById('history-view').hidden = !onLogPage();
-    if (onLogPage()) return History.render();
+    document.getElementById('today-label').textContent = formatDay(todayISO());
     Labels.render();
     Planner.render();
-    Triage.render();
+    Lists.render();
   }
 
   // ---- backup ----------------------------------------------------------
@@ -146,6 +135,7 @@ const App = (() => {
     try {
       const data = JSON.parse(await file.text());
       if (!Array.isArray(data.tasks) || !Array.isArray(data.labels)) throw new Error('not a backup');
+      data.tasks.forEach(t => { t.list = t.list || TRIAGE_LIST.id; });   // older backups had buckets
       if (confirm(`Replace everything with ${data.tasks.length} tasks and ${data.labels.length} labels from ${file.name}?`)) {
         Tasks.replaceAll(data);
       }
@@ -172,14 +162,13 @@ const App = (() => {
   Tasks.onChange(renderAll);
   Store.onSaveError(() => toast('Could not save your last change. Check your connection and reload.'));
 
-  // While the app is open, every minute: move anything that's behind into today's to-do list
-  // (see Tasks.rollover; that redraws the page), otherwise just redraw the plan so the calendar's
+  // While the app is open, every minute: after midnight, move yesterday's unfinished tasks to
+  // @triage (Tasks.rollover redraws the page); otherwise just redraw the plan so the calendar's
   // "now" line moves. Skipped while you're dragging or typing.
   setInterval(() => {
-    const busy = document.querySelector('.dragging, [contenteditable="true"], .col-add-input, .cal-add-input, .label-input, .label-picker:not([hidden])') || Calendar.isResizing();
-    if (busy || Tasks.rollover() || onLogPage()) return;
-    renderHeader();
-    Planner.render();
+    const busy = document.querySelector('.dragging, [contenteditable="true"], .col-add-input, .cal-add-input, .label-input, .list-new-input, .label-picker:not([hidden])') || Calendar.isResizing();
+    if (busy || Tasks.rollover()) return;
+    renderAll();
   }, 60 * 1000);
 
   return { toast, renderAll, addFromText, parseQuickAdd };

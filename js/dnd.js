@@ -1,36 +1,49 @@
-// dnd.js — drag and drop between triage, plan lists and the calendar.
+// dnd.js — drag and drop.
 //
-// Anything with data-drop="…" is a place you can drop a card:
-//   data-drop="triage"   data-bucket="week"        → Tasks.moveToTriage
-//   data-drop="plan"     data-date="2026-11-17"    → Tasks.moveToPlan
+// Tasks: anything with data-drop="…" is a place you can drop a task card:
+//   data-drop="list"     data-list="triage"        → Tasks.moveToList
+//   data-drop="plan"     data-date="2026-11-17"    → Tasks.moveToPlan (a day's to-do list)
 //   data-drop="calendar" data-date="2026-11-17"    → Tasks.moveToCalendar (time from the mouse position)
+//   data-drop="done"     data-date="2026-11-17"    → Tasks.markDone ("Done today", or a past day)
 // Lists show a blue line where the card will land; the calendar shows a ghost block.
+//
+// Lists: drag a list's header (data-list-drag) left/right to reorder the lists.
 
 const Dnd = (() => {
-  let dragId = null;
-  let grabOffset = 0;   // for calendar blocks: how far down the block you grabbed it
+  let dragId = null;      // task being dragged
+  let listDragId = null;  // or: list being dragged
+  let grabOffset = 0;     // for calendar blocks: how far down the block you grabbed it
   const indicator = document.createElement('div');
   indicator.className = 'drop-indicator';
   const ghost = document.createElement('div');
   ghost.className = 'cal-ghost';
 
   document.addEventListener('dragstart', e => {
+    dragId = listDragId = null;   // start clean (a drop that redraws the page can swallow "dragend")
     const card = e.target.closest && e.target.closest('.card[data-task]');
-    if (!card || Calendar.isResizing()) { if (card) e.preventDefault(); return; }
-    dragId = card.dataset.task;
-    grabOffset = card.classList.contains('event') ? e.clientY - card.getBoundingClientRect().top : 0;
+    const listHead = e.target.closest && e.target.closest('[data-list-drag]');
+    if (card) {
+      if (Calendar.isResizing()) return e.preventDefault();
+      dragId = card.dataset.task;
+      grabOffset = card.classList.contains('event') ? e.clientY - card.getBoundingClientRect().top : 0;
+      e.dataTransfer.setData('text/plain', dragId);
+      requestAnimationFrame(() => card.classList.add('dragging'));
+    } else if (listHead) {
+      listDragId = listHead.dataset.listDrag;
+      e.dataTransfer.setData('text/plain', listDragId);
+      requestAnimationFrame(() => listHead.closest('.list-col').classList.add('dragging'));
+    } else return;
     e.dataTransfer.effectAllowed = 'move';
-    e.dataTransfer.setData('text/plain', dragId);
-    requestAnimationFrame(() => card.classList.add('dragging'));
   });
 
   document.addEventListener('dragend', () => {
-    dragId = null;
+    dragId = listDragId = null;
     clear();
     document.querySelectorAll('.dragging').forEach(el => el.classList.remove('dragging'));
   });
 
   document.addEventListener('dragover', e => {
+    if (listDragId) return listDragOver(e);
     const zone = dragId && e.target.closest('[data-drop]');
     if (!zone) return clear();
     e.preventDefault();
@@ -41,10 +54,12 @@ const Dnd = (() => {
     if (zone.dataset.drop === 'calendar') {
       indicator.remove();
       const start = Calendar.minutesAt(zone, e.clientY - grabOffset);
-      const duration = Tasks.get(dragId).duration;
-      Object.assign(ghost.style, Calendar.blockStyle(start, duration));
+      Object.assign(ghost.style, Calendar.blockStyle(start, Tasks.get(dragId).duration));
       ghost.textContent = formatTime(start);
       if (ghost.parentNode !== zone) zone.appendChild(ghost);
+    } else if (zone.dataset.drop === 'done') {
+      indicator.remove();
+      ghost.remove();
     } else {
       ghost.remove();
       const list = zone.querySelector('.list') || zone;
@@ -54,22 +69,60 @@ const Dnd = (() => {
   });
 
   document.addEventListener('drop', e => {
+    if (listDragId) return listDrop(e);
     const zone = dragId && e.target.closest('[data-drop]');
     if (!zone) return;
     e.preventDefault();
     const id = dragId;
-    const { drop, bucket, date } = zone.dataset;
-    if (drop === 'calendar') {
-      Tasks.moveToCalendar(id, date, Calendar.minutesAt(zone, e.clientY - grabOffset));
+    dragId = null;
+    const { drop, list: listId, date } = zone.dataset;
+    if (drop === 'calendar') Tasks.moveToCalendar(id, date, Calendar.minutesAt(zone, e.clientY - grabOffset));
+    else if (drop === 'done') {
+      const title = Tasks.get(id).title;
+      Tasks.markDone(id, date);
+      App.toast(`Done: “${title}”`);
     } else {
       const list = zone.querySelector('.list') || zone;
       const before = cardBelow(list, e.clientY);
       const beforeId = before ? before.dataset.task : null;
-      if (drop === 'triage') Tasks.moveToTriage(id, bucket, beforeId);
+      if (drop === 'list') Tasks.moveToList(id, listId, beforeId);
       if (drop === 'plan') Tasks.moveToPlan(id, date, beforeId);
     }
     clear();
   });
+
+  // ---- reordering lists ----------------------------------------------------
+
+  // The list column under the mouse, and whether the dragged list goes before it or after it.
+  function listTarget(e) {
+    const col = e.target.closest('.list-col');
+    if (!col) return null;
+    const r = col.getBoundingClientRect();
+    const after = e.clientX > r.left + r.width / 2 || col.dataset.list === TRIAGE_LIST.id;   // nothing goes before @triage
+    return { col, after };
+  }
+
+  function listDragOver(e) {
+    const target = listTarget(e);
+    document.querySelectorAll('.list-col.drop-before, .list-col.drop-after').forEach(el => el.classList.remove('drop-before', 'drop-after'));
+    if (!target) return;
+    e.preventDefault();
+    target.col.classList.add(target.after ? 'drop-after' : 'drop-before');
+  }
+
+  function listDrop(e) {
+    const target = listTarget(e);
+    if (!target) return;
+    e.preventDefault();
+    const cols = [...document.querySelectorAll('.list-col')];
+    const next = target.after ? cols[cols.indexOf(target.col) + 1] : target.col;
+    const id = listDragId;
+    listDragId = null;
+    Tasks.moveList(id, next ? next.dataset.list : null);
+    clear();
+  }
+
+  // ---- helpers ----------------------------------------------------------------
 
   // The first card in `list` whose middle is below the mouse (the drop goes before it).
   function cardBelow(list, y) {
@@ -81,6 +134,8 @@ const Dnd = (() => {
     indicator.remove();
     ghost.remove();
     document.querySelectorAll('.drag-over').forEach(el => el.classList.remove('drag-over'));
+    document.querySelectorAll('.drop-before, .drop-after').forEach(el => el.classList.remove('drop-before', 'drop-after'));
+    document.querySelectorAll('.dragging').forEach(el => el.classList.remove('dragging'));
   }
 
   return {};

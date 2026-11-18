@@ -1,27 +1,28 @@
-// tasks.js — all the data (tasks + labels) and every action you can take on it.
+// tasks.js — all the data (tasks, lists, labels) and every action you can take on it.
 //
 // A task looks like:
 //   {
 //     id:        "lq3k9a2x",
-//     title:     "Snippets RFC",
+//     title:     "Renew passport",
 //     priority:  1 | 2 | 3,
-//     labels:    ["k2j3", ...]          ids of labels (see below); can be empty
-//     bucket:    "today" | "week" | "month" | "eventually"   its triage bucket
-//     planDate:  null | "2026-11-17"    null = still in triage; a date = committed to that day
-//     startMin:  null | 570             null = in that day's plan list; a number = on the
+//     labels:    ["k2j3", ...]          ids of labels; can be empty
+//     list:      "triage" | "k9x2…"     id of the list it sits in while not planned
+//     planDate:  null | "2026-11-17"    null = in its list; a date = committed to that day
+//     startMin:  null | 570             null = in that day's to-do list; a number = on the
 //                                       calendar at that many minutes after midnight (570 = 9:30)
 //     duration:  30                     minutes, for the calendar block
-//     order:     0, 1, 2 …              position inside its list
+//     order:     0, 1, 2 …              position inside its list / to-do list
 //     createdAt: "2026-11-17T09:10:00.000Z",
-//     doneOn:    null | "2026-11-17"    the day it was marked done
+//     doneOn:    null | "2026-11-17"    the day it was done
 //   }
 //
 // Where a task shows up:
-//   done            → Done today panel (if done today) and the Done log
+//   done            → on that day: "Done today" for today, crossed out on past days
 //   planDate + time → that day's calendar
-//   planDate only   → that day's plan list
-//   neither         → its triage bucket
+//   planDate only   → that day's to-do list
+//   neither         → its list (bottom section)
 //
+// A list looks like:  { id, name: "weekly", order }   (shown as @weekly; @triage is built in)
 // A label looks like: { id, name: "Personal", shortcut: "p", color: "#2b8a3e", order }
 //
 // UI code never edits data directly — it calls these functions, which save and
@@ -29,13 +30,17 @@
 
 const Tasks = (() => {
   let tasks = [];
+  let lists = [];
   let labels = [];
 
   // Called once after sign-in: fetch this person's data from the database.
   async function init() {
     const data = await Store.load();
     tasks = data.tasks;
+    lists = data.lists;
     labels = data.labels;
+    if (!lists.some(l => l.id === TRIAGE_LIST.id)) lists.push({ ...TRIAGE_LIST, order: -1 });
+    tasks.forEach(t => { if (!list(t.list)) t.list = TRIAGE_LIST.id; });   // e.g. old buckets
     rollover();
   }
 
@@ -43,33 +48,31 @@ const Tasks = (() => {
   function onChange(fn) { listeners.push(fn); }
   function commit() {
     Store.save('tasks', tasks);
+    Store.save('lists', lists);
     Store.save('labels', labels);
     listeners.forEach(fn => fn());
   }
 
-  // Unfinished tasks that are behind move into today's to-do list:
-  //   • anything committed to a past day
-  //   • today's calendar tasks that ended more than CALENDAR.overdueAfter minutes ago
-  // Runs at start-up and every minute while the app is open. Returns how many moved.
+  // Unfinished tasks committed to a past day (to-do list or calendar) go back to @triage,
+  // so each day starts clean. Runs at start-up and every minute (for midnight).
   function rollover() {
     const today = todayISO();
-    const cutoff = minutesNow() - CALENDAR.overdueAfter;
-    const late = tasks.filter(t => !t.doneOn && t.planDate && (
-      t.planDate < today ||
-      (t.planDate === today && t.startMin != null && t.startMin + t.duration < cutoff)));
-    late.forEach(t => { t.planDate = today; t.startMin = null; t.order = 1e6 + t.order; });
-    if (late.length) { renumber(planList(today)); commit(); }
+    const late = tasks.filter(t => !t.doneOn && t.planDate && t.planDate < today);
+    late.forEach(t => {
+      Object.assign(t, { planDate: null, startMin: null, list: TRIAGE_LIST.id, order: 1e6 + t.order });
+    });
+    if (late.length) { renumber(listTasks(TRIAGE_LIST.id)); commit(); }
     return late.length;
   }
 
   function get(id) { return tasks.find(t => t.id === id); }
 
-  // ---- the lists the page shows -----------------------------------------
+  // ---- what the page shows --------------------------------------------------
 
   const byOrder = (a, b) => a.order - b.order;
 
-  function triageList(bucket) {
-    return tasks.filter(t => !t.doneOn && !t.planDate && t.bucket === bucket).sort(byOrder);
+  function listTasks(listId) {
+    return tasks.filter(t => !t.doneOn && !t.planDate && t.list === listId).sort(byOrder);
   }
   function planList(date) {
     return tasks.filter(t => !t.doneOn && t.planDate === date && t.startMin == null).sort(byOrder);
@@ -79,48 +82,38 @@ const Tasks = (() => {
       .sort((a, b) => a.startMin - b.startMin);
   }
   function doneList(date) {
-    return tasks.filter(t => t.doneOn === date).sort((a, b) => a.priority - b.priority);
+    return tasks.filter(t => t.doneOn === date)
+      .sort((a, b) => (a.startMin ?? 1e4) - (b.startMin ?? 1e4) || a.priority - b.priority);
   }
 
-  // [{ day: "2026-11-15", tasks: [...] }, ...] newest day first
-  function doneByDay() {
-    const days = [...new Set(tasks.filter(t => t.doneOn).map(t => t.doneOn))].sort().reverse();
-    return days.map(day => ({ day, tasks: doneList(day) }));
-  }
-
-  function todayStats() {
-    const today = todayISO();
-    const done = doneList(today).length;
-    const open = planList(today).length + calendarList(today).length;
-    return { done, total: done + open };
-  }
-
-  // ---- ordering helpers ---------------------------------------------------
+  // ---- ordering helpers -------------------------------------------------------
 
   function renumber(list) { list.forEach((t, i) => { t.order = i; }); }
 
-  // Put `task` into `list` just before `beforeId` (or at the end), then renumber.
-  function place(list, task, beforeId) {
-    list = list.filter(t => t.id !== task.id);
-    let index = beforeId ? list.findIndex(t => t.id === beforeId) : -1;
-    if (index < 0) index = list.length;
-    list.splice(index, 0, task);
-    renumber(list);
+  // Put `task` into `items` just before `beforeId` (or at the end), then renumber.
+  function place(items, task, beforeId) {
+    items = items.filter(t => t.id !== task.id);
+    let index = beforeId ? items.findIndex(t => t.id === beforeId) : -1;
+    if (index < 0) index = items.length;
+    items.splice(index, 0, task);
+    renumber(items);
   }
 
-  // ---- task actions -------------------------------------------------------
+  // ---- task actions -----------------------------------------------------------
 
-  // New tasks go to triage, unless a day (planDate) or a calendar time (planDate + startMin) is given.
-  function add({ title, priority = 2, labels: labelIds = [], bucket = 'today', planDate = null, startMin = null, duration = null }) {
+  // New tasks go to a list (default @triage), unless a day (planDate) or a calendar
+  // time (planDate + startMin) is given.
+  function add({ title, priority = 2, labels: labelIds = [], list: listId = TRIAGE_LIST.id,
+                 planDate = null, startMin = null, duration = null }) {
     title = (title || '').trim();
     if (!title) return null;
     const task = {
-      id: newId(), title, priority, labels: labelIds, bucket,
+      id: newId(), title, priority, labels: labelIds, list: listId,
       planDate, startMin: planDate ? startMin : null, duration: duration || CALENDAR.defaultDuration,
       order: 0, createdAt: new Date().toISOString(), doneOn: null,
     };
     tasks.push(task);
-    if (!planDate) place(triageList(bucket), task, null);
+    if (!planDate) place(listTasks(listId), task, null);
     else if (startMin == null) place(planList(planDate), task, null);
     commit();
     return task;
@@ -137,34 +130,44 @@ const Tasks = (() => {
     commit();
   }
 
+  // Tick box: done today / not done. Un-done tasks go back where they were, or to @triage
+  // if that was a past day.
   function toggleDone(id) {
     const task = get(id);
     if (task.doneOn) {
-      // Un-done: back where it was, but never on a past day.
       task.doneOn = null;
-      if (task.planDate && task.planDate < todayISO()) { task.planDate = todayISO(); task.startMin = null; }
+      if (task.planDate && task.planDate < todayISO()) Object.assign(task, { planDate: null, startMin: null, list: TRIAGE_LIST.id });
     } else {
       task.doneOn = todayISO();
     }
     commit();
   }
 
-  function moveToTriage(id, bucket, beforeId) {
+  // Dragged onto "Done today" or onto a past day: done on that day.
+  function markDone(id, date) {
     const task = get(id);
-    Object.assign(task, { planDate: null, startMin: null, bucket });
-    place(triageList(bucket), task, beforeId);
+    task.doneOn = date;
+    if (!task.planDate || task.planDate !== date) Object.assign(task, { planDate: date, startMin: null });
+    commit();
+  }
+
+  // Moves (by drag) also un-do a done task.
+  function moveToList(id, listId, beforeId) {
+    const task = get(id);
+    Object.assign(task, { planDate: null, startMin: null, list: listId, doneOn: null });
+    place(listTasks(listId), task, beforeId);
     commit();
   }
 
   function moveToPlan(id, date, beforeId) {
     const task = get(id);
-    Object.assign(task, { planDate: date, startMin: null });
+    Object.assign(task, { planDate: date, startMin: null, doneOn: null });
     place(planList(date), task, beforeId);
     commit();
   }
 
   function moveToCalendar(id, date, startMin) {
-    Object.assign(get(id), { planDate: date, startMin });
+    Object.assign(get(id), { planDate: date, startMin, doneOn: null });
     commit();
   }
 
@@ -180,7 +183,57 @@ const Tasks = (() => {
     commit();
   }
 
-  // ---- label actions ------------------------------------------------------
+  // ---- list actions -------------------------------------------------------------
+
+  // @triage first, then the person's own order.
+  function allLists() {
+    return [...lists].sort((a, b) => (b.id === TRIAGE_LIST.id) - (a.id === TRIAGE_LIST.id) || a.order - b.order);
+  }
+  function list(id) { return lists.find(l => l.id === id); }
+  function findList(name) { return lists.find(l => l.name.toLowerCase() === name.toLowerCase()); }
+
+  // Returns the list (existing or new), or an error message string.
+  function addList(name) {
+    name = name.replace(/^@/, '').trim();
+    if (!LIST_NAME.test(name)) return 'A list name is one word: letters and digits, like @weekly or @upcomingE.';
+    const existing = findList(name);
+    if (existing) return existing;
+    const newList = { id: newId(), name, order: lists.length };
+    lists.push(newList);
+    commit();
+    return newList;
+  }
+
+  // Drag-to-reorder: put list `id` just before `beforeId` (or last). @triage stays first.
+  function moveList(id, beforeId) {
+    if (id === TRIAGE_LIST.id || id === beforeId) return;
+    const others = allLists().filter(l => l.id !== TRIAGE_LIST.id && l.id !== id);
+    let index = beforeId ? others.findIndex(l => l.id === beforeId) : -1;
+    if (index < 0) index = others.length;
+    others.splice(index, 0, list(id));
+    others.forEach((l, i) => { l.order = i; });
+    commit();
+  }
+
+  // Deletes the list AND its (not yet planned) tasks. Returns what was removed, for Undo.
+  function removeList(id) {
+    if (id === TRIAGE_LIST.id) return null;
+    const removedList = list(id);
+    const removedTasks = listTasks(id);
+    lists = lists.filter(l => l.id !== id);
+    tasks = tasks.filter(t => !removedTasks.includes(t));
+    tasks.forEach(t => { if (t.list === id) t.list = TRIAGE_LIST.id; });   // planned/done ones keep living
+    commit();
+    return { list: removedList, tasks: removedTasks };
+  }
+
+  function restoreList({ list: l, tasks: removed }) {
+    lists.push(l);
+    tasks.push(...removed);
+    commit();
+  }
+
+  // ---- label actions --------------------------------------------------------------
 
   function allLabels() { return [...labels].sort(byOrder); }
   function label(id) { return labels.find(l => l.id === id); }
@@ -226,20 +279,22 @@ const Tasks = (() => {
     commit();
   }
 
-  // ---- backup ---------------------------------------------------------------
+  // ---- backup ---------------------------------------------------------------------
 
-  function exportData() { return { tasks, labels }; }
+  function exportData() { return { tasks, lists, labels }; }
 
   function replaceAll(data) {
     tasks = data.tasks;
+    lists = data.lists || [{ ...TRIAGE_LIST, order: -1 }];
     labels = data.labels;
     commit();
   }
 
   return {
     init, onChange, rollover, get,
-    triageList, planList, calendarList, doneList, doneByDay, todayStats,
-    add, update, cyclePriority, toggleDone, moveToTriage, moveToPlan, moveToCalendar, remove, restore,
+    listTasks, planList, calendarList, doneList,
+    add, update, cyclePriority, toggleDone, markDone, moveToList, moveToPlan, moveToCalendar, remove, restore,
+    allLists, list, findList, addList, moveList, removeList, restoreList,
     allLabels, label, findLabel, addLabel, removeLabel,
     exportData, replaceAll,
   };

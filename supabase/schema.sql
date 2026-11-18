@@ -1,14 +1,25 @@
 -- schema.sql — run in Supabase: Dashboard → SQL Editor → New query → paste → Run.
 --
--- ⚠ Version 2 STARTS FRESH: it deletes the old `tasks` table (and every task in it) and
--- creates the new tables. Safe to run again later only if you want to wipe everything.
+-- ⚠ This is the FULL schema for a fresh install: it deletes existing tables (and every task)
+-- and creates them again. To upgrade an existing database without losing tasks, run the
+-- files in supabase/migrations/ instead.
 --
--- Two tables, both private per person (Row Level Security at the bottom):
+-- Three tables, all private per person (Row Level Security at the bottom):
+--   lists  — the lists in the bottom section (@triage, @weekly, …)
 --   labels — the filter chips at the top ("Work #w", "Personal #p", …)
---   tasks  — every task, wherever it lives (triage, a day's plan, a calendar slot, done)
+--   tasks  — every task, wherever it lives (a list, a day's to-do, a calendar slot, done)
 
 drop table if exists public.tasks;
+drop table if exists public.lists;
 drop table if exists public.labels;
+
+create table public.lists (
+  user_id     uuid    not null default auth.uid() references auth.users on delete cascade,
+  id          text    not null,                    -- "triage" for the built-in list
+  name        text    not null,                    -- "weekly"  → shown as @weekly
+  sort_order  integer not null default 0,
+  primary key (user_id, id)
+);
 
 create table public.labels (
   user_id     uuid    not null default auth.uid() references auth.users on delete cascade,
@@ -26,8 +37,8 @@ create table public.tasks (
   title        text        not null,
   priority     smallint    not null check (priority in (1, 2, 3)),
   labels       text[]      not null default '{}',  -- label ids
-  bucket       text        not null default 'today', -- triage bucket: today / week / month / eventually
-  plan_date    date,                               -- null = still in triage; set = committed to that day
+  list_id      text        not null default 'triage', -- the list it sits in while not planned
+  plan_date    date,                               -- null = in its list; set = committed to that day
   start_min    integer,                            -- minutes after midnight on the calendar; null = in the day's plan list
   duration_min integer     not null default 30,    -- length of the calendar block
   sort_order   integer     not null default 0,     -- position inside its list
@@ -38,8 +49,13 @@ create table public.tasks (
 
 -- Row Level Security: the database itself refuses to show or change anyone else's rows,
 -- even though the app's public key is visible in the browser.
+alter table public.lists  enable row level security;
 alter table public.labels enable row level security;
 alter table public.tasks  enable row level security;
+
+create policy "Users manage their own lists" on public.lists
+  for all to authenticated
+  using ((select auth.uid()) = user_id) with check ((select auth.uid()) = user_id);
 
 create policy "Users manage their own labels" on public.labels
   for all to authenticated

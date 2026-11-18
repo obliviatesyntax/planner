@@ -1,28 +1,30 @@
 // cards.js — how one task looks, and what clicking on it does (anywhere on the page).
 //
-//   checkbox  → mark done (only on committed tasks: plan list and calendar)
+//   checkbox  → mark done / not done (planned and done tasks; or drag a task onto "Done today")
 //   P1/P2/P3  → click to cycle priority
 //   # / tags  → click to pick labels (labels.js → openPicker)
-//   ×         → delete (triage and day lists), with Undo
+//   ×         → delete (lists and to-do lists), with Undo
 //   title     → double-click to rename; shortcuts work there too ("… !1 #p" sets priority, adds label)
 //   drag      → see dnd.js
 
 const Cards = (() => {
-  // where: "triage" | "plan" | "calendar"
+  // where: "list" | "plan" | "calendar" | "done"   (style: position, for calendar blocks)
   function html(task, where, style = '') {
-    const committed = where !== 'triage';
+    const timed = task.startMin != null;
+    const time = timed ? `${formatTime(task.startMin)}${where === 'calendar' ? `–${formatTime(task.startMin + task.duration)}` : ''}` : '';
     return `
-      <div class="card p${task.priority} ${where === 'calendar' ? 'event' : ''}" draggable="true"
+      <div class="card p${task.priority} ${where === 'calendar' ? 'event' : ''} ${where === 'done' ? 'done' : ''}" draggable="true"
            data-task="${task.id}" ${style ? `style="${style}"` : ''}>
-        ${committed ? '<input type="checkbox" class="check" title="Mark done">' : ''}
+        ${where === 'list' ? '' : `<input type="checkbox" class="check" ${where === 'done' ? 'checked title="Mark as not done"' : 'title="Mark done"'}>`}
         <div class="body">
+          ${time && where !== 'calendar' ? `<span class="time">${time}</span>` : ''}
           <span class="title">${escapeHtml(task.title)}</span>
-          ${where === 'calendar' ? `<span class="time">${formatTime(task.startMin)}–${formatTime(task.startMin + task.duration)}</span>` : ''}
+          ${where === 'calendar' ? `<span class="time">${time}</span>` : ''}
           ${Labels.tagsHtml(task)}
         </div>
-        <button type="button" class="lbl-btn ${task.labels.length ? 'has' : ''}" title="Labels">#</button>
+        <button type="button" class="lbl-btn" title="Labels">#</button>
         <button type="button" class="prio" title="${PRIORITIES[task.priority]} (click to change)">P${task.priority}</button>
-        ${where === 'calendar' ? '' : '<button type="button" class="del" title="Delete">×</button>'}
+        ${where === 'list' || where === 'plan' ? '<button type="button" class="del" title="Delete">×</button>' : ''}
         ${where === 'calendar' ? '<div class="resize" title="Drag to change length"></div>' : ''}
       </div>`;
   }
@@ -33,9 +35,11 @@ const Cards = (() => {
     const id = card.dataset.task;
 
     if (e.target.matches('.check')) {
-      const title = Tasks.get(id).title;
+      const task = Tasks.get(id);
+      const wasDone = !!task.doneOn;
       Tasks.toggleDone(id);
-      return App.toast(`Done: “${title}”`, 'Undo', () => Tasks.toggleDone(id));
+      if (!wasDone) App.toast(`Done: “${task.title}”`, 'Undo', () => Tasks.toggleDone(id));
+      return;
     }
     if (e.target.matches('.prio')) return Tasks.cyclePriority(id);
     if (e.target.matches('.lbl-btn, .tag')) return Labels.openPicker(id, e.target);
@@ -60,7 +64,7 @@ const Cards = (() => {
       title.removeEventListener('keydown', onKey);
       title.removeEventListener('blur', onBlur);
       const text = title.textContent.trim();
-      const parsed = App.parseQuickAdd(text);   // "!1" and "#p" typed while renaming work too
+      const parsed = App.parseQuickAdd(text, { lists: false });   // "!1" and "#p" typed while renaming work too
       const task = Tasks.get(id);
       const changes = {};
       if (parsed.title && parsed.title !== task.title) changes.title = parsed.title;

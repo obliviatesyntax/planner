@@ -1,13 +1,16 @@
-// planner.js — the top section: what you've committed to.
+// planner.js — the top section: what you've committed to. Three views:
 //
-//   ‹ Today ›  [2 days | Week]
-//   ┌──────────┬──────────┐ ┌────────────┐
-//   │ Today    │ Tomorrow │ │ Done today │
-//   │ to-do    │ to-do    │ │            │
-//   │ + Add    │ + Add    │ │            │
-//   ├──────────┼──────────┤ │            │
-//   │ calendar │ calendar │ │            │
-//   └──────────┴──────────┘ └────────────┘
+//   Calendar: 2 days / Week                                     List
+//   ┌──────────┬──────────┐ ┌────────────┐      ┌──────────────────────────┐ ┌────────────┐
+//   │ Today    │ Tomorrow │ │ Done today │      │ Yesterday  ~~done~~      │ │ Done today │
+//   │ to-do    │ to-do    │ │ (drop here │      │ Today      9:00 Standup  │ │            │
+//   │ + Add    │ + Add    │ │  = done)   │      │            to-do…        │ │            │
+//   ├──────────┼──────────┤ │            │      │ Tomorrow   …             │ │            │
+//   │ calendar │ calendar │ │            │      │   (scrolls)              │ │            │
+//   └──────────┴──────────┘ └────────────┘      └──────────────────────────┘ └────────────┘
+//
+// Past days show only what was done that day (crossed out) — no hours. Drop a task on a
+// past day (or on "Done today") to mark it done on that day.
 //
 // The calendar covers the whole day but only shows a window of it: from a little before now,
 // as tall as needed to reach the last task coming up today (CALENDAR.view). Scroll for more;
@@ -185,111 +188,161 @@ const Calendar = (() => {
 
 const Planner = (() => {
   const root = document.getElementById('planner');
-  let mode = 'short';          // 'short' (today + next day) or 'week'
-  let start = todayISO();      // first day shown
-  let userScrolled = false;    // once you scroll the calendar yourself, re-renders keep your position
+  let view = 'cal2';           // one of PLAN_VIEWS
+  let start = todayISO();      // first day shown (calendar views)
+  let userScrolled = false;    // once you scroll yourself, re-renders keep your position
 
-  function days() {
-    return Array.from({ length: DAY_VIEWS[mode] }, (_, i) => addDays(start, i));
-  }
+  const isPast = date => date < todayISO();
+  const viewInfo = () => PLAN_VIEWS.find(v => v.id === view);
 
   function dayName(date) {
     const today = todayISO();
     if (date === today) return 'Today';
     if (date === addDays(today, 1)) return 'Tomorrow';
+    if (date === addDays(today, -1)) return 'Yesterday';
     return fromISO(date).toLocaleDateString(undefined, { weekday: 'long' });
   }
+  const shortDate = date => formatDay(date).replace(/^\w+, /, '');
 
-  function render() {
-    const list = days();
+  // ---- pieces shared by the views --------------------------------------------
+
+  // A past day: only what got done, crossed out. Drop a task here to mark it done that day.
+  function doneCellHtml(date, cls = '') {
+    const done = Tasks.doneList(date).filter(Labels.matches);
+    return `
+      <div class="done-cell ${cls}" data-drop="done" data-date="${date}">
+        <div class="list">${done.map(t => Cards.html(t, 'done')).join('')}</div>
+        ${done.length ? '' : '<p class="empty">Nothing done</p>'}
+      </div>`;
+  }
+
+  function todoCellHtml(date, cls = '', withTimed = false) {
+    const timed = withTimed ? Tasks.calendarList(date).filter(Labels.matches) : [];
+    const todo = Tasks.planList(date).filter(Labels.matches);
+    return `
+      <div class="plan-cell ${cls} ${date === todayISO() ? 'is-today' : ''}" data-drop="plan" data-date="${date}">
+        <div class="list">${[...timed, ...todo].map(t => Cards.html(t, 'plan')).join('')}</div>
+        <button type="button" class="col-add" data-date="${date}">+ Add</button>
+      </div>`;
+  }
+
+  function donePanelHtml() {
     const today = todayISO();
     const done = Tasks.doneList(today).filter(Labels.matches);
-    const win = Calendar.viewWindow(list);
-    const oldScroller = root.querySelector('.cal-scroll');
-    const keepScroll = userScrolled && oldScroller ? oldScroller.scrollTop : null;
+    return `
+      <aside class="done-today" data-drop="done" data-date="${today}">
+        <h3>Done today <span class="count">${done.length}</span></h3>
+        <div class="list">${done.map(t => Cards.html(t, 'done')).join('')}</div>
+        <p class="empty">${done.length ? 'Drag more tasks here to mark them done.' : 'Tick a task, or drag it here, to mark it done.'}</p>
+      </aside>`;
+  }
+
+  // ---- calendar views (2 days / week) ----------------------------------------
+
+  function calendarHtml(days) {
+    const today = todayISO();
+    const upcoming = days.filter(d => !isPast(d));
+    const win = upcoming.length ? Calendar.viewWindow(upcoming) : null;
+    const html = `
+      <div class="plan-days" style="--days:${days.length}">
+        <div class="plan-grid">
+          <div></div>
+          ${days.map(d => `
+            <div class="day-head ${d === today ? 'is-today' : ''} ${isPast(d) ? 'is-past' : ''}">
+              <b>${dayName(d)}</b> <span class="muted">${shortDate(d)}</span>
+            </div>`).join('')}
+          <div class="row-label">To do</div>
+          ${days.map(d => isPast(d) ? doneCellHtml(d, 'tall') : todoCellHtml(d)).join('')}
+        </div>
+        ${win ? `
+          <div class="cal-scroll" style="height:${win.span * Calendar.pxPerMinute()}px">
+            <div class="plan-grid cal-grid">
+              ${Calendar.gutterHtml()}
+              ${days.map(d => isPast(d) ? '<div class="cal-past"></div>' : Calendar.dayHtml(d)).join('')}
+            </div>
+          </div>` : ''}
+      </div>`;
+    return { html, win };
+  }
+
+  // ---- list view ----------------------------------------------------------------
+
+  function listViewHtml() {
+    const today = todayISO();
+    const days = [];
+    for (let i = -LIST_VIEW_DAYS.back; i <= LIST_VIEW_DAYS.ahead; i++) days.push(addDays(today, i));
+    return `
+      <div class="plan-listview">
+        ${days.map(d => `
+          <div class="lv-day ${d === today ? 'is-today' : ''} ${isPast(d) ? 'is-past' : ''}" ${d === today ? 'id="lv-today"' : ''}>
+            <div class="lv-head"><b>${dayName(d)}</b><span class="muted">${shortDate(d)}</span></div>
+            ${isPast(d) ? doneCellHtml(d) : todoCellHtml(d, '', true)}
+          </div>`).join('')}
+      </div>`;
+  }
+
+  // ---- render -------------------------------------------------------------------
+
+  function render() {
+    const info = viewInfo();
+    const days = info.days ? Array.from({ length: info.days }, (_, i) => addDays(start, i)) : null;
+    const old = root.querySelector('.cal-scroll, .plan-listview');
+    const keepScroll = userScrolled && old ? old.scrollTop : null;
+    const cal = days ? calendarHtml(days) : null;
 
     root.innerHTML = `
       <div class="section-head">
         <h2>Plan</h2>
-        <span class="muted">What you've committed to</span>
         <div class="day-nav">
-          <button type="button" data-nav="-1" title="Earlier">‹</button>
+          ${days ? '<button type="button" data-nav="-1" title="Earlier">‹</button>' : ''}
           <button type="button" data-nav="0">Today</button>
-          <button type="button" data-nav="1" title="Later">›</button>
-          <span class="muted">${formatDay(list[0])} – ${formatDay(list[list.length - 1])}</span>
+          ${days ? `<button type="button" data-nav="1" title="Later">›</button>
+          <span class="muted">${formatDay(days[0])} – ${formatDay(days[days.length - 1])}</span>` : ''}
         </div>
         <div class="seg">
-          <button type="button" data-mode="short" class="${mode === 'short' ? 'active' : ''}">${DAY_VIEWS.short} days</button>
-          <button type="button" data-mode="week" class="${mode === 'week' ? 'active' : ''}">Week</button>
+          ${PLAN_VIEWS.map(v => `<button type="button" data-view="${v.id}" class="${v.id === view ? 'active' : ''}">${v.label}</button>`).join('')}
         </div>
       </div>
-
       <div class="plan-layout">
-        <div class="plan-days" style="--days:${list.length}">
-          <div class="plan-grid">
-            <div></div>
-            ${list.map(d => `
-              <div class="day-head ${d === today ? 'is-today' : ''} ${d < today ? 'is-past' : ''}">
-                <b>${dayName(d)}</b> <span class="muted">${formatDay(d).replace(/^\w+, /, '')}</span>
-              </div>`).join('')}
-            <div class="row-label">To do</div>
-            ${list.map(d => `
-              <div class="plan-cell ${d === today ? 'is-today' : ''}" data-drop="plan" data-date="${d}">
-                <div class="list">${Tasks.planList(d).filter(Labels.matches).map(t => Cards.html(t, 'plan')).join('')}</div>
-                <button type="button" class="col-add" data-date="${d}">+ Add</button>
-              </div>`).join('')}
-          </div>
-          <div class="cal-scroll" style="height:${win.span * Calendar.pxPerMinute()}px">
-            <div class="plan-grid cal-grid">
-              ${Calendar.gutterHtml()}
-              ${list.map(Calendar.dayHtml).join('')}
-            </div>
-          </div>
-        </div>
-
-        <aside class="done-today">
-          <h3>Done today <span class="count">${done.length}</span></h3>
-          ${done.length
-            ? `<ul>${done.map(t => `
-                <li class="p${t.priority}">
-                  <span class="dot"></span><span class="t">${escapeHtml(t.title)}</span>${Labels.tagsHtml(t)}
-                  <button type="button" class="undo" data-id="${t.id}" title="Mark as not done">undo</button>
-                </li>`).join('')}</ul>`
-            : '<p class="empty">Tick off a planned task and it lands here.</p>'}
-          <a href="#done" class="log-link">Full done log →</a>
-        </aside>
+        ${cal ? cal.html : listViewHtml()}
+        ${donePanelHtml()}
       </div>`;
 
-    // Show the window (or keep where you scrolled to), then mark tasks outside the view.
-    const scroller = root.querySelector('.cal-scroll');
-    scroller.scrollTop = keepScroll ?? Calendar.topPx(win.start);
-    Calendar.updateHints(scroller);
-    scroller.addEventListener('scroll', () => Calendar.updateHints(scroller));
-    scroller.addEventListener('wheel', () => { userScrolled = true; }, { passive: true });
-    scroller.addEventListener('touchmove', () => { userScrolled = true; }, { passive: true });
+    // Scroll: keep where you were, or show the calendar window / today in the list.
+    const scroller = root.querySelector('.cal-scroll, .plan-listview');
+    if (scroller) {
+      if (keepScroll !== null) scroller.scrollTop = keepScroll;
+      else if (cal) scroller.scrollTop = Calendar.topPx(cal.win.start);
+      else scroller.scrollTop = root.querySelector('#lv-today').offsetTop - scroller.offsetTop;
+      if (cal) {
+        Calendar.updateHints(scroller);
+        scroller.addEventListener('scroll', () => Calendar.updateHints(scroller));
+      }
+      scroller.addEventListener('wheel', () => { userScrolled = true; }, { passive: true });
+      scroller.addEventListener('touchmove', () => { userScrolled = true; }, { passive: true });
+    }
   }
 
   root.addEventListener('click', e => {
     const nav = e.target.closest('[data-nav]');
     if (nav) {
       const step = Number(nav.dataset.nav);
-      start = step === 0 ? firstDay() : addDays(start, step * (mode === 'week' ? 7 : 1));
-      userScrolled = false;   // re-centre the calendar
+      start = step === 0 ? firstDay() : addDays(start, step * (view === 'week' ? 7 : 1));
+      userScrolled = false;   // re-centre
       return render();
     }
-    const modeBtn = e.target.closest('[data-mode]');
-    if (modeBtn) {
-      mode = modeBtn.dataset.mode;
+    const viewBtn = e.target.closest('[data-view]');
+    if (viewBtn) {
+      view = viewBtn.dataset.view;
       start = firstDay();
       userScrolled = false;
       return render();
     }
-    if (e.target.matches('.undo')) Tasks.toggleDone(e.target.dataset.id);
   });
 
-  // Short view starts today; the week view starts on this week's Monday.
+  // 2-day view starts today; the week view starts on this week's Monday.
   function firstDay() {
-    if (mode === 'short') return todayISO();
+    if (view !== 'week') return todayISO();
     const weekday = (fromISO(todayISO()).getDay() + 6) % 7;   // Monday = 0
     return addDays(todayISO(), -weekday);
   }
