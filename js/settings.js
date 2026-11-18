@@ -140,7 +140,8 @@ const Settings = (() => {
     App.toast(error ? `Could not send the email: ${error.message}` : `We emailed ${user.email} a link to set a new password.`);
   });
   dialog.addEventListener('click', e => { if (e.target === dialog) dialog.close(); });   // click outside closes
-  document.getElementById('settings-btn').addEventListener('click', open);
+  document.getElementById('settings-btn').addEventListener('click', open);          // gear, top right
+  document.getElementById('footer-settings-btn').addEventListener('click', open);   // bottom of the page
 
   return { load, get };
 })();

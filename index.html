@@ -399,15 +399,32 @@
   </div>
 
   <div id="app" hidden>
+  <!-- Pinned top bar.  Left: logo, name, date & time.  Centre: quick add (type, ⓘ tips, mic, Add).
+       Right: your name and a settings button.  On phones only the logo and quick add show. -->
   <header class="topbar">
-    <div class="brand"><svg class="logo" viewBox="0 0 64 64" aria-hidden="true"><rect width="64" height="64" rx="15" fill="#4f46e5"/><rect x="13" y="17" width="38" height="34" rx="6" fill="none" stroke="#fff" stroke-width="5"/><path d="M13 27h38" stroke="#fff" stroke-width="5"/><path d="M24 39l5 5 10-11" fill="none" stroke="#fff" stroke-width="5" stroke-linecap="round" stroke-linejoin="round"/></svg>Planner <span id="today-label" class="muted"></span></div>
+    <div class="brand">
+      <svg class="logo" viewBox="0 0 64 64" aria-hidden="true"><rect width="64" height="64" rx="15" fill="#4f46e5"/><rect x="13" y="17" width="38" height="34" rx="6" fill="none" stroke="#fff" stroke-width="5"/><path d="M13 27h38" stroke="#fff" stroke-width="5"/><path d="M24 39l5 5 10-11" fill="none" stroke="#fff" stroke-width="5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      <span class="brand-text"><span class="brand-name">Planner</span><span id="today-label" class="muted"></span></span>
+    </div>
+
+    <!-- Quick add: type and press Enter. A day/time puts it on the plan, @list or nothing puts it in a list.
+         See app.js (form submit) and when.js. -->
+    <form id="quick-add" class="quick-add" autocomplete="off">
+      <div class="qa-field">
+        <input id="qa-title" placeholder="Add a task…  e.g. “Dentist tomorrow at 5 PM”">
+        <button type="button" id="help-btn" class="qa-help" title="How to add tasks (press ?)">i</button>
+      </div>
+      <button type="button" id="mic-btn" class="mic-btn" title="Speak a task">
+        <svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="9" y="2" width="6" height="12" rx="3"/><path d="M5 10a7 7 0 0 0 14 0"/><path d="M12 17v4"/></svg>
+      </button>
+      <button type="submit" class="primary">Add</button>
+      <!-- Live preview of what Enter would add, and where (js/app.js → renderPreview) -->
+      <div id="qa-preview" class="qa-preview" hidden aria-live="polite"></div>
+    </form>
+
     <div class="account">
       <span id="user-email" class="muted"></span>
-      <button type="button" id="settings-btn" title="Settings">
-        <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 1 1-4 0v-.09a1.65 1.65 0 0 0-1-1.51 1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 1 1 0-4h.09a1.65 1.65 0 0 0 1.51-1 1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 1 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 1 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
-        Settings
-      </button>
-      <button type="button" id="signout-btn">Sign out</button>
+      <button type="button" id="settings-btn" class="icon-only" title="Settings" aria-label="Settings"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 1 1-4 0v-.09a1.65 1.65 0 0 0-1-1.51 1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 1 1 0-4h.09a1.65 1.65 0 0 0 1.51-1 1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 1 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 1 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg></button>
     </div>
   </header>
 
@@ -415,18 +432,6 @@
     <!-- Label filter chips: All · Work #w · Personal #p · + (see js/labels.js) -->
     <div id="labels-bar" class="labels-bar"></div>
 
-    <!-- Quick add: type and press Enter. A day/time puts it on the plan, @list or nothing puts it in a list.
-         See app.js (form submit) and when.js. -->
-    <form id="quick-add" class="quick-add" autocomplete="off">
-      <input id="qa-title" placeholder="Add a task…   e.g. “Dentist appointment tomorrow at 5 PM”   (press N, or i for tips)">
-      <button type="button" id="mic-btn" class="mic-btn" title="Speak a task">
-        <svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="9" y="2" width="6" height="12" rx="3"/><path d="M5 10a7 7 0 0 0 14 0"/><path d="M12 17v4"/></svg>
-      </button>
-      <button type="button" id="help-btn" class="mic-btn help-btn" title="How to add tasks (press ?)">i</button>
-      <button type="submit" class="primary">Add</button>
-      <!-- Live preview of what Enter would add, and where (js/app.js → renderPreview) -->
-      <div id="qa-preview" class="qa-preview" hidden aria-live="polite"></div>
-    </form>
 
     <!-- Top: what you've committed to (js/planner.js). Bottom: your lists (js/lists.js). -->
     <section id="planner" class="section"></section>
@@ -436,8 +441,12 @@
   <footer class="footer">
     <span class="muted"><b>today 5pm</b>, <b>tomorrow</b>, <b>fri 6-7pm</b> → plan · <b>@listName</b> → list · <b>p1 p2 p3</b> priority · <b>#p</b> label · click the calendar to add at a time · drag to “Done today” to complete · click a task to open it</span>
     <span class="spacer"></span>
-    <button type="button" id="export-btn">Export backup</button>
-    <label class="file-btn">Import backup<input type="file" id="import-input" accept="application/json" hidden></label>
+    <div class="footer-actions">
+      <button type="button" id="export-btn">Export backup</button>
+      <label class="file-btn">Import backup<input type="file" id="import-input" accept="application/json" hidden></label>
+      <button type="button" id="footer-settings-btn">Settings</button>
+      <button type="button" id="signout-btn">Sign out</button>
+    </div>
   </footer>
 
   </div>

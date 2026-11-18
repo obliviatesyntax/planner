@@ -156,7 +156,7 @@ const App = (() => {
   // ---- drawing ---------------------------------------------------------
 
   function renderAll() {
-    document.getElementById('today-label').textContent = formatDay(todayISO());
+    document.getElementById('today-label').textContent = `${formatDay(todayISO())} · ${formatTime(minutesNow())}`;
     Labels.render();
     Planner.render();
     Lists.render();
@@ -211,6 +211,7 @@ const App = (() => {
   // "now" line moves. Skipped while you're dragging or typing.
   setInterval(() => {
     const busy = document.querySelector('.dragging, [contenteditable="true"], .col-add-input, .cal-add-input, .label-input, .list-new-input, .label-picker:not([hidden])') || Calendar.isResizing();
+    document.getElementById('today-label').textContent = `${formatDay(todayISO())} · ${formatTime(minutesNow())}`;
     if (busy || Tasks.rollover()) return;
     renderAll();
   }, 60 * 1000);
