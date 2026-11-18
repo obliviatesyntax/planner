@@ -11,30 +11,68 @@
   <link rel="stylesheet" href="styles.css">
 </head>
 <body>
-  <!-- Shown when nobody is signed in (see js/auth.js). -->
+  <!-- Shown when nobody is signed in (see js/auth.js). Two tabs: Sign in / Create account. -->
   <section id="signin" class="signin" hidden>
     <div class="signin-card">
-      <h1>Planner</h1>
-      <form id="signin-form" class="signin-step">
-        <input id="signin-email" type="email" required placeholder="you@example.com" autocomplete="email">
-        <input id="signin-password" type="password" placeholder="Password" autocomplete="current-password">
-        <button type="submit" value="signin" class="primary">Sign in</button>
-        <button type="submit" value="signup">Create account</button>
-        <div class="or"><span>or, without a password</span></div>
-        <button type="submit" value="code" class="link-btn">Email me a sign-in code</button>
+      <div class="signin-brand">
+        <svg class="logo" viewBox="0 0 64 64" aria-hidden="true"><rect width="64" height="64" rx="15" fill="#4f46e5"/><rect x="13" y="17" width="38" height="34" rx="6" fill="none" stroke="#fff" stroke-width="5"/><path d="M13 27h38" stroke="#fff" stroke-width="5"/><path d="M24 39l5 5 10-11" fill="none" stroke="#fff" stroke-width="5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        Planner
+      </div>
+
+      <div class="auth-tabs" id="auth-tabs" role="tablist">
+        <button type="button" role="tab" data-tab="signin" class="active">Sign in</button>
+        <button type="button" role="tab" data-tab="signup">Create account</button>
+      </div>
+
+      <!-- Google / Apple / Facebook: only the ones turned on in Supabase are shown (js/auth.js) -->
+      <div id="oauth-buttons" class="oauth-buttons"></div>
+      <div class="or" id="oauth-or" hidden><span>or</span></div>
+
+      <!-- Sign in, step 1: email -->
+      <form id="signin-form" class="signin-step" data-pane="signin">
+        <input id="signin-email" type="email" required placeholder="Email address" autocomplete="email">
+        <button type="submit" class="primary">Continue with email</button>
       </form>
-      <form id="code-form" class="signin-step" hidden>
-        <input id="code-input" required inputmode="numeric" autocomplete="one-time-code"
-               pattern="[0-9]{6,10}" maxlength="10" placeholder="123456" class="code-input">
+
+      <!-- Sign in, step 2: password, or an emailed link/code -->
+      <form id="password-form" class="signin-step" hidden>
+        <div class="who"><span id="who-email"></span><button type="button" class="link-btn" data-back>Change</button></div>
+        <input id="signin-password" type="password" required placeholder="Password" autocomplete="current-password">
         <button type="submit" class="primary">Sign in</button>
-        <button type="button" id="code-back" class="link-btn">Use a different email</button>
+        <button type="button" id="send-link-btn" class="secondary">Email me a sign-in link instead</button>
+        <button type="button" id="forgot-btn" class="link-btn">Forgot password?</button>
       </form>
-      <form id="finish-form" class="signin-step" hidden>
-        <input id="finish-password" type="password" required minlength="6" placeholder="Password (6+ characters)" autocomplete="new-password">
-        <button type="submit" class="primary">Finish creating account</button>
-        <button type="button" id="finish-skip" class="link-btn">Skip, continue without a password</button>
+
+      <!-- Create account -->
+      <form id="signup-form" class="signin-step" data-pane="signup" hidden>
+        <input id="signup-name" required placeholder="First name" autocomplete="given-name" maxlength="40">
+        <input id="signup-email" type="email" required placeholder="Email address" autocomplete="email">
+        <input id="signup-password" type="password" required minlength="6" placeholder="Password (6+ characters)" autocomplete="new-password">
+        <button type="submit" class="primary">Create account</button>
+        <p class="fine">We'll email you a link to confirm your address.</p>
       </form>
-      <p id="signin-message" class="muted"></p>
+
+      <!-- After an email was sent (link, code, confirmation or password reset) -->
+      <div id="sent-pane" class="signin-step sent" hidden>
+        <div class="sent-icon">✉︎</div>
+        <p id="sent-text"></p>
+        <form id="code-form" class="signin-step" hidden>
+          <input id="code-input" inputmode="numeric" autocomplete="one-time-code"
+                 pattern="[0-9]{6,10}" maxlength="10" placeholder="123456" class="code-input">
+          <button type="submit" class="primary">Sign in</button>
+        </form>
+        <button type="button" id="resend-btn" class="secondary">Send it again</button>
+        <button type="button" class="link-btn" data-back>Back</button>
+      </div>
+
+      <!-- Back from a password-reset email: choose a new password -->
+      <form id="newpass-form" class="signin-step" hidden>
+        <h2>Choose a new password</h2>
+        <input id="newpass" type="password" required minlength="6" placeholder="New password (6+ characters)" autocomplete="new-password">
+        <button type="submit" class="primary">Save and continue</button>
+      </form>
+
+      <p id="signin-message" class="signin-message"></p>
     </div>
   </section>
 

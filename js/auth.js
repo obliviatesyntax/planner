@@ -1,189 +1,237 @@
-// auth.js — sign in, create an account, sign out. Two ways in, same account:
+// auth.js — the sign-in screen: two tabs, Sign in and Create account.
 //
-//   1. Email + password. "Create account" first proves you own the email (we email you),
-//      and only then is the password saved. This also gives a password to people whose account
-//      was made by email sign-in, and resets a forgotten password (after the same email check).
-//   2. Email sign-in ("Email me a sign-in link/code"): no password at all.
+// Sign in
+//   • Continue with Google / Apple / Facebook — only the providers turned on in Supabase
+//     (Authentication → Sign In / Providers) are shown; the page asks Supabase which ones.
+//   • Continue with email → then: password, or "Email me a sign-in link instead",
+//     or "Forgot password?" (emails a link to choose a new one).
+// Create account
+//   • First name + email + password → Supabase stores the account and emails a confirmation
+//     link; clicking it confirms the address and signs you in. (If "Confirm email" is turned off
+//     in Supabase, you're signed in straight away.)
 //
-// What the email contains depends on EMAIL_HAS_CODE in supabase-config.js:
-//   false → a link only (Supabase's built-in email, which can't be customised).
-//           "Create account": the link brings you back to this page with ?finish=signup,
-//           where you confirm your password.
-//   true  → a 6-digit code AND a link (needs custom SMTP + {{ .Token }} in the Magic Link
-//           template). Type the code here — works everywhere, even a double-clicked index.html.
-//
+// When EMAIL_HAS_CODE is true (custom SMTP + {{ .Token }} in the email template), the sign-in
+// email also has a 6-digit code you can type here — useful when the page is a local file.
 // Supabase remembers the sign-in in this browser, so you only do it once per device.
 
 const Auth = (() => {
-  const signinView = document.getElementById('signin');
-  const signinForm = document.getElementById('signin-form');
-  const emailInput = document.getElementById('signin-email');
-  const passwordInput = document.getElementById('signin-password');
-  const sentForm = document.getElementById('code-form');        // "check your email" step
-  const codeInput = document.getElementById('code-input');
-  const codeSubmit = sentForm.querySelector('button[type="submit"]');
-  const finishForm = document.getElementById('finish-form');    // link mode: confirm password
-  const message = document.getElementById('signin-message');
+  const $ = id => document.getElementById(id);
+  const message = $('signin-message');
   const isFile = location.protocol === 'file:';
-  const FINISH_PARAM = 'finish=signup';
+  const RESET_PARAM = 'finish=reset';
   let email = '';
-  let newPassword = null;   // set during "Create account": saved once the email is confirmed
+  let lastSend = null;    // the last email we sent, so "Send it again" can repeat it
 
-  // Say "code" or "link" on the sign-in screen, depending on what the email contains.
-  signinForm.querySelector('button[value="code"]').textContent =
-    EMAIL_HAS_CODE ? 'Email me a sign-in code' : 'Email me a sign-in link';
-  codeInput.hidden = codeSubmit.hidden = !EMAIL_HAS_CODE;
-  codeInput.required = EMAIL_HAS_CODE;
-
-  // Where the emailed link should land. A file on disk can't be a link target, so then
-  // it goes to the public site. "Create account" links come back with ?finish=signup.
-  function linkTarget() {
-    const base = isFile ? SITE_URL : location.origin + location.pathname;
-    return newPassword ? `${base}?${FINISH_PARAM}` : base;
-  }
+  // Where links in emails / from Google etc. should come back to. A file on disk can't be
+  // a link target, so then it's the public site.
+  const home = () => (isFile ? SITE_URL : location.origin + location.pathname);
 
   async function currentUser() {
     const { data: { session } } = await db.auth.getSession();
     return session ? session.user : null;
   }
 
-  function showSignIn() {
-    signinView.hidden = false;
-    document.getElementById('app').hidden = true;
-    emailInput.focus();
+  // "Navin" from the sign-up form, or from Google/Apple/Facebook; else the email.
+  function displayName(user) {
+    const m = user.user_metadata || {};
+    return m.first_name || (m.full_name || m.name || '').split(' ')[0] || user.email;
   }
 
   function showApp(user) {
-    signinView.hidden = true;
-    document.getElementById('app').hidden = false;
-    document.getElementById('user-email').textContent = user.email;
+    $('signin').hidden = true;
+    $('app').hidden = false;
+    $('user-email').textContent = displayName(user);
+    $('user-email').title = user.email;
   }
 
-  // ---- sign-in screen: one form, three buttons --------------------------
+  // ---- panes ---------------------------------------------------------------
 
-  signinForm.addEventListener('submit', async e => {
-    e.preventDefault();
-    const action = e.submitter ? e.submitter.value : 'signin';   // Enter key = "Sign in"
-    email = emailInput.value.trim();
-    const password = passwordInput.value;
+  const PANES = ['signin-form', 'password-form', 'signup-form', 'sent-pane', 'newpass-form'];
+  function showPane(id, text = '') {
+    PANES.forEach(p => { $(p).hidden = p !== id; });
+    const choosing = id === 'signin-form' || id === 'signup-form';
+    $('auth-tabs').hidden = !choosing;
+    $('oauth-buttons').hidden = !choosing;
+    $('oauth-or').hidden = !choosing || !$('oauth-buttons').children.length;
+    say(text);
+    const first = $(id).querySelector('input:not([hidden])');
+    if (first) first.focus();
+  }
+  function say(text, isError = false) {
+    message.textContent = text;
+    message.classList.toggle('error', isError);
+  }
 
-    if (action !== 'code' && password.length < 6) {
-      message.textContent = 'Enter a password of at least 6 characters (or use the email sign-in below).';
-      passwordInput.focus();
-      return;
-    }
+  function showSignIn() {
+    $('signin').hidden = false;
+    $('app').hidden = true;
+    showPane('signin-form');
+    loadProviders();
+  }
 
-    setBusy(signinForm, true);
-    if (action === 'signin') await signInWithPassword(password);
-    if (action === 'signup') { newPassword = password; await sendEmail(); }
-    if (action === 'code') { newPassword = null; await sendEmail(); }
-    setBusy(signinForm, false);
+  $('auth-tabs').addEventListener('click', e => {
+    const tab = e.target.closest('[data-tab]');
+    if (!tab) return;
+    $('auth-tabs').querySelectorAll('[data-tab]').forEach(t => t.classList.toggle('active', t === tab));
+    showPane(tab.dataset.tab === 'signup' ? 'signup-form' : 'signin-form');
   });
 
-  async function signInWithPassword(password) {
-    message.textContent = 'Signing in…';
-    const { error } = await db.auth.signInWithPassword({ email, password });
+  document.querySelectorAll('#signin [data-back]').forEach(b => b.addEventListener('click', () => {
+    $('auth-tabs').querySelector('[data-tab="signin"]').click();
+  }));
+
+  // ---- Google / Apple / Facebook ---------------------------------------------
+
+  const PROVIDERS = {
+    google: { name: 'Google', icon: '<svg viewBox="0 0 48 48" width="18" height="18"><path fill="#EA4335" d="M24 9.5c3.5 0 6.6 1.2 9 3.6l6.7-6.7C35.6 2.4 30.2 0 24 0 14.6 0 6.6 5.4 2.6 13.2l7.8 6.1C12.3 13.6 17.7 9.5 24 9.5z"/><path fill="#4285F4" d="M46.5 24.5c0-1.6-.1-3.1-.4-4.5H24v9h12.7c-.6 3-2.3 5.5-4.8 7.2l7.6 5.9c4.4-4.1 7-10.1 7-17.6z"/><path fill="#FBBC05" d="M10.4 28.7c-.5-1.4-.8-3-.8-4.7s.3-3.2.8-4.7l-7.8-6.1C1 16.5 0 20.1 0 24s1 7.5 2.6 10.8l7.8-6.1z"/><path fill="#34A853" d="M24 48c6.5 0 11.9-2.1 15.9-5.8l-7.6-5.9c-2.1 1.4-4.9 2.3-8.3 2.3-6.3 0-11.7-4.1-13.6-9.8l-7.8 6.1C6.6 42.6 14.6 48 24 48z"/></svg>' },
+    apple: { name: 'Apple', icon: '<svg viewBox="0 0 24 24" width="18" height="18" fill="currentColor"><path d="M16.4 12.6c0-2.6 2.1-3.8 2.2-3.9-1.2-1.8-3.1-2-3.7-2-1.6-.2-3.1.9-3.9.9-.8 0-2-.9-3.4-.9-1.7 0-3.3 1-4.2 2.6-1.8 3.1-.5 7.7 1.3 10.2.9 1.2 1.9 2.6 3.2 2.6 1.3-.1 1.8-.8 3.3-.8 1.6 0 2 .8 3.4.8 1.4 0 2.3-1.3 3.1-2.5 1-1.4 1.4-2.8 1.4-2.9-.1 0-2.7-1-2.7-4.1zM13.9 5c.7-.9 1.2-2 1.1-3.2-1 0-2.3.7-3 1.6-.7.8-1.3 2-1.1 3.1 1.1.1 2.3-.6 3-1.5z"/></svg>' },
+    facebook: { name: 'Facebook', icon: '<svg viewBox="0 0 24 24" width="18" height="18"><path fill="#1877F2" d="M24 12a12 12 0 1 0-13.9 11.9v-8.4H7.1V12h3V9.4c0-3 1.8-4.7 4.5-4.7 1.3 0 2.7.2 2.7.2v2.9h-1.5c-1.5 0-2 .9-2 1.9V12h3.4l-.5 3.5h-2.9v8.4A12 12 0 0 0 24 12z"/></svg>' },
+  };
+
+  // Ask Supabase which providers are turned on, and show a button for each.
+  async function loadProviders() {
+    try {
+      const res = await fetch(`${SUPABASE_URL}/auth/v1/settings`, { headers: { apikey: SUPABASE_KEY } });
+      const enabled = (await res.json()).external || {};
+      $('oauth-buttons').innerHTML = Object.entries(PROVIDERS).filter(([id]) => enabled[id])
+        .map(([id, p]) => `<button type="button" class="oauth-btn" data-provider="${id}">${p.icon}<span>Continue with ${p.name}</span></button>`)
+        .join('');
+    } catch (err) {
+      $('oauth-buttons').innerHTML = '';   // offline etc.: email still works
+    }
+    $('oauth-or').hidden = $('oauth-buttons').hidden || !$('oauth-buttons').children.length;
+  }
+
+  $('oauth-buttons').addEventListener('click', async e => {
+    const btn = e.target.closest('[data-provider]');
+    if (!btn) return;
+    const { error } = await db.auth.signInWithOAuth({ provider: btn.dataset.provider, options: { redirectTo: home() } });
+    if (error) say(`Could not continue with ${PROVIDERS[btn.dataset.provider].name}: ${error.message}`, true);
+  });
+
+  // ---- sign in with email --------------------------------------------------------
+
+  $('signin-form').addEventListener('submit', e => {
+    e.preventDefault();
+    email = $('signin-email').value.trim();
+    $('who-email').textContent = email;
+    showPane('password-form');
+  });
+
+  $('password-form').addEventListener('submit', async e => {
+    e.preventDefault();
+    busy($('password-form'), true);
+    say('Signing in…');
+    const { error } = await db.auth.signInWithPassword({ email, password: $('signin-password').value });
+    busy($('password-form'), false);
     if (!error) return location.reload();
-    message.textContent = error.message === 'Invalid login credentials'
-      ? 'Wrong email or password. No password yet, or forgot it? Click "Create account" to set one (we\'ll email you first to check it\'s you).'
-      : `Could not sign in: ${error.message}`;
-  }
-
-  async function sendEmail() {
-    message.textContent = 'Sending…';
-    const { error } = await db.auth.signInWithOtp({ email, options: { emailRedirectTo: linkTarget() } });
-    if (error) {
-      message.textContent = `Could not send the email: ${error.message}`;
-      return;
+    if (/not confirmed/i.test(error.message)) {
+      lastSend = { kind: 'confirm' };
+      showPane('sent-pane');
+      $('code-form').hidden = true;
+      return sentText(`Please confirm your email first: we sent a link to ${email} when you signed up.`);
     }
-    signinForm.hidden = true;
-    sentForm.hidden = false;
-    if (EMAIL_HAS_CODE) {
-      codeInput.value = '';
-      codeInput.focus();
-      codeSubmit.textContent = newPassword ? 'Verify email & create account' : 'Sign in';
-      message.textContent = newPassword
-        ? `We emailed ${email} a code. Type it here to confirm it's your email and finish creating your account.`
-        : `We emailed ${email} a code${isFile ? '' : ' and a sign-in link'}. Type the code here${isFile ? '' : ', or just click the link'}.`;
-    } else {
-      message.textContent = newPassword
-        ? `We emailed ${email} a link. Click it to confirm it's your email, then confirm your password to finish creating your account.`
-        : `We emailed ${email} a sign-in link. Click it to sign in. You can close this tab.`;
-    }
-  }
-
-  // ---- code step (only when EMAIL_HAS_CODE) ------------------------------
-
-  sentForm.addEventListener('submit', async e => {
-    e.preventDefault();
-    setBusy(sentForm, true);
-    message.textContent = 'Checking…';
-    const { error } = await db.auth.verifyOtp({ email, token: codeInput.value.trim(), type: 'email' });
-    setBusy(sentForm, false);
-    if (error) {
-      message.textContent = 'That code did not work. Check it, or request a new one.';
-      return;
-    }
-    if (newPassword) await savePassword(newPassword);   // email confirmed: save the chosen password
-    location.reload();   // now signed in: start the app fresh
+    say(error.message === 'Invalid login credentials'
+      ? 'Wrong email or password. Try again, or use a sign-in link or "Forgot password?" below.'
+      : `Could not sign in: ${error.message}`, true);
   });
 
-  document.getElementById('code-back').addEventListener('click', () => {
-    sentForm.hidden = true;
-    signinForm.hidden = false;
-    newPassword = null;
-    message.textContent = '';
-    emailInput.focus();
-  });
+  $('send-link-btn').addEventListener('click', () => send({ kind: 'link' }));
+  $('forgot-btn').addEventListener('click', () => send({ kind: 'reset' }));
+  $('resend-btn').addEventListener('click', () => lastSend && send(lastSend));
 
-  // ---- link step: back from a "Create account" link, confirm the password ----
-
-  function isFinishingSignup() {
-    return location.search.includes(FINISH_PARAM);
+  // Sends one of our emails and shows the "check your email" pane.
+  async function send(what) {
+    lastSend = what;
+    say('Sending…');
+    let error;
+    if (what.kind === 'link') {
+      // shouldCreateUser: false — signing in shouldn't quietly create accounts; that's the other tab.
+      ({ error } = await db.auth.signInWithOtp({ email, options: { shouldCreateUser: false, emailRedirectTo: home() } }));
+    } else if (what.kind === 'reset') {
+      ({ error } = await db.auth.resetPasswordForEmail(email, { redirectTo: `${home()}?${RESET_PARAM}` }));
+    } else if (what.kind === 'confirm') {
+      ({ error } = await db.auth.resend({ type: 'signup', email, options: { emailRedirectTo: home() } }));
+    }
+    if (error) {
+      return say(/signups not allowed|not found/i.test(error.message)
+        ? `There's no account for ${email} yet. Create one in the "Create account" tab.`
+        : `Could not send the email: ${error.message}`, true);
+    }
+    showPane('sent-pane');
+    const withCode = EMAIL_HAS_CODE && what.kind === 'link';
+    $('code-form').hidden = !withCode;
+    if (withCode) $('code-input').focus();
+    sentText({
+      link: withCode ? `We emailed ${email} a sign-in link and a code. Click the link, or type the code here.`
+                     : `We emailed ${email} a sign-in link. Click it to sign in; you can close this tab.`,
+      reset: `We emailed ${email} a link to choose a new password.`,
+      confirm: `We sent a new confirmation link to ${email}.`,
+    }[what.kind]);
   }
+  function sentText(text) { $('sent-text').textContent = text; }
 
-  function showFinishSignup(user) {
-    signinView.hidden = false;
-    document.getElementById('app').hidden = true;
-    signinForm.hidden = true;
-    finishForm.hidden = false;
-    message.textContent = `Email confirmed for ${user.email}. Enter your password once more to finish creating your account.`;
-    document.getElementById('finish-password').focus();
-  }
-
-  finishForm.addEventListener('submit', async e => {
+  $('code-form').addEventListener('submit', async e => {
     e.preventDefault();
-    setBusy(finishForm, true);
-    message.textContent = 'Saving your password…';
-    await savePassword(document.getElementById('finish-password').value);
-    history.replaceState(null, '', location.pathname);   // drop ?finish=signup
+    say('Checking…');
+    const { error } = await db.auth.verifyOtp({ email, token: $('code-input').value.trim(), type: 'email' });
+    if (error) return say('That code did not work. Check it, or send a new one.', true);
     location.reload();
   });
 
-  document.getElementById('finish-skip').addEventListener('click', () => {
-    history.replaceState(null, '', location.pathname);
+  // ---- create account ---------------------------------------------------------------
+
+  $('signup-form').addEventListener('submit', async e => {
+    e.preventDefault();
+    email = $('signup-email').value.trim();
+    busy($('signup-form'), true);
+    say('Creating your account…');
+    const { data, error } = await db.auth.signUp({
+      email,
+      password: $('signup-password').value,
+      options: { data: { first_name: $('signup-name').value.trim() }, emailRedirectTo: home() },
+    });
+    busy($('signup-form'), false);
+    if (error) return say(`Could not create the account: ${error.message}`, true);
+    if (data.session) return location.reload();   // "Confirm email" is off in Supabase: straight in
+    // Supabase doesn't say outright that an email is taken (privacy); an empty identity list means it is.
+    if (data.user && data.user.identities && data.user.identities.length === 0) {
+      return say(`${email} already has an account. Sign in instead (use "Forgot password?" if you don't have one).`, true);
+    }
+    lastSend = { kind: 'confirm' };
+    showPane('sent-pane');
+    $('code-form').hidden = true;
+    sentText(`Almost there! We emailed ${email} a link to confirm your address. Click it and you're in.`);
+  });
+
+  // ---- back from a "Forgot password" email: choose a new one -------------------------
+
+  function needsNewPassword() { return location.search.includes(RESET_PARAM); }
+
+  function showNewPassword(user) {
+    $('signin').hidden = false;
+    $('app').hidden = true;
+    showPane('newpass-form', `Signed in as ${user.email}.`);
+  }
+
+  $('newpass-form').addEventListener('submit', async e => {
+    e.preventDefault();
+    busy($('newpass-form'), true);
+    const { error } = await db.auth.updateUser({ password: $('newpass').value });
+    busy($('newpass-form'), false);
+    if (error && !/different from the old/i.test(error.message)) return say(`Could not save: ${error.message}`, true);
+    history.replaceState(null, '', location.pathname);   // drop ?finish=reset
     location.reload();
   });
 
-  async function savePassword(password) {
-    const { error } = await db.auth.updateUser({ password });
-    // "same as the old password" is fine; anything else, say so (they are signed in either way)
-    if (error && !/different from the old/i.test(error.message)) {
-      alert(`You're signed in, but the password could not be saved: ${error.message}`);
-    }
-    newPassword = null;
-  }
+  // ---- signed in: sign out ------------------------------------------------------------
 
-  // ---- signed in: sign out ----------------------------------------------
-
-  document.getElementById('signout-btn').addEventListener('click', async () => {
+  $('signout-btn').addEventListener('click', async () => {
     await db.auth.signOut();
     location.reload();
   });
 
-  function setBusy(form, busy) {
-    form.querySelectorAll('button').forEach(b => { b.disabled = busy; });
-  }
+  function busy(form, on) { form.querySelectorAll('button').forEach(b => { b.disabled = on; }); }
 
-  return { currentUser, showSignIn, showApp, isFinishingSignup, showFinishSignup };
+  return { currentUser, showSignIn, showApp, needsNewPassword, showNewPassword };
 })();

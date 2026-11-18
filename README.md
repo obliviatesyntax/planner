@@ -61,7 +61,7 @@ contain both `{{ .Token }}` (the code) and `{{ .ConfirmationURL }}` (the link).
 | `js/help.js` | The **i** button next to quick add: "Adding tasks" help (examples live in `index.html`). |
 | `js/voice.js` | Mic button: speech to text (browser built-in), spoken "list weekly" → `@weekly` etc. |
 | `js/supabase-config.js` | Which Supabase project to use (URL + public key), code-or-link switch. |
-| `js/auth.js` | Sign in (password or emailed link/code), create account, sign out. |
+| `js/auth.js` | Sign-in screen: Sign in / Create account tabs, Google/Apple/Facebook (shown when enabled in Supabase), password, emailed link, forgot password. |
 | `js/store.js` | **Where data is saved:** loads from and saves changes to the Supabase tables. |
 | `js/tasks.js` | Tasks, lists, labels and every action (add, move, done…). Data model documented at top. |
 | `js/labels.js` | Label chips: filter, create, delete. |

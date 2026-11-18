@@ -179,7 +179,7 @@ const App = (() => {
 (async () => {
   const user = await Auth.currentUser();
   if (!user) return Auth.showSignIn();
-  if (Auth.isFinishingSignup()) return Auth.showFinishSignup(user);   // back from a "Create account" link
+  if (Auth.needsNewPassword()) return Auth.showNewPassword(user);   // back from a "Forgot password" email
   Auth.showApp(user);
   Settings.load(user);
   try {
