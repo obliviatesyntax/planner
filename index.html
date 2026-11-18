@@ -4,7 +4,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Planner: plan today, park the rest</title>
-  <meta name="description" content="A calm, free daily planner. Type tasks in plain English, commit to what matters today, and park the rest in lists.">
+  <meta name="description" content="A calm, free planner that matches how you really work: organize tasks into lists by project, then plan the few you'll do each day.">
   <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='15' fill='%234f46e5'/%3E%3Crect x='13' y='17' width='38' height='34' rx='6' fill='none' stroke='white' stroke-width='5'/%3E%3Cpath d='M13 27h38' stroke='white' stroke-width='5'/%3E%3Cpath d='M24 39l5 5 10-11' fill='none' stroke='white' stroke-width='5' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -42,9 +42,9 @@
         <span class="lp-pill"><span class="lp-dot"></span>Free to use · No ads · Any device</span>
         <h1>Plan today.<br><span class="lp-grad">Park the rest.</span></h1>
         <p class="lp-lead">
-          Planner is a calm daily planner. Type tasks the way you'd say them, commit to what
-          matters today, and park everything else in lists until you're ready.
-          Tick things off and watch your days fill up with done.
+          Keep every task organized in lists, one for each project, trip or part of life, and add
+          to them as plans take shape. Then each day, pick the few you'll actually do and put them
+          on your plan. Tick things off and watch your days fill up with done.
         </p>
         <div class="lp-hero-cta">
           <button type="button" class="primary lp-big" data-auth="signup">Get started, it's free</button>
@@ -166,18 +166,21 @@
       <div class="lp-section-head">
         <span class="lp-eyebrow">Why Planner</span>
         <h2>Not another to-do app.</h2>
-        <p>Most task apps ask "when?" the moment you add something, then bury your day behind menus
-           and screens. Planner works the way your week actually does.</p>
+        <p>Most task apps ask "when?" the moment you add something. But real work doesn't start
+           with a date. It starts with a pile of things to do that needs sorting, and each day
+           you do a few of them. Planner is built for both halves.</p>
       </div>
       <div class="lp-why">
         <article class="lp-why-card lp-why-lead">
           <div class="lp-icon"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 12h4l3-8 4 16 3-8h4"/></svg></div>
-          <h3>Capture now. Commit when you're ready.</h3>
-          <p>You usually have more tasks than time, and no idea yet when most of them will happen.
-             So Planner doesn't ask. Tasks wait in a list until you choose a day or a time, and your
-             calendar only holds what you've really committed to.</p>
+          <h3>Organize first. Plan when you're ready.</h3>
+          <p>Starting a project, planning a trip or keeping a home running means a long list of
+             tasks, most with no date yet. Capture them into a list for each project and keep adding
+             as you figure it out, without being forced to pick a day or time. Then each day, pick
+             the handful you'll actually do and drag them onto your plan. Your lists hold everything;
+             your calendar holds only what you've committed to.</p>
           <div class="lp-flow" aria-hidden="true">
-            <span><b>Capture</b> into a list</span><i>→</i><span><b>Commit</b> to a day or time</span><i>→</i><span><b>Complete</b> and tick it off</span>
+            <span><b>Capture</b> into project lists</span><i>→</i><span><b>Commit</b> a few to today</span><i>→</i><span><b>Complete</b> and tick them off</span>
           </div>
         </article>
         <article class="lp-why-card">
@@ -199,6 +202,7 @@
           <span role="columnheader"></span><span role="columnheader">A typical task app</span><span role="columnheader">Planner</span>
         </div>
         <div class="lp-compare-row" role="row"><span role="rowheader">Adding a task</span><span>Asks for a due date right away</span><span>Waits in a list until you decide</span></div>
+        <div class="lp-compare-row" role="row"><span role="rowheader">Organizing a project</span><span>Made-up due dates, or tasks get lost</span><span>A list per project; add to it as you figure it out</span></div>
         <div class="lp-compare-row" role="row"><span role="rowheader">Seeing your day</span><span>Today, calendar and projects on separate screens</span><span>All on one page</span></div>
         <div class="lp-compare-row" role="row"><span role="rowheader">Planning a task</span><span>Open it, edit the date, save</span><span>Drag it onto a day or a time</span></div>
         <div class="lp-compare-row" role="row"><span role="rowheader">Tasks you didn't get to</span><span>A growing red "overdue" pile</span><span>One short @overdue list to re-plan, gone once it's empty</span></div>
@@ -229,7 +233,7 @@
       <div class="lp-section-head">
         <span class="lp-eyebrow">Drag and drop</span>
         <h2>Drag it where it fits.</h2>
-        <p>Pull a task from your list onto today, or onto a time. Tick it off when it's done.</p>
+        <p>Pull a task from a project list onto today, or onto a time. Tick it off when it's done.</p>
       </div>
       <div class="lp-dnd" id="lp-dnd" aria-hidden="true">
         <div class="lp-dnd-panel">
@@ -267,8 +271,9 @@
         </article>
         <article class="lp-feature">
           <div class="lp-icon"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M8 6h13M8 12h13M8 18h13"/><circle cx="3.5" cy="6" r="1"/><circle cx="3.5" cy="12" r="1"/><circle cx="3.5" cy="18" r="1"/></svg></div>
-          <h3>Lists for everything else</h3>
-          <p>Anything without a date waits in @triage. Give projects their own list, like @kitchenReno or @weekendBirdhouse.</p>
+          <h3>A list for every project</h3>
+          <p>Give each project its own list, like @kitchenReno or @weekendBirdhouse, and grow it as you
+             figure it out. @triage catches everything else.</p>
         </article>
         <article class="lp-feature">
           <div class="lp-icon"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 22V4"/><path d="M4 4h12l-2 4 2 4H4"/></svg></div>
@@ -297,13 +302,15 @@
       <ol class="lp-steps">
         <li>
           <span class="lp-step-n">1</span>
-          <h3>Capture</h3>
-          <p>Get it out of your head. Anything without a day waits in your list, so nothing slips.</p>
+          <h3>Capture &amp; organize</h3>
+          <p>Get it out of your head and into a list: one per project, trip or part of life. Keep
+             adding as the plan takes shape. No dates needed.</p>
         </li>
         <li>
           <span class="lp-step-n">2</span>
           <h3>Commit</h3>
-          <p>Drag what you'll actually do onto a day's to-do list, or onto a time on the calendar.</p>
+          <p>Each day, pick the few you'll actually do and drag them onto the day, or onto a time
+             on the calendar.</p>
         </li>
         <li>
           <span class="lp-step-n">3</span>
@@ -340,6 +347,10 @@
         <span class="lp-eyebrow">FAQ</span>
         <h2>Questions, answered.</h2>
       </div>
+      <details><summary>Do I have to give every task a date?</summary>
+        <p>No, and most tasks shouldn't have one yet. Keep them in lists (one per project if you like)
+           and add to them as you figure things out. When you're ready to do something, drag it onto a
+           day or a time. That's the whole idea: organize first, plan a few each day.</p></details>
       <details><summary>Is it free?</summary>
         <p>Yes. Planning, the calendar, lists, labels and your history are free, with no trial and no card.
            We may add an optional Pro plan for extras later.</p></details>
