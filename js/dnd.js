@@ -8,6 +8,10 @@
 // Lists show a blue line where the card will land; the calendar shows a ghost block.
 //
 // Lists: drag a list's header (data-list-drag) left/right to reorder the lists.
+//
+// Phones / narrow screens: while a task is being dragged, a bar slides up from the bottom with
+// big targets (Today · Tomorrow · @triage · Done), so you rarely need to scroll mid-drag.
+// They're ordinary drop places (data-drop="…") — the same drop code handles them.
 
 const Dnd = (() => {
   let dragId = null;      // task being dragged
@@ -28,6 +32,7 @@ const Dnd = (() => {
       grabOffset = card.classList.contains('event') ? e.clientY - card.getBoundingClientRect().top : 0;
       e.dataTransfer.setData('text/plain', dragId);
       requestAnimationFrame(() => card.classList.add('dragging'));
+      showDropBar();
     } else if (listHead) {
       listDragId = listHead.dataset.listDrag;
       e.dataTransfer.setData('text/plain', listDragId);
@@ -38,6 +43,7 @@ const Dnd = (() => {
 
   document.addEventListener('dragend', () => {
     dragId = listDragId = null;
+    dropBar.hidden = true;
     clear();
     document.querySelectorAll('.dragging').forEach(el => el.classList.remove('dragging'));
   });
@@ -51,7 +57,10 @@ const Dnd = (() => {
     document.querySelectorAll('.drag-over').forEach(el => { if (el !== zone) el.classList.remove('drag-over'); });
     zone.classList.add('drag-over');
 
-    if (zone.dataset.drop === 'calendar') {
+    if (zone.classList.contains('drop-target')) {   // a drop bar target: just highlight it
+      indicator.remove();
+      ghost.remove();
+    } else if (zone.dataset.drop === 'calendar') {
       indicator.remove();
       const start = Calendar.minutesAt(zone, e.clientY - grabOffset);
       Object.assign(ghost.style, Calendar.blockStyle(start, Tasks.get(dragId).duration));
@@ -75,6 +84,7 @@ const Dnd = (() => {
     e.preventDefault();
     const id = dragId;
     dragId = null;
+    dropBar.hidden = true;
     const { drop, list: listId, date } = zone.dataset;
     if (drop === 'calendar') Tasks.moveToCalendar(id, date, Calendar.minutesAt(zone, e.clientY - grabOffset));
     else if (drop === 'done') {
@@ -128,6 +138,22 @@ const Dnd = (() => {
   function cardBelow(list, y) {
     return [...list.querySelectorAll(':scope > .card:not(.dragging)')]
       .find(card => { const r = card.getBoundingClientRect(); return y < r.top + r.height / 2; });
+  }
+
+  // ---- phone drop bar ----------------------------------------------------------
+
+  const dropBar = document.getElementById('drop-bar');
+  const narrow = window.matchMedia('(max-width: 900px), (pointer: coarse)');
+
+  function showDropBar() {
+    if (!narrow.matches) return;
+    const today = todayISO();
+    dropBar.innerHTML = `
+      <div class="drop-target" data-drop="plan" data-date="${today}">Today</div>
+      <div class="drop-target" data-drop="plan" data-date="${addDays(today, 1)}">Tomorrow</div>
+      <div class="drop-target" data-drop="list" data-list="${TRIAGE_LIST.id}">@triage</div>
+      <div class="drop-target done" data-drop="done" data-date="${today}">✓ Done</div>`;
+    dropBar.hidden = false;
   }
 
   function clear() {

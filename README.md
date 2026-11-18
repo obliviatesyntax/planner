@@ -48,6 +48,8 @@ contain both `{{ .Token }}` (the code) and `{{ .ConfirmationURL }}` (the link).
   time. The calendar shows from an hour before now (blue line) to today's last upcoming task;
   scroll for more, or click the "▲ earlier / ▼ later" pills.
 - **Drag** tasks between lists, days, times, "Done today" and past days (= done on that day).
+  On phones, a bar with Today · Tomorrow · @triage · Done slides up while dragging; or swipe a task
+  right (done) or left (next day / today).
   Drag a calendar block's bottom edge to change its length.
 - Hover a task: **#** labels · **×** delete · click **P1/P2/P3** to change priority ·
   **double-click** the title to rename (`#p` / `p1` work there too).
@@ -71,6 +73,7 @@ contain both `{{ .Token }}` (the code) and `{{ .ConfirmationURL }}` (the link).
 | `js/planner.js` | Top section: calendar and list views, past days' done tasks, Done today. |
 | `js/lists.js` | Bottom section: @triage and your lists; create, reorder, delete. |
 | `js/settings.js` | Per-person settings and the Settings window. Add new settings here. |
+| `js/swipe.js` | Touch screens: swipe right = done, swipe left = next day (or today, for list tasks). |
 | `js/dnd.js` | Drag and drop: tasks between lists, days, times and done; reordering lists. |
 | `js/app.js` | Quick add, page switching, header, backup, toast, start-up. |
 | `styles.css` | All styling; colours are variables at the top. |

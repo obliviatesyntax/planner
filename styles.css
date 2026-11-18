@@ -358,6 +358,36 @@ main { padding: 0 24px; max-width: 1480px; margin: 0 auto; }
 .card .resize { position: absolute; left: 0; right: 0; bottom: 0; height: 5px; cursor: ns-resize; }
 .card.event:hover .resize { background: rgba(0,0,0,.06); }
 
+/* Swiping a task sideways on a touch screen (js/swipe.js) */
+.card { touch-action: pan-y; }   /* vertical = page scroll; sideways = swipe */
+.card.swiping { transition: none; z-index: 3; }
+.card:not(.swiping) { transition: transform .2s ease-out; }
+.card.swiping::before {
+  content: attr(data-swipe); position: absolute; top: 50%; transform: translateY(-50%);
+  font-size: 12px; font-weight: 700; white-space: nowrap; color: var(--faint); padding: 0 10px;
+}
+.card.swipe-right::before { right: 100%; }
+.card.swipe-left::before { left: 100%; }
+.card.swipe-ready.swipe-right { background: #f0fdf4; }
+.card.swipe-ready.swipe-right::before { color: var(--done); }
+.card.swipe-ready.swipe-left { background: var(--accent-soft); }
+.card.swipe-ready.swipe-left::before { color: var(--accent); }
+
+/* Phones: drop targets that slide up while dragging a task (js/dnd.js) */
+.drop-bar {
+  position: fixed; left: 12px; right: 12px; bottom: calc(12px + env(safe-area-inset-bottom)); z-index: 40; display: grid;
+  grid-template-columns: repeat(4, 1fr); gap: 8px; padding: 8px; border-radius: 16px;
+  background: rgba(17, 24, 39, .92); backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px);
+  box-shadow: var(--shadow-lg); animation: barUp .18s ease-out;
+}
+@keyframes barUp { from { transform: translateY(30px); opacity: 0; } to { transform: none; opacity: 1; } }
+.drop-target {
+  display: grid; place-items: center; min-height: 58px; border-radius: 11px; color: #fff; font-weight: 700;
+  background: rgba(255, 255, 255, .1); border: 1.5px dashed rgba(255, 255, 255, .35); text-align: center; padding: 4px;
+}
+.drop-target.drag-over { background: var(--accent); border-style: solid; border-color: var(--accent); transform: scale(1.04); }
+.drop-target.done.drag-over { background: var(--done); border-color: var(--done); }
+
 /* A done card: crossed out and quiet */
 .card.done { background: #fafafa; border-left-color: #d1d5db; box-shadow: none; }
 .card.done .title { text-decoration: line-through; color: var(--muted); }
