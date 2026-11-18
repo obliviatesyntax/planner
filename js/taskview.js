@@ -4,7 +4,7 @@
 //   where        where it is: a list, a day's to-do list, a calendar time, or done
 //   move         (at the bottom) Day (Today / Tomorrow / pick a date) · Time (optional; with a
 //                length) · List (choosing one takes it off the plan)
-//   priority     None / P1 / P2 / P3
+//   priority     P1 / P2 / P3 (tap the chosen one again for none)
 //   labels       tick on/off (only shown once labels exist; new ones are made at the top)
 //   description  free-form notes ("call before 5", links, addresses…)
 //   delete       with Undo
@@ -50,8 +50,8 @@ const TaskView = (() => {
 
         <div class="tv-row">
           <span class="tv-label">Priority</span>
-          <div class="tv-prio">
-            ${[0, 1, 2, 3].map(n => `<button type="button" data-prio="${n}" class="${n === p ? 'on' : ''} ${n ? `p${n}` : ''}">${n ? `P${n}` : 'None'}</button>`).join('')}
+          <div class="tv-prio" title="Tap the chosen priority again to clear it">
+            ${[1, 2, 3].map(n => `<button type="button" data-prio="${n}" class="p${n} ${n === p ? 'on' : ''}" title="${PRIORITIES[n]}">P${n}</button>`).join('')}
           </div>
         </div>
 
@@ -64,10 +64,7 @@ const TaskView = (() => {
             </div>
           </div>` : ''}
 
-        <label class="tv-desc">
-          <span class="tv-label">Description</span>
-          <textarea class="tv-notes" rows="5" placeholder="Notes, links, details…">${escapeHtml(t.notes || '')}</textarea>
-        </label>
+        <textarea class="tv-notes" rows="4" placeholder="Add a description…" aria-label="Description">${escapeHtml(t.notes || '')}</textarea>
 
         ${moveHtml(t)}
 
@@ -93,7 +90,7 @@ const TaskView = (() => {
     return `
       <section class="tv-move" aria-label="Move this task">
         <div class="tv-row">
-          <span class="tv-label">Day</span>
+          <span class="tv-label"><i><svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="4" width="18" height="17" rx="2"/><path d="M3 9h18M8 2v4M16 2v4"/></svg></i><b>Day</b></span>
           <div class="tv-when">
             <button type="button" data-day="${today}" class="${date === today ? 'on' : ''}">Today</button>
             <button type="button" data-day="${tomorrow}" class="${date === tomorrow ? 'on' : ''}">Tomorrow</button>
@@ -101,7 +98,7 @@ const TaskView = (() => {
           </div>
         </div>
         <div class="tv-row">
-          <span class="tv-label">Time</span>
+          <span class="tv-label"><i><svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg></i><b>Time</b></span>
           <div class="tv-when">
             <input type="time" class="tv-time ${timed ? 'on' : ''}" step="900" value="${timed ? hhmm(t.startMin) : ''}" title="Put it on the calendar at this time">
             ${timed
@@ -112,7 +109,7 @@ const TaskView = (() => {
           </div>
         </div>
         <div class="tv-row">
-          <span class="tv-label">List</span>
+          <span class="tv-label"><i><svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 6h12M9 12h12M9 18h12"/><circle cx="4" cy="6" r="1"/><circle cx="4" cy="12" r="1"/><circle cx="4" cy="18" r="1"/></svg></i><b>List</b></span>
           <div class="tv-when">
             <select class="tv-list ${inList ? 'on' : ''}">
               ${inList ? '' : `<option value="" selected>Choose a list…</option>`}
@@ -194,7 +191,11 @@ const TaskView = (() => {
     if (day) { moveToDay(day.dataset.day); return afterMove(); }
     if (e.target.closest('.tv-notime')) { Tasks.moveToPlan(id, Tasks.get(id).planDate, null); return afterMove(); }
     const prio = e.target.closest('[data-prio]');
-    if (prio) { Tasks.update(id, { priority: Number(prio.dataset.prio) || null }); return draw(); }
+    if (prio) {   // tap a priority to set it; tap the chosen one again to clear it
+      const n = Number(prio.dataset.prio);
+      Tasks.update(id, { priority: Tasks.get(id).priority === n ? null : n });
+      return draw();
+    }
     const chip = e.target.closest('[data-label]');
     if (chip) {
       const t = Tasks.get(id), lid = chip.dataset.label;
