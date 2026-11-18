@@ -40,6 +40,8 @@ contain both `{{ .Token }}` (the code) and `{{ .ConfirmationURL }}` (the link).
     `Call mom tomorrow`, `Gym fri 6-7pm`, `Review doc nov 20 at 14:00 for 1h` (see `js/when.js`).
   - `@listName` puts it in that list, creating the list if needed: `Renew passport @weekly`.
     (One word; camelCase is fine. An @list wins over a day/time.)
+  - **Mic button:** speak instead of typing (Chrome, Edge, Safari). Say "list weekly" for `@weekly`,
+    "label personal" for `#p`, "priority one" for `!1`; the text appears in the box, press Enter.
   - Neither: it goes to **@triage**. Also: `!1 !2 !3` priority · `#` + a label's shortcut.
 - **+ Add** under a day or list adds straight there; **click an empty calendar spot** to add at that
   time. The calendar shows from an hour before now (blue line) to today's last upcoming task;
@@ -56,6 +58,7 @@ contain both `{{ .Token }}` (the code) and `{{ .ConfirmationURL }}` (the link).
 | `js/config.js` | @triage, priorities, calendar sizes, plan views, label colours. Change the page's shape here. |
 | `js/utils.js` | Date, time and text helpers. |
 | `js/when.js` | Reads days and times from plain English for quick add ("today 5pm"). |
+| `js/voice.js` | Mic button: speech to text (browser built-in), spoken "list weekly" → `@weekly` etc. |
 | `js/supabase-config.js` | Which Supabase project to use (URL + public key), code-or-link switch. |
 | `js/auth.js` | Sign in (password or emailed link/code), create account, sign out. |
 | `js/store.js` | **Where data is saved:** loads from and saves changes to the Supabase tables. |

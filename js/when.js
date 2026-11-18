@@ -9,7 +9,7 @@
 // Understands:
 //   days:      today, tonight, tomorrow (tmrw, tmr), monday…sunday (mon, tue, wed, thu, fri),
 //              "next friday", "nov 20", "20 nov"
-//   times:     5pm, 5 PM, 5:30pm, 17:00, noon, ranges like 5-6pm or 5pm to 6:30pm
+//   times:     5pm, 5 PM, 5 p.m., 5:30pm, 17:00, noon, ranges like 5-6pm or 5pm to 6:30pm
 //   length:    "for 45 min", "for 1h", "for 1.5 hours"
 //   connectors "at", "on", "from" in front of these are removed too.
 // A time without a day means today. Numbers without am/pm or a colon ("buy 2 apples") are left alone.
@@ -37,7 +37,7 @@ const When = (() => {
   }
 
   function parse(input) {
-    let text = ` ${input} `;
+    let text = ` ${input} `.replace(/(\d)\s*([ap])\.\s?m\.?(?=\W)/gi, '$1$2m');   // "5 p.m." -> "5pm"
     let date = null, startMin = null, duration = null;
 
     // Replace the first match of `re` with a space if `fn` accepts it (returns something other than false).
