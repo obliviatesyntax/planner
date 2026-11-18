@@ -43,6 +43,7 @@ const Swipe = (() => {
     const { card, id, dx, active } = s;
     s = null;
     if (!active) return;
+    Cards.ignoreNextClick();
     card.classList.remove('swiping', 'swipe-right', 'swipe-left', 'swipe-ready');
     card.style.transform = '';
     if (dx > THRESHOLD) markDone(id);

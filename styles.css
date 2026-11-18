@@ -102,7 +102,55 @@ button { cursor: pointer; }
 }
 .setting input:focus { outline: none; border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-soft); }
 .setting .secondary { align-self: flex-start; font-weight: 500; }
-.settings-group { display: flex; flex-direction: column; gap: 14px; padding-bottom: 14px; border-bottom: 1px solid var(--line); }
+.settings-block { display: flex; flex-direction: column; gap: 12px; padding: 14px 16px; background: var(--bg); border-radius: 10px; }
+.settings-block h3 { margin: 0; font-size: 11.5px; text-transform: uppercase; letter-spacing: .06em; color: var(--muted); }
+.settings-block .setting select, .settings-block .setting input { background: var(--panel); }
+.setting-sub { margin: -4px 0 0; font-size: 12px; color: var(--muted); }
+
+/* ---- task window (click a task) ------------------------------------------ */
+
+#task-dialog {
+  border: 1px solid var(--line); border-radius: 14px; padding: 0; width: min(520px, calc(100vw - 24px));
+  max-height: calc(100vh - 40px); box-shadow: var(--shadow-lg);
+}
+#task-dialog::backdrop { background: rgba(17, 24, 39, .3); }
+.taskview { padding: 18px 20px 16px; display: flex; flex-direction: column; gap: 14px; }
+.tv-head { display: flex; align-items: center; gap: 8px; }
+.tv-where { font-size: 13px; font-weight: 600; color: var(--muted); background: var(--bg); padding: 3px 10px; border-radius: 99px; }
+.tv-title {
+  font-size: 19px; font-weight: 700; letter-spacing: -.01em; border: 1px solid transparent; border-radius: 8px;
+  padding: 6px 8px; margin: -6px -8px 0; resize: none; overflow: hidden; line-height: 1.35; font-family: inherit;
+}
+.tv-title:hover { border-color: var(--line); }
+.tv-title:focus { outline: none; border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-soft); }
+.tv-row { display: grid; grid-template-columns: 90px 1fr; align-items: start; gap: 10px; }
+.tv-label { font-size: 12.5px; font-weight: 600; color: var(--muted); padding-top: 5px; }
+.tv-prio { display: flex; border: 1px solid var(--line); border-radius: 8px; overflow: hidden; width: fit-content; }
+.tv-prio button { border: 0; background: var(--panel); padding: 5px 14px; font-weight: 600; color: var(--muted); }
+.tv-prio button + button { border-left: 1px solid var(--line); }
+.tv-prio button.on { background: var(--text); color: #fff; }
+.tv-prio button.p1.on { background: var(--p1); }
+.tv-prio button.p2.on { background: var(--p2); }
+.tv-prio button.p3.on { background: var(--p3); }
+.tv-labels { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; }
+.tv-label-chip { border: 1px solid var(--line); background: var(--panel); border-radius: 99px; padding: 3px 10px; font-size: 12.5px; font-weight: 600; color: var(--muted); }
+.tv-label-chip.on { background: var(--c); border-color: var(--c); color: #fff; }
+.tv-new-label { border: 1px dashed var(--line); border-radius: 99px; padding: 3px 10px; font-size: 12.5px; outline: none; width: 190px; }
+.tv-new-label:focus { border-style: solid; border-color: var(--accent); }
+.tv-desc { display: flex; flex-direction: column; gap: 6px; }
+.tv-notes {
+  font: inherit; font-size: 14px; line-height: 1.5; padding: 10px 12px; border: 1px solid var(--line); border-radius: 8px;
+  resize: vertical; min-height: 110px;
+}
+.tv-notes:focus { outline: none; border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-soft); }
+.tv-foot { display: flex; align-items: center; justify-content: space-between; gap: 10px; padding-top: 4px; border-top: 1px solid var(--line-soft); }
+.tv-delete { border: 0; background: none; color: var(--p1); font-weight: 600; padding: 6px 0; }
+.tv-delete:hover { text-decoration: underline; }
+.tv-saved { font-size: 12px; }
+@media (max-width: 520px) { .tv-row { grid-template-columns: 1fr; gap: 4px; } }
+
+.card { cursor: pointer; }
+.card .has-notes { color: var(--faint); font-size: 12px; line-height: 1; }
 .setting select:focus { outline: none; border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-soft); }
 .settings-note { margin: 0; font-size: 12px; }
 
@@ -363,6 +411,7 @@ main { padding: 0 24px; max-width: 1480px; margin: 0 auto; }
 /* A card placed on the calendar */
 .card.event { position: absolute; padding: 2px 4px 2px 6px; overflow: hidden; z-index: 1; gap: 5px; }
 .card.event .body { gap: 0 5px; }
+.card.event .time { font-size: 10.5px; }   /* a little smaller than the task name */
 .card.event .check { width: 15px; height: 15px; margin-top: 2px; }
 .card.event .card-actions { top: 1px; right: 30px; }
 .card.event.p0 .card-actions { right: 4px; }

@@ -14,6 +14,7 @@
 //     order:     0, 1, 2 …              position inside its list / to-do list
 //     createdAt: "2026-11-17T09:10:00.000Z",
 //     doneOn:    null | "2026-11-17"    the day it was done
+//     notes:     "Call before 5"         optional description (taskview.js)
 //   }
 //
 // Where a task shows up:

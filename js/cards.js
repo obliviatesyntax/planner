@@ -4,15 +4,19 @@
 //   P1/P2/P3  → click to cycle priority (no priority: no tag; hover shows a small "P" to set one)
 //   # / tags  → click to pick labels (labels.js → openPicker)
 //   ×         → delete (lists, to-do lists and calendar), with Undo
-//   title     → double-click to rename; shortcuts work there too ("… p1 #p" sets priority, adds label)
+//   anywhere else on the card → open it (taskview.js): rename, description, priority, labels, delete
 //   drag      → see dnd.js
 
 const Cards = (() => {
   // where: "list" | "plan" | "calendar" | "done"
   // style: position (calendar blocks); size: "short" / "short tiny" for short calendar blocks.
+  // Calendar blocks show a short time ("10–11") — or none when the calendar is cramped
+  // (Calendar.isCompressed(): week view on desktop, 2+ days on a phone).
   function html(task, where, style = '', size = '') {
     const timed = task.startMin != null;
-    const time = timed ? `${formatTime(task.startMin)}${where === 'calendar' ? `–${formatTime(task.startMin + task.duration)}` : ''}` : '';
+    const time = !timed ? ''
+      : where === 'calendar' ? (Calendar.isCompressed() ? '' : formatTimeRange(task.startMin, task.startMin + task.duration))
+      : formatTime(task.startMin);
     const p = task.priority || 0;   // 0 = no priority set
     const canDelete = where !== 'done';   // lists, to-do lists and calendar blocks
     const hasLabels = Tasks.allLabels().length > 0;   // no labels exist yet: no "#" button
@@ -23,8 +27,9 @@ const Cards = (() => {
         <div class="body">
           ${time && where !== 'calendar' ? `<span class="time">${time}</span>` : ''}
           <span class="title">${escapeHtml(task.title)}</span>
-          ${where === 'calendar' ? `<span class="time">${time}</span>` : ''}
+          ${where === 'calendar' && time ? `<span class="time">${time}</span>` : ''}
           ${Labels.tagsHtml(task)}
+          ${task.notes && task.notes.trim() ? '<span class="has-notes" title="Has a description">≡</span>' : ''}
         </div>
         <!-- Priority (when set) is always last and never moves. The hover buttons (P # ×) float
              over the text just left of it, on a see-through background, so nothing reflows. -->
@@ -56,40 +61,13 @@ const Cards = (() => {
       const removed = Tasks.remove(id);
       return App.toast(`Deleted “${removed.title}”`, 'Undo', () => Tasks.restore(removed));
     }
+    if (e.target.closest('button, input, .resize') || Date.now() < quietUntil) return;
+    TaskView.open(id);   // a plain click on the card
   });
 
-  // Double-click a title to rename. Enter saves, Escape cancels, clicking away saves.
-  document.addEventListener('dblclick', e => {
-    const title = e.target.closest('.card[data-task] .title');
-    if (!title) return;
-    const card = title.closest('.card');
-    const id = card.dataset.task;
-    card.draggable = false;
-    title.contentEditable = 'true';
-    title.focus();
-    document.getSelection().selectAllChildren(title);
+  // Right after a swipe or a resize, the browser also sends a "click": ignore it.
+  let quietUntil = 0;
+  function ignoreNextClick() { quietUntil = Date.now() + 400; }
 
-    const finish = save => {
-      title.removeEventListener('keydown', onKey);
-      title.removeEventListener('blur', onBlur);
-      const text = title.textContent.trim();
-      const parsed = App.parseQuickAdd(text, { lists: false });   // "p1" and "#p" typed while renaming work too
-      const task = Tasks.get(id);
-      const changes = {};
-      if (parsed.title && parsed.title !== task.title) changes.title = parsed.title;
-      if (parsed.priority) changes.priority = parsed.priority;
-      if (parsed.labels.some(l => !task.labels.includes(l))) changes.labels = [...new Set([...task.labels, ...parsed.labels])];
-      if (save && Object.keys(changes).length) Tasks.update(id, changes);
-      else App.renderAll();
-    };
-    const onKey = ev => {
-      if (ev.key === 'Enter') { ev.preventDefault(); finish(true); }
-      if (ev.key === 'Escape') finish(false);
-    };
-    const onBlur = () => finish(true);
-    title.addEventListener('keydown', onKey);
-    title.addEventListener('blur', onBlur);
-  });
-
-  return { html };
+  return { html, ignoreNextClick };
 })();

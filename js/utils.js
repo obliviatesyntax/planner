@@ -36,6 +36,20 @@ function formatTime(minutes) {
   return date.toLocaleTimeString(undefined, { hour: hour12 ? 'numeric' : '2-digit', minute: '2-digit', hour12 });
 }
 
+// Short time range for calendar blocks, without AM/PM (the calendar grid already shows it):
+//   600–660 -> "10–11"     630–675 -> "10:30–11:15"     600–630 -> "10:00–10:30"
+// (24-hour setting: "14–15", "14:30–15:15".)
+function formatTimeRange(start, end) {
+  const hour12 = typeof Settings === 'undefined' || Settings.get('clock') !== '24';
+  const onTheHour = start % 60 === 0 && end % 60 === 0;
+  const part = min => {
+    let h = Math.floor(min / 60) % 24;
+    if (hour12) h = h % 12 || 12;
+    return onTheHour ? `${h}` : `${h}:${String(min % 60).padStart(2, '0')}`;
+  };
+  return `${part(start)}–${part(end)}`;
+}
+
 function minutesNow() {
   const now = new Date();
   return now.getHours() * 60 + now.getMinutes();

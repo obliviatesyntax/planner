@@ -22,6 +22,7 @@
 const Calendar = (() => {
   const { startHour, endHour, slotMinutes, slotPx, snapMinutes, view } = CALENDAR;
   let resizing = null;
+  let compressed = false;   // cramped columns: calendar blocks show no time (set by Planner.render)
 
   const pxPerMinute = () => slotPx / slotMinutes;
   const height = () => (endHour - startHour) * 60 * pxPerMinute();
@@ -154,12 +155,14 @@ const Calendar = (() => {
     const duration = Math.max(snapMinutes, Math.min(endHour * 60 - task.startMin, minutes));
     resizing.duration = duration;
     resizing.card.style.height = blockStyle(task.startMin, duration).height;
-    resizing.card.querySelector('.time').textContent = `${formatTime(task.startMin)}–${formatTime(task.startMin + duration)}`;
+    const timeEl = resizing.card.querySelector('.time');
+    if (timeEl) timeEl.textContent = formatTimeRange(task.startMin, task.startMin + duration);
   });
   document.addEventListener('pointerup', () => {
     if (!resizing) return;
     const { id, duration } = resizing;
     resizing = null;
+    Cards.ignoreNextClick();
     if (duration) Tasks.update(id, { duration }); else App.renderAll();
   });
 
@@ -196,6 +199,8 @@ const Calendar = (() => {
   return {
     minutesAt, blockStyle, topPx, dayHtml, gutterHtml, hintsRowHtml, viewWindow, updateHints, pxPerMinute,
     isResizing: () => !!resizing,
+    isCompressed: () => compressed,
+    setCompressed: on => { compressed = on; },
   };
 })();
 
@@ -206,6 +211,9 @@ const Planner = (() => {
   let userScrolled = false;    // once you scroll yourself, re-renders keep your position
 
   const isPast = date => date < todayISO();
+  const phoneQuery = window.matchMedia('(max-width: 700px)');
+  const isPhone = () => phoneQuery.matches;
+  phoneQuery.addEventListener('change', () => { if (view) App.renderAll(); });   // rotating, resizing
   const viewInfo = () => PLAN_VIEWS.find(v => v.id === view);
 
   function dayName(date) {
@@ -333,8 +341,10 @@ const Planner = (() => {
   // ---- render -------------------------------------------------------------------
 
   function render() {
-    if (!view) { view = Settings.get('defaultView'); start = firstDay(); }
+    if (!view) { view = Settings.get(isPhone() ? 'defaultViewPhone' : 'defaultViewDesktop'); start = firstDay(); }
     const info = viewInfo();
+    // Cramped columns (a week on desktop, 2+ days on a phone): calendar blocks drop the time.
+    Calendar.setCompressed(info.days && (isPhone() ? info.days >= 2 : info.days >= 7));
     const days = info.days ? Array.from({ length: info.days }, (_, i) => addDays(start, i)) : null;
     const old = root.querySelector('.cal-scroll, .plan-listview');
     const keepScroll = userScrolled && old ? old.scrollTop : null;

@@ -52,8 +52,8 @@ contain both `{{ .Token }}` (the code) and `{{ .ConfirmationURL }}` (the link).
   On phones, a bar with Today · Tomorrow · @triage · Done slides up while dragging; or swipe a task
   right (done) or left (next day / today).
   Drag a calendar block's bottom edge to change its length.
-- Hover a task: **#** labels · **×** delete · click **P1/P2/P3** to change priority ·
-  **double-click** the title to rename (`#p` / `p1` work there too).
+- **Click a task** to open it: rename it, write a description, set priority and labels, delete it.
+  Hover a task for quick buttons: **P** / **#** / **×**, or click its P1/P2/P3 tag to change priority.
 
 ## Code map (read in this order)
 
@@ -70,6 +70,7 @@ contain both `{{ .Token }}` (the code) and `{{ .ConfirmationURL }}` (the link).
 | `js/store.js` | **Where data is saved:** loads from and saves changes to the Supabase tables. |
 | `js/tasks.js` | Tasks, lists, labels and every action (add, move, done…). Data model documented at top. |
 | `js/labels.js` | Label chips: filter, create, delete. |
+| `js/taskview.js` | The task window (click a task): rename, description, priority, labels, delete. |
 | `js/cards.js` | How a task looks; checkbox, priority, delete, rename. |
 | `js/planner.js` | Top section: calendar and list views, past days' done tasks, Done today. |
 | `js/lists.js` | Bottom section: @triage and your lists; create, reorder, delete. |
@@ -79,6 +80,6 @@ contain both `{{ .Token }}` (the code) and `{{ .ConfirmationURL }}` (the link).
 | `js/app.js` | Quick add, page switching, header, backup, toast, start-up. |
 | `styles.css` | All styling; colours are variables at the top. |
 | `supabase/schema.sql` | Full database setup for a fresh install (wipes data). |
-| `supabase/migrations/` | Upgrades for an existing database, run in order (keep your data). |
+| `supabase/migrations/` | Upgrades for an existing database, run in order (keep your data): 002 lists, 003 optional priority, 004 description. |
 
 Plain JavaScript loaded with `<script>` tags — no framework, no build step.

@@ -42,6 +42,7 @@ const Dnd = (() => {
   });
 
   document.addEventListener('dragend', () => {
+    Cards.ignoreNextClick();
     dragId = listDragId = null;
     dropBar.hidden = true;
     clear();

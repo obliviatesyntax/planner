@@ -3,31 +3,43 @@
 // Saved on the person's Supabase account (auth "user metadata"), so they follow you to every
 // device and browser. No database table needed. Read anywhere with Settings.get('name').
 //
-// To add a setting: add it to OPTIONS below (and its default), then use Settings.get() where it
-// matters. The settings window draws itself from OPTIONS.
+// To add a setting: add it to OPTIONS below (with its group and default), then use
+// Settings.get() where it matters. The settings window draws itself from GROUPS + OPTIONS.
 
 const Settings = (() => {
+  const VIEW_CHOICES = PLAN_VIEWS.map(v => [v.id, v.days ? `Calendar: ${v.label}` : v.label]);
+
+  // Blocks in the settings window, top to bottom ("account" is drawn by hand: name, password).
+  const GROUPS = [
+    { id: 'account', title: 'Account' },
+    { id: 'plan', title: 'Plan view' },
+    { id: 'tasks', title: 'New tasks' },
+    { id: 'day', title: 'End of the day' },
+  ];
+
   const OPTIONS = [
-    { key: 'defaultView', label: 'Plan opens in', default: 'cal2',
-      choices: PLAN_VIEWS.map(v => [v.id, v.days ? `Calendar: ${v.label}` : v.label]) },
-    { key: 'rolloverTo', label: 'At the end of the day, unfinished planned tasks go to', default: 'overdue',
-      choices: [['overdue', '@overdue, to re-plan'], ['nextDay', "The next day's to-do list"]] },
-    { key: 'weekStart', label: 'Week starts on', default: 'mon',
-      choices: [['mon', 'Monday'], ['sun', 'Sunday']] },
-    { key: 'clock', label: 'Time format', default: '12',
-      choices: [['12', '1:30 PM'], ['24', '13:30']] },
-    { key: 'minHours', label: 'Calendar shows at least', default: 4,
+    { group: 'plan', key: 'defaultViewDesktop', label: 'On a computer, open in', default: 'cal2', choices: VIEW_CHOICES },
+    { group: 'plan', key: 'defaultViewPhone', label: 'On a phone, open in', default: 'cal1', choices: VIEW_CHOICES },
+    { group: 'plan', key: 'minHours', label: 'Calendar shows at least', default: 4,
       choices: [4, 5, 6, 7, 8, 9].map(h => [h, `${h} hours`]) },
-    { key: 'defaultDuration', label: 'New calendar tasks last', default: 30,
-      choices: [15, 30, 45, 60, 90].map(m => [m, `${m} minutes`]) },
-    { key: 'defaultPriority', label: 'New tasks get priority', default: 0,
+    { group: 'plan', key: 'weekStart', label: 'Week starts on', default: 'mon',
+      choices: [['mon', 'Monday'], ['sun', 'Sunday']] },
+    { group: 'plan', key: 'clock', label: 'Time format', default: '12',
+      choices: [['12', '1:30 PM'], ['24', '13:30']] },
+    { group: 'tasks', key: 'defaultPriority', label: 'Priority', default: 0,
       choices: [[0, 'None (set it when needed)'], [1, 'P1 · must do'], [2, 'P2 · should do'], [3, 'P3 · nice to have']] },
+    { group: 'tasks', key: 'defaultDuration', label: 'Length on the calendar', default: 30,
+      choices: [15, 30, 45, 60, 90].map(m => [m, `${m} minutes`]) },
+    { group: 'day', key: 'rolloverTo', label: 'Unfinished planned tasks go to', default: 'overdue',
+      choices: [['overdue', '@overdue, to re-plan'], ['nextDay', "The next day's to-do list"]] },
   ];
 
   // Bump when a default changes and existing accounts should get the new default too.
   //   2: "New tasks get priority" became None (it used to be P2).
   //   3: "Calendar shows at least" back to 4 hours (it was 6; the window is now 4–9 hours).
-  const VERSION = 3;
+  //   4: one default view per device: the old "Plan opens in" becomes the computer one;
+  //      phones open in 1 day.
+  const VERSION = 4;
 
   let values = Object.fromEntries(OPTIONS.map(o => [o.key, o.default]));
   let user = null;
@@ -38,10 +50,12 @@ const Settings = (() => {
     const saved = (user && user.user_metadata && user.user_metadata.settings) || {};
     OPTIONS.forEach(o => { if (saved[o.key] !== undefined) values[o.key] = saved[o.key]; });
     if (values.rolloverTo === 'triage') values.rolloverTo = 'overdue';   // older setting name
+    if (saved.defaultView && saved.defaultViewDesktop === undefined) values.defaultViewDesktop = saved.defaultView;
     const version = saved.version || 1;
     if (version < VERSION && Object.keys(saved).length) {
       if (version < 2) values.defaultPriority = 0;   // version 2: everyone starts with "None"
       if (version < 3) values.minHours = 4;          // version 3: 4–9 hour calendar window
+      if (version < 4) values.defaultViewPhone = 'cal1';   // version 4: phones open in 1 day
       save();
     }
   }
@@ -56,7 +70,8 @@ const Settings = (() => {
   async function set(key, value) {
     const option = OPTIONS.find(o => o.key === key);
     values[key] = typeof option.default === 'number' ? Number(value) : value;
-    if (key === 'defaultView') Planner.setView(values[key]);
+    const deviceKey = window.matchMedia('(max-width: 700px)').matches ? 'defaultViewPhone' : 'defaultViewDesktop';
+    if (key === deviceKey) Planner.setView(values[key]);   // the view for this device: switch now
     App.renderAll();
     await save();
   }
@@ -72,26 +87,38 @@ const Settings = (() => {
           <h2>Settings</h2>
           <button type="submit" class="icon-btn" title="Close">×</button>
         </div>
-        <div class="settings-group">
-          <label class="setting">
-            <span>First name</span>
-            <input id="set-first-name" maxlength="40" autocomplete="given-name" value="${escapeHtml(Auth.displayName(user) === user.email ? '' : Auth.displayName(user))}" placeholder="Your first name">
-          </label>
-          <div class="setting">
-            <span>Password</span>
-            <button type="button" id="set-password" class="secondary">Email me a link to set a new password</button>
-          </div>
-        </div>
-        ${OPTIONS.map(o => `
-          <label class="setting">
-            <span>${o.label}</span>
-            <select data-key="${o.key}">
-              ${o.choices.map(([v, text]) => `<option value="${v}" ${String(values[o.key]) === String(v) ? 'selected' : ''}>${text}</option>`).join('')}
-            </select>
-          </label>`).join('')}
+        ${GROUPS.map(g => `
+          <section class="settings-block">
+            <h3>${g.title}</h3>
+            ${g.id === 'account' ? accountHtml() : OPTIONS.filter(o => o.group === g.id).map(optionHtml).join('')}
+          </section>`).join('')}
         <p class="muted settings-note">Saved to your account, so they apply on every device.</p>
       </form>`;
     dialog.showModal();
+  }
+
+  function accountHtml() {
+    const name = Auth.displayName(user) === user.email ? '' : Auth.displayName(user);
+    return `
+      <label class="setting">
+        <span>First name</span>
+        <input id="set-first-name" maxlength="40" autocomplete="given-name" value="${escapeHtml(name)}" placeholder="Your first name">
+      </label>
+      <div class="setting">
+        <span>Password</span>
+        <button type="button" id="set-password" class="secondary">Email me a link to set a new password</button>
+      </div>
+      <p class="setting-sub">Signed in as ${escapeHtml(user.email)}</p>`;
+  }
+
+  function optionHtml(o) {
+    return `
+      <label class="setting">
+        <span>${o.label}</span>
+        <select data-key="${o.key}">
+          ${o.choices.map(([v, text]) => `<option value="${v}" ${String(values[o.key]) === String(v) ? 'selected' : ''}>${text}</option>`).join('')}
+        </select>
+      </label>`;
   }
 
   dialog.addEventListener('change', async e => {

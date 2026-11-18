@@ -434,7 +434,7 @@
   </main>
 
   <footer class="footer">
-    <span class="muted"><b>today 5pm</b>, <b>tomorrow</b>, <b>fri 6-7pm</b> → plan · <b>@listName</b> → list · <b>p1 p2 p3</b> priority · <b>#p</b> label · click the calendar to add at a time · drag to “Done today” to complete · double-click to rename</span>
+    <span class="muted"><b>today 5pm</b>, <b>tomorrow</b>, <b>fri 6-7pm</b> → plan · <b>@listName</b> → list · <b>p1 p2 p3</b> priority · <b>#p</b> label · click the calendar to add at a time · drag to “Done today” to complete · click a task to open it</span>
     <span class="spacer"></span>
     <button type="button" id="export-btn">Export backup</button>
     <label class="file-btn">Import backup<input type="file" id="import-input" accept="application/json" hidden></label>
@@ -487,12 +487,15 @@
         <li><b>+ Add</b> under a day or a list adds straight there.</li>
         <li><b>Click an empty spot on the calendar</b> to add a task at that time.</li>
         <li><b>Drag</b> tasks between lists, days, times and “Done today”.</li>
-        <li><b>Double-click</b> a task to rename it; <code>p1</code> and <code>#p</code> work there too.</li>
+        <li><b>Click a task</b> to open it: rename it, add a description, set priority and labels, or delete it.</li>
         <li>Unfinished tasks from past days wait in <code>@overdue</code> (top of your lists) until you re-plan them.</li>
         <li>Press <kbd>N</kbd> to jump to the box, <kbd>?</kbd> to open this help.</li>
       </ul>
     </div>
   </dialog>
+
+  <!-- A task, opened by clicking it (js/taskview.js) -->
+  <dialog id="task-dialog"></dialog>
 
   <!-- Settings window, filled in by js/settings.js -->
   <dialog id="settings-dialog"></dialog>
@@ -513,6 +516,7 @@
   <script src="js/tasks.js"></script>
   <script src="js/labels.js"></script>
   <script src="js/cards.js"></script>
+  <script src="js/taskview.js"></script>
   <script src="js/planner.js"></script>
   <script src="js/dnd.js"></script>
   <script src="js/swipe.js"></script>

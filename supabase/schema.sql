@@ -44,6 +44,7 @@ create table public.tasks (
   sort_order   integer     not null default 0,     -- position inside its list
   created_at   timestamptz not null default now(),
   done_on      date,                               -- null = not done yet
+  notes        text,                               -- the task's description
   primary key (user_id, id)
 );
 
