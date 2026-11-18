@@ -137,8 +137,7 @@ const Landing = (() => {
     pvTodo.innerHTML = '<div class="m-card p1"><i></i>Finish launch doc <s class="m-tag" style="--c:#5f3dc4">#w</s><u>P1</u></div>'
       + '<div class="m-card p2"><i></i>Reply to Sam <u>P2</u></div>';
     pvCal.querySelectorAll('.lp-new').forEach(el => el.remove());
-    // List tasks have no checkbox in the real app; they get one once planned on a day.
-    pvTriage.innerHTML = '<b>@triage</b><div class="m-card p0">Renew passport</div><div class="m-card p0">Call the bank</div>';
+    pvTriage.innerHTML = '<b>@triage</b>' + card('Renew passport') + card('Call the bank');
     pvTomorrow.innerHTML = '<div class="m-card p3"><i></i>Plan weekend trip <u>P3</u></div>';
   }
   function pvShowPopup(text) {

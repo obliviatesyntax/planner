@@ -1,6 +1,6 @@
 // cards.js — how one task looks, and what clicking on it does (anywhere on the page).
 //
-//   checkbox  → mark done / not done (planned and done tasks; or drag a task onto "Done today")
+//   checkbox  → mark done / not done, on every task (or drag a task onto "Done today")
 //   P1/P2/P3  → click to cycle priority (no priority: no tag; hover shows a small "P" to set one)
 //   # / tags  → click to pick labels (labels.js → openPicker)
 //   🗑         → delete (lists, to-do lists and calendar), with Undo
@@ -26,7 +26,7 @@ const Cards = (() => {
     return `
       <div class="card p${p} ${where === 'calendar' ? `event ${size}` : ''} ${where === 'done' ? 'done' : ''}" draggable="true"
            data-task="${task.id}" ${style ? `style="${style}"` : ''}>
-        ${where === 'list' ? '' : `<input type="checkbox" class="check" ${where === 'done' ? 'checked title="Mark as not done"' : 'title="Mark done"'}>`}
+        <input type="checkbox" class="check" ${where === 'done' ? 'checked title="Mark as not done"' : 'title="Mark done"'}>
         <div class="body">
           ${time && where !== 'calendar' ? `<span class="time">${time}</span>` : ''}
           <span class="title">${escapeHtml(task.title)}</span>
