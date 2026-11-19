@@ -4,7 +4,7 @@
 // rename it, give it a label, or delete it (and its tasks, with Undo). Drag a task up to a day or a
 // time to commit; if the list has a label, the task picks it up then.
 //
-// Lists are packed like a Pinterest board (see pack()), so one long list doesn't leave gaps.
+// Lists sit in fixed columns, dealt in order (see render()).
 //
 // @overdue (built in) comes first, but only while it has tasks: yesterday's unfinished ones.
 // Move each to a day or another list and it disappears. You can't add to it or drop into it.
@@ -13,55 +13,52 @@ const Lists = (() => {
   const root = document.getElementById('lists');
   let creating = false;   // is the "new list" box open?
 
+  // Lists are dealt into fixed columns in order: list 1 into column 1, list 2 into column 2…,
+  // then round again under them (2 columns: 1 3 5 in the first, 2 4 6 in the second). So the
+  // order always reads left to right, then down, a drop lands exactly where you drop it, and
+  // each column stacks tightly (no holes under short lists). Re-dealt when the width changes.
+  const MIN_COL = 220, GAP = 10;
+  let columns = 0;
+  function columnCount() {
+    const width = root.clientWidth - 32;   // #lists has 16px padding on each side
+    return Math.max(1, Math.floor((width + GAP) / (MIN_COL + GAP)));
+  }
+
   function render() {
+    columns = columnCount();
+    const items = [overdueHtml(), ...Tasks.allLists().map(listHtml)].filter(Boolean)
+      .map((html, i) => html.replace('class="list-col', `data-order="${i}" class="list-col`));
+    const cols = Array.from({ length: columns }, (_, c) => items.filter((_, i) => i % columns === c).join(''));
     root.innerHTML = `
       <div class="section-head">
         <h2>Lists</h2>
         <span class="muted">Not planned yet. Drag a task up to a day or a time when you commit to it.</span>
-      </div>
-      <div class="lists-grid">
-        ${overdueHtml()}
-        ${Tasks.allLists().map(l => {
-          const tasks = Tasks.listTasks(l.id).filter(Labels.matches);
-          const isTriage = l.id === TRIAGE_LIST.id;
-          return `
-            <div class="list-col" data-drop="list" data-list="${l.id}">
-              <div class="list-head ${isTriage ? '' : 'openable'}" ${isTriage ? '' : `draggable="true" data-list-drag="${l.id}" title="Click to rename or delete · drag to reorder"`}>
-                <span class="list-name">@${escapeHtml(l.name)}</span>
-                ${listTagHtml(l)}
-                <span class="count">${tasks.length}</span>
-              </div>
-              <div class="list">${tasks.map(t => Cards.html(t, 'list')).join('')}</div>
-              <button type="button" class="col-add" data-list="${l.id}">+ Add</button>
-            </div>`;
-        }).join('')}
         <div class="list-new">
           ${creating
             ? '<input class="list-new-input" placeholder="@listName, Enter" maxlength="31">'
             : '<button type="button" class="list-new-btn">+ New list</button>'}
         </div>
+      </div>
+      <div class="lists-board" style="--cols:${columns}">
+        ${cols.map(html => `<div class="lists-stack">${html}</div>`).join('')}
       </div>`;
     if (creating) root.querySelector('.list-new-input').focus();
-    pack();
   }
+  new ResizeObserver(() => { if (columnCount() !== columns) render(); }).observe(root);
 
-  // ---- packing: no big gaps under short lists ----------------------------------------
-  // The grid has tiny rows (ROW px, see .lists-grid in styles.css) and each list spans as many
-  // as its height needs. The browser places each next list in the first free spot, which is the
-  // bottom of the shortest column, so lists fill in like a Pinterest board while staying in
-  // your order on the page (left to right, then down; drag-to-reorder still works).
-  const ROW = 2, GAP = 10;
-  const sizes = new ResizeObserver(() => requestAnimationFrame(pack));   // a list grew/shrank, or the window changed
-  function pack() {
-    const grid = root.querySelector('.lists-grid');
-    if (!grid) return;
-    sizes.disconnect();
-    sizes.observe(grid);
-    for (const item of grid.children) {
-      sizes.observe(item);
-      const span = Math.ceil((item.getBoundingClientRect().height + GAP) / ROW);
-      if (item.style.gridRowEnd !== `span ${span}`) item.style.gridRowEnd = `span ${span}`;
-    }
+  function listHtml(l) {
+    const tasks = Tasks.listTasks(l.id).filter(Labels.matches);
+    const isTriage = l.id === TRIAGE_LIST.id;
+    return `
+      <div class="list-col" data-drop="list" data-list="${l.id}">
+        <div class="list-head ${isTriage ? '' : 'openable'}" ${isTriage ? '' : `draggable="true" data-list-drag="${l.id}" title="Click to rename or delete · drag to reorder"`}>
+          <span class="list-name">@${escapeHtml(l.name)}</span>
+          ${listTagHtml(l)}
+          <span class="count">${tasks.length}</span>
+        </div>
+        <div class="list">${tasks.map(t => Cards.html(t, 'list')).join('')}</div>
+        <button type="button" class="col-add" data-list="${l.id}">+ Add</button>
+      </div>`;
   }
 
   // The list's label, shown next to its name ("@kitchenReno #p").

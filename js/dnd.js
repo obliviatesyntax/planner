@@ -130,7 +130,8 @@ const Dnd = (() => {
     const target = listTarget(e);
     if (!target) return;
     e.preventDefault();
-    const cols = [...document.querySelectorAll('.list-col')];
+    // in list order (data-order), not page order: lists are dealt into columns
+    const cols = [...document.querySelectorAll('.list-col')].sort((a, b) => a.dataset.order - b.dataset.order);
     const next = target.after ? cols[cols.indexOf(target.col) + 1] : target.col;
     const id = listDragId;
     listDragId = null;

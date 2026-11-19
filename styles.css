@@ -384,9 +384,9 @@ main { padding: 0 24px; max-width: 1480px; margin: 0 auto; }
   margin-top: 32px; padding: 16px; border-radius: 14px;
   background: #eef0f4; border: 1px solid #e2e5eb;
 }
-/* Packed like a Pinterest board: 2px rows, and lists.js (pack) makes each list span as many as
-   its height needs. Row gap is 0 here; the 10px between lists is part of each list's span. */
-.lists-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); grid-auto-rows: 2px; column-gap: 10px; align-items: start; }
+/* Fixed columns (lists.js deals the lists into them in order); each column stacks tightly. */
+.lists-board { display: grid; grid-template-columns: repeat(var(--cols), minmax(0, 1fr)); gap: 10px; align-items: start; }
+.lists-stack { display: flex; flex-direction: column; gap: 10px; min-width: 0; }
 .list-col {
   background: var(--panel); border: 1px solid var(--line); border-radius: var(--radius); box-shadow: var(--shadow);
   padding: 8px; display: flex; flex-direction: column; gap: 6px; position: relative;
@@ -411,13 +411,14 @@ main { padding: 0 24px; max-width: 1480px; margin: 0 auto; }
 .list-del:hover { color: var(--p1); }
 .list-col .col-add { margin-top: auto; }
 .list-col:hover .col-add { border-color: var(--line); }
-.list-new { display: flex; align-items: flex-start; }
+/* "+ New list": in the Lists header, at the right */
+.list-new { margin-left: auto; display: flex; }
 .list-new-btn {
-  width: 100%; min-height: 48px; border: 1.5px dashed #c9ced8; background: transparent; color: var(--muted);
-  border-radius: var(--radius); font-weight: 600;
+  border: 1.5px dashed #c9ced8; background: transparent; color: var(--muted); padding: 5px 12px;
+  border-radius: var(--radius-sm); font-weight: 600; font-size: 13px;
 }
 .list-new-btn:hover { border-color: var(--accent); color: var(--accent); background: rgba(255,255,255,.5); }
-.list-new-input { width: 100%; padding: 10px 12px; border: 1px solid var(--accent); border-radius: var(--radius); outline: none; }
+.list-new-input { width: 200px; padding: 6px 10px; border: 1px solid var(--accent); border-radius: var(--radius-sm); outline: none; }
 .count { font-weight: 600; color: var(--muted); font-size: 11px; background: var(--bg); padding: 0 7px; border-radius: 99px; }
 
 /* ---- cards (a task, anywhere) ------------------------------------------ */
