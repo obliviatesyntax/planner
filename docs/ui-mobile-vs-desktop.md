@@ -11,7 +11,7 @@ user-agent sniffing: a narrow desktop window behaves like a phone.
 | Width / condition | Name used here | What changes | Where |
 |---|---|---|---|
 | ≤ 600px | small phone | Task window becomes a bottom sheet | `styles.css` (`@media (max-width: 600px)`) |
-| ≤ 700px | **phone** | Quick-add bar moves to the bottom; brand, date, name and gear hidden; phone default view; calendar "compressed" from 2 days up; phone setting used | `styles.css` (`max-width: 700px`), `js/planner.js` (`phoneQuery`), `js/settings.js` (`deviceKey`) |
+| ≤ 700px | **phone** | Quick-add bar moves to the bottom; brand, date, name and gear hidden; phone default view; no Week view; calendar "compressed" from 2 days up; phone setting used | `styles.css` (`max-width: 700px`), `js/planner.js` (`phoneQuery`), `js/settings.js` (`deviceKey`) |
 | ≤ 900px | narrow | Plan stacks (Done today below the days); 1-day view stacks to-do above the calendar; tighter page padding | `styles.css` (`max-width: 900px`) |
 | ≤ 900px **or** touch screen | narrow/touch | Drop bar appears while dragging a task | `js/dnd.js` (`narrow`) |
 | touch input (any width) | touch | Swipe gestures on tasks | `js/swipe.js` (`pointerType === 'touch'`) |
@@ -26,9 +26,10 @@ user-agent sniffing: a narrow desktop window behaves like a phone.
 | **Toasts / Undo** | Bottom centre of the screen | Just above the bottom bar |
 | **Settings & Sign out** | Gear (top right) + footer buttons | Footer buttons only |
 | **Default plan view** | **2 days** (setting: "On a computer, open in") | **1 day** (setting: "On a phone, open in") |
+| **Views offered** | 1 day · 2 days · Week · List | 1 day · 2 days · List (**no Week**: seven columns don't fit) |
 | **1-day view** | To-do list on the left, tall calendar on the right | To-do list above the calendar |
 | **Done today panel** | Right of the plan, sticky | Below the plan |
-| **Calendar blocks: times** | Shown as short ranges ("10–11", "10:30–11:15") in 1-day and 2-day views; hidden in Week | Shown only in **1 day**; hidden in 2 days and Week |
+| **Calendar blocks** | Relaxed in 1 day and 2 days (short time + P tag); compressed in Week | Relaxed in 1 day; compressed in 2 days (see below) |
 | **Task hover buttons (P # 🗑)** | Appear on mouse hover, floating over the text | No hover on touch; a tap opens the task window instead (use swipes or the window) |
 | **Opening a task** | Click a task: centred window | Tap a task: **bottom sheet** (≤ 600px) |
 | **Task window labels** | Field names shown (Priority, Labels, Day, Time, List) | Priority and Labels rows have no names (self-explanatory); Day/Time/List use small icons; hint text and "Changes save automatically" hidden |
@@ -50,19 +51,53 @@ user-agent sniffing: a narrow desktop window behaves like a phone.
   drag (and some barely start one), so phones get the drop bar (targets come to you) and
   swipes. The planned long-term fix is our own pointer-based drag: long-press to pick a task
   up, the page auto-scrolls near the screen edges, and the same code works for mouse and touch.
+- **Things that work the same everywhere:** click/tap a list's header to rename or delete it;
+  "+ Add" under Done today or a past day logs a task as already done on that day.
 - **Same data, different defaults.** Settings that depend on screen size (default view) are
   stored per device type; everything else is shared across devices.
 
-## "Compressed" calendar (internal concept)
+## Relaxed vs compressed calendar blocks (internal concept)
 
-Not a user-facing term. A calendar view is *compressed* when its columns are too narrow for
-times on blocks:
+Not a user-facing term. It's about how much a calendar block can show in the width it has.
 
-- desktop: Week view
-- phone: 2 days and Week
+**Which views are which**
 
-In compressed views, calendar blocks show no time. Decided in `Planner.render()`
-(`js/planner.js`, `Calendar.setCompressed(...)`) and read in `Cards.html()` (`js/cards.js`).
+| View | Desktop | Phone |
+|---|---|---|
+| 1 day | relaxed | relaxed |
+| 2 days | relaxed | **compressed** |
+| Week | **compressed** | not offered on phones |
+| List | (no blocks: times are written next to each task) | same |
+
+**What a block shows**
+
+```
+RELAXED (roomy columns)                     COMPRESSED (narrow columns)
+
+┃☐ Design review  10–11              P2     ┃☐ Design review
+┃☐ 1:1 with Sam  10:30–11:15                ┃☐ 1:1 with Sam
+┃☐ Standup  12:00–12:30              P1     ┃☐ Standup
+^                                           ^
+coloured edge (priority)                    thicker coloured edge (4px) carries the priority
+```
+
+| | Relaxed | Compressed |
+|---|---|---|
+| Checkbox + title | ✓ | ✓ |
+| Time | Short, no AM/PM, smaller than the title: `10–11`, `10:30–11:15`, `12:00–12:30` (24-hour: `14–15`) | Hidden (the hour grid already shows it) |
+| P1 / P2 / P3 tag | Shown at the right | Hidden; appears on hover |
+| Priority colour on the left edge | 3px | 4px |
+| Labels (#w) | Shown | Shown if they fit |
+| Hover buttons (P # 🗑) | Float over the text | Same |
+
+**Why:** in a narrow column every character counts. The time repeats what the grid says, and the
+P tag repeats what the edge colour says, so both go. Edge colours are chosen to be told apart at
+a glance: **P1 red** (#dc2626), **P2 amber** (#f5b301), **P3 blue** (#2563eb); no priority = grey.
+(P2 text on tags uses a darker amber, #b45309, so it stays readable.)
+
+**Code:** decided in `Planner.render()` (`js/planner.js`, `Calendar.setCompressed(...)`); a
+compressed block gets the `compressed` class in `Cards.html()` (`js/cards.js`); the styles are
+`.card.event.compressed` in `styles.css`.
 
 ## Calendar sizing (same on both)
 

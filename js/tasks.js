@@ -214,6 +214,19 @@ const Tasks = (() => {
     return newList;
   }
 
+  // Rename a list (not @triage or @overdue). Returns the list, or an error message string.
+  function renameList(id, name) {
+    name = name.replace(/^@/, '').trim();
+    if (id === TRIAGE_LIST.id || id === OVERDUE_LIST.id) return 'Built-in lists can\'t be renamed.';
+    if (isOverdue(name) || name.toLowerCase() === TRIAGE_LIST.name) return `@${name} is a built-in list name. Pick another.`;
+    if (!LIST_NAME.test(name)) return 'A list name is one word: letters and digits, like @weekly or @upcomingE.';
+    const clash = findList(name);
+    if (clash && clash.id !== id) return `There's already a list called @${clash.name}.`;
+    list(id).name = name;
+    commit();
+    return list(id);
+  }
+
   // Drag-to-reorder: put list `id` just before `beforeId` (or last). @triage stays first.
   function moveList(id, beforeId) {
     if (id === TRIAGE_LIST.id || id === OVERDUE_LIST.id || id === beforeId) return;
@@ -305,7 +318,7 @@ const Tasks = (() => {
     init, onChange, rollover, get,
     listTasks, planList, calendarList, doneList,
     add, update, cyclePriority, toggleDone, markDone, moveToList, moveToPlan, moveToCalendar, remove, restore,
-    allLists, list, findList, isOverdue, addList, moveList, removeList, restoreList,
+    allLists, list, findList, isOverdue, addList, renameList, moveList, removeList, restoreList,
     allLabels, label, findLabel, addLabel, removeLabel,
     exportData, replaceAll,
   };

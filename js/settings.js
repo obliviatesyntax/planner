@@ -19,7 +19,8 @@ const Settings = (() => {
 
   const OPTIONS = [
     { group: 'plan', key: 'defaultViewDesktop', label: 'On a computer, open in', default: 'cal2', choices: VIEW_CHOICES },
-    { group: 'plan', key: 'defaultViewPhone', label: 'On a phone, open in', default: 'cal1', choices: VIEW_CHOICES },
+    { group: 'plan', key: 'defaultViewPhone', label: 'On a phone, open in', default: 'cal1',
+      choices: VIEW_CHOICES.filter(([id]) => id !== 'week') },   // no week view on phones
     { group: 'plan', key: 'minHours', label: 'Calendar shows at least', default: 4,
       choices: [4, 5, 6, 7, 8, 9].map(h => [h, `${h} hours`]) },
     { group: 'plan', key: 'weekStart', label: 'Week starts on', default: 'mon',
@@ -52,6 +53,7 @@ const Settings = (() => {
     if (values.rolloverTo === 'triage') values.rolloverTo = 'overdue';   // older setting name
     if (saved.defaultView && saved.defaultViewDesktop === undefined) values.defaultViewDesktop = saved.defaultView;
     const version = saved.version || 1;
+    if (values.defaultViewPhone === 'week') values.defaultViewPhone = 'cal2';   // week isn't offered on phones
     if (version < VERSION && Object.keys(saved).length) {
       if (version < 2) values.defaultPriority = 0;   // version 2: everyone starts with "None"
       if (version < 3) values.minHours = 4;          // version 3: 4–9 hour calendar window

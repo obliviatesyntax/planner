@@ -97,13 +97,14 @@ const App = (() => {
     });
   }
 
-  // "+ Add" buttons under lists and day to-do lists (data-list or data-date say where).
+  // "+ Add" buttons under lists, day to-do lists, and done lists (data-list / data-date / data-done
+  // say where; under a done list the task is logged as already done that day).
   // Type, Enter adds (and the box stays open for the next one), Escape or clicking away closes.
   document.addEventListener('click', e => {
     const btn = e.target.closest('.col-add');
     if (!btn) return;
-    const { list, date } = btn.dataset;
-    const selector = list ? `.col-add[data-list="${list}"]` : `.col-add[data-date="${date}"]`;
+    const { list, date, done } = btn.dataset;   // done: "+ Add" under Done today / a past day
+    const selector = list ? `.col-add[data-list="${list}"]` : done ? `.col-add[data-done="${done}"]` : `.col-add[data-date="${date}"]`;
     const input = document.createElement('input');
     input.className = 'col-add-input';
     input.placeholder = 'Task name, Enter to add';
@@ -112,8 +113,9 @@ const App = (() => {
     input.addEventListener('keydown', ev => {
       if (ev.key === 'Escape') return renderAll();
       if (ev.key !== 'Enter') return;
-      const task = addFromText(input.value, list ? { list } : { planDate: date });
+      const task = addFromText(input.value, list ? { list } : { planDate: done || date });
       if (!task) return;
+      if (done) Tasks.markDone(task.id, done);   // logged as already done on that day
       const again = document.querySelector(selector);   // the page re-rendered: reopen the box
       if (again) again.click();
     });

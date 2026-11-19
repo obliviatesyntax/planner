@@ -13,8 +13,9 @@ const Cards = (() => {
 
   // where: "list" | "plan" | "calendar" | "done"
   // style: position (calendar blocks); size: "short" / "short tiny" for short calendar blocks.
-  // Calendar blocks show a short time ("10–11") — or none when the calendar is cramped
-  // (Calendar.isCompressed(): week view on desktop, 2+ days on a phone).
+  // Calendar blocks show a short time ("10–11") — or, when the calendar is cramped
+  // (Calendar.isCompressed(): week view on desktop, 2+ days on a phone), no time and no P tag
+  // (the coloured edge shows priority; the tag appears on hover). See docs/ui-mobile-vs-desktop.md.
   function html(task, where, style = '', size = '') {
     const timed = task.startMin != null;
     const time = !timed ? ''
@@ -24,7 +25,7 @@ const Cards = (() => {
     const canDelete = where !== 'done';   // lists, to-do lists and calendar blocks
     const hasLabels = Tasks.allLabels().length > 0;   // no labels exist yet: no "#" button
     return `
-      <div class="card p${p} ${where === 'calendar' ? `event ${size}` : ''} ${where === 'done' ? 'done' : ''}" draggable="true"
+      <div class="card p${p} ${where === 'calendar' ? `event ${size} ${Calendar.isCompressed() ? 'compressed' : ''}` : ''} ${where === 'done' ? 'done' : ''}" draggable="true"
            data-task="${task.id}" ${style ? `style="${style}"` : ''}>
         <input type="checkbox" class="check" ${where === 'done' ? 'checked title="Mark as not done"' : 'title="Mark done"'}>
         <div class="body">

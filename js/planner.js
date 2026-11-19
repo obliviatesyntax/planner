@@ -234,6 +234,7 @@ const Planner = (() => {
       <div class="done-cell ${cls}" data-drop="done" data-date="${date}">
         <div class="list">${done.map(t => Cards.html(t, 'done')).join('')}</div>
         ${done.length ? '' : '<p class="empty">Nothing done</p>'}
+        <button type="button" class="col-add" data-done="${date}" title="Log something you did that day">+ Add</button>
       </div>`;
   }
 
@@ -254,7 +255,8 @@ const Planner = (() => {
       <aside class="done-today" data-drop="done" data-date="${today}">
         <h3>Done today <span class="count">${done.length}</span></h3>
         <div class="list">${done.map(t => Cards.html(t, 'done')).join('')}</div>
-        <p class="empty">${done.length ? 'Drag more tasks here to mark them done.' : 'Tick a task, or drag it here, to mark it done.'}</p>
+        <button type="button" class="col-add" data-done="${today}" title="Log something you already did">+ Add</button>
+        <p class="empty">${done.length ? 'Drag more tasks here to mark them done.' : 'Tick a task, or drag it here, to mark it done. Or add one you already did.'}</p>
       </aside>`;
   }
 
@@ -342,6 +344,7 @@ const Planner = (() => {
 
   function render() {
     if (!view) { view = Settings.get(isPhone() ? 'defaultViewPhone' : 'defaultViewDesktop'); start = firstDay(); }
+    if (isPhone() && view === 'week') { view = 'cal2'; start = firstDay(); }   // no week view on phones: too cramped
     const info = viewInfo();
     // Cramped columns (a week on desktop, 2+ days on a phone): calendar blocks drop the time.
     Calendar.setCompressed(info.days && (isPhone() ? info.days >= 2 : info.days >= 7));
@@ -360,7 +363,7 @@ const Planner = (() => {
           <span class="muted">${days.length > 1 ? `${formatDay(days[0])} – ${formatDay(days[days.length - 1])}` : formatDay(days[0])}</span>` : ''}
         </div>
         <div class="seg">
-          ${PLAN_VIEWS.map(v => `<button type="button" data-view="${v.id}" class="${v.id === view ? 'active' : ''}">${v.label}</button>`).join('')}
+          ${PLAN_VIEWS.filter(v => !(isPhone() && v.id === 'week')).map(v => `<button type="button" data-view="${v.id}" class="${v.id === view ? 'active' : ''}">${v.label}</button>`).join('')}
         </div>
       </div>
       <div class="plan-layout">

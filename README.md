@@ -8,7 +8,8 @@ A daily planner on one page:
   going back on the calendar *is* the done log. Unfinished tasks from past days go to **@overdue** (a built-in list shown first, only while it has
   tasks; re-plan them and it disappears). A setting can roll them into the next day instead.
 - **Bottom: Lists.** **@triage** (always first) plus your own lists, like **@weekly** or **@upcomingE**.
-  New tasks without a day land in @triage. Drag a list's header to reorder; × deletes it and its tasks.
+  New tasks without a day land in @triage. Drag a list's header to reorder; click it to rename or delete
+  the list (deleting removes its tasks, with Undo).
 - **Settings** (header): default view, where unfinished tasks go at day end (@triage or the next
   day), week start, 12/24-hour time, minimum calendar height, new task length and priority.
   Saved on the account (Supabase user metadata), so they follow you across devices.
