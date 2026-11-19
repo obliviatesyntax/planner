@@ -55,6 +55,7 @@ const Swipe = (() => {
   function markDone(id) {
     const task = Tasks.get(id);
     const wasDone = !!task.doneOn;
+    if (!wasDone) Cards.markJustDone(id);   // glow in the done list
     Tasks.toggleDone(id);
     App.toast(wasDone ? `Not done: “${task.title}”` : `Done: “${task.title}”`, 'Undo', () => Tasks.toggleDone(id));
   }

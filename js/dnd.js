@@ -90,6 +90,7 @@ const Dnd = (() => {
     if (drop === 'calendar') Tasks.moveToCalendar(id, date, Calendar.minutesAt(zone, e.clientY - grabOffset));
     else if (drop === 'done') {
       const title = Tasks.get(id).title;
+      Cards.markJustDone(id);   // glow where it lands
       Tasks.markDone(id, date);
       App.toast(`Done: “${title}”`);
     } else {
