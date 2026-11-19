@@ -96,7 +96,11 @@ const Lists = (() => {
                 <button type="button" class="tv-label-chip ${l.label === lab.id ? 'on' : ''}" data-list-label="${lab.id}" style="--c:${lab.color}">#${escapeHtml(lab.shortcut)} ${escapeHtml(lab.name)}</button>`).join('')}
             </div>
             <p class="lv-hint">A task moved from this list onto a day or a time gets this label. One label per list; tap it again to remove.</p>
-          </div>` : ''}
+          </div>` : `
+          <div class="lv-label">
+            <span class="tv-label">Label for this list</span>
+            <p class="lv-hint">No labels yet. Create one with <b>+</b> in the label bar at the top (e.g. "Work #w"), then come back here to give this list a label.</p>
+          </div>`}
         <div class="tv-foot">
           <button type="button" class="tv-delete">Delete list${n ? ` and its ${n} task${n === 1 ? '' : 's'}` : ''}</button>
           <span class="muted tv-saved">Changes save automatically</span>
