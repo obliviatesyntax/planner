@@ -102,7 +102,7 @@ Deno.test('get_plan: today, calendar / to-do / done', async () => {
   const text = await call('get_plan');
   assertStringIncludes(text, `Time zone: ${tz}`);
   assertStringIncludes(text, '[ ] Design review · 10:00 AM–11:00 AM · P2 · #w  [id: t1]');
-  assertStringIncludes(text, '[ ] Reply to Sam · (has a description)');
+  assertStringIncludes(text, '[ ] Reply to Sam · note: "about the passport form"');
   assertStringIncludes(text, '[x] Morning run');
   assert(!text.includes('Book flights'));   // yesterday's: in @overdue, not today
 });
@@ -203,4 +203,21 @@ Deno.test('labels: shortcut picked like the app, delete removes it everywhere', 
   assertStringIncludes(await callError('create_label', { name: 'personal' }), 'already a label');
   await call('delete_label', { label: 'w' });
   assertEquals([row('tasks', 't1').labels, row('lists', 'sales').label_id, row('labels', 'w')], [[], null, undefined]);
+});
+
+Deno.test('several tasks at once: move (one after another on the calendar), complete, delete', async () => {
+  fresh();
+  const text = await call('move_task', { ids: ['t5', 't6'], date: today, start_time: '09:00', duration_minutes: 60 });
+  assertEquals([row('tasks', 't5').start_min, row('tasks', 't6').start_min], [9 * 60, 10 * 60]);
+  assertEquals(text.split('\n').length, 2);
+  await call('complete_task', { ids: ['t5', 't6'] });
+  assertEquals([row('tasks', 't5').done_on, row('tasks', 't6').done_on], [today, today]);
+  await call('uncomplete_task', { ids: ['t5', 't6'] });
+  assertEquals(row('tasks', 't5').done_on, null);
+  // one bad id: nothing changes
+  assertStringIncludes(await callError('delete_task', { ids: ['t5', 'nope'] }), 'No task with id nope');
+  assert(row('tasks', 't5'));
+  assertStringIncludes(await call('delete_task', { ids: ['t5', 't6'] }), 'Deleted "Renew passport", "Update pricing slide"');
+  assertEquals([row('tasks', 't5'), row('tasks', 't6')], [undefined, undefined]);
+  assertStringIncludes(await callError('move_task', { list: 'triage' }), 'Say which task');
 });

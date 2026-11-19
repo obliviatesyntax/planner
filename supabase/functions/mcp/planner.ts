@@ -8,7 +8,8 @@
 //   applies: you only ever see your own tasks. No admin key is used anywhere here.
 //
 //   Reading:  get_plan, get_lists, search_tasks, get_task.
-//   Changing: add_task, update_task, move_task, complete_task, uncomplete_task, delete_task,
+//   Changing: add_task, update_task, move_task, complete_task, uncomplete_task, delete_task
+//             (those four take several ids at once, so the AI app asks you once),
 //             create_list, rename_list, set_list_label, delete_list, create_label, delete_label.
 //   The AI apps ask you before running a tool that changes things (and warn more for deletes).
 //
@@ -32,13 +33,15 @@
 export type Env = { supabaseUrl: string; apiKey: string };
 
 const PROTOCOL_VERSIONS = ['2025-11-25', '2025-06-18', '2025-03-26', '2024-11-05'];
-const SERVER_INFO = { name: 'planner', title: 'Planner', version: '0.2.0' };
+const SERVER_INFO = { name: 'planner', title: 'Planner', version: '0.3.0' };
 const INSTRUCTIONS = `Planner is the user's daily planner. Tasks either wait in lists (@triage is the inbox,
 @overdue holds unfinished tasks from past days, other lists are projects like @salesDeck) or are planned
 on a day: on that day's calendar (with a time) or its to-do list (no time). Done tasks are logged on the
 day they were done. Priorities: P1 must do, P2 should do, P3 nice to have. Labels look like #w (Work).
 Dates are in the user's time zone; get_plan with no date means today. Tools that change a task need its
-id: get it from get_plan, get_lists or search_tasks first. Lists and labels can be named without @ or #.`;
+id: get it from get_plan, get_lists or search_tasks first. Lists and labels can be named without @ or #.
+To move, complete or delete several tasks, pass all their ids in ONE call (ids: [...]): the user then
+confirms once instead of once per task. Task lines already include a short note; only call get_task for the full text.`;
 
 // ---- the tools -----------------------------------------------------------------------
 
@@ -138,28 +141,28 @@ const WRITE_TOOLS = [
     annotations: { title: 'Change a task', ...CHANGE, idempotentHint: true },
   },
   {
-    name: 'move_task', title: 'Move a task',
-    description: "Move a task to a list, to a day's to-do list (date), or to a day's calendar (date + start_time). Moving a done task makes it not done. A task leaving a list that has a label gets that label.",
-    inputSchema: { type: 'object', properties: { id: str('The task id.'), ...WHERE }, required: ['id'] },
-    annotations: { title: 'Move a task', ...CHANGE, idempotentHint: true },
+    name: 'move_task', title: 'Move tasks',
+    description: "Move one task (id) or several (ids) to a list, to a day's to-do list (date), or to a day's calendar (date + start_time; several tasks are placed one after another from that time). Moving a done task makes it not done. A task leaving a list that has a label gets that label. Prefer one call with ids over many calls.",
+    inputSchema: { type: 'object', properties: { id: str('The task id.'), ids: { type: 'array', items: { type: 'string' }, description: 'Several task ids at once (one confirmation for all of them).' }, ...WHERE } },
+    annotations: { title: 'Move tasks', ...CHANGE, idempotentHint: true },
   },
   {
-    name: 'complete_task', title: 'Mark a task done',
-    description: 'Mark a task done: today by default, or on another day (it then shows in that day\'s done list).',
-    inputSchema: { type: 'object', properties: { id: str('The task id.'), date: str('Done on this day, YYYY-MM-DD. Default today.') }, required: ['id'] },
-    annotations: { title: 'Mark a task done', ...CHANGE, idempotentHint: true },
+    name: 'complete_task', title: 'Mark tasks done',
+    description: 'Mark one task (id) or several (ids) done: today by default, or on another day (they then show in that day\'s done list).',
+    inputSchema: { type: 'object', properties: { id: str('The task id.'), ids: { type: 'array', items: { type: 'string' }, description: 'Several task ids at once (one confirmation for all of them).' }, date: str('Done on this day, YYYY-MM-DD. Default today.') } },
+    annotations: { title: 'Mark tasks done', ...CHANGE, idempotentHint: true },
   },
   {
-    name: 'uncomplete_task', title: 'Mark a task not done',
-    description: 'Undo "done". It goes back where it was; if that was a past day, to @overdue.',
-    inputSchema: { type: 'object', properties: { id: str('The task id.') }, required: ['id'] },
-    annotations: { title: 'Mark a task not done', ...CHANGE, idempotentHint: true },
+    name: 'uncomplete_task', title: 'Mark tasks not done',
+    description: 'Undo "done" for one task (id) or several (ids). Each goes back where it was; if that was a past day, to @overdue.',
+    inputSchema: { type: 'object', properties: { id: str('The task id.'), ids: { type: 'array', items: { type: 'string' }, description: 'Several task ids at once (one confirmation for all of them).' } } },
+    annotations: { title: 'Mark tasks not done', ...CHANGE, idempotentHint: true },
   },
   {
-    name: 'delete_task', title: 'Delete a task',
-    description: 'Delete a task for good.',
-    inputSchema: { type: 'object', properties: { id: str('The task id.') }, required: ['id'] },
-    annotations: { title: 'Delete a task', ...DELETE },
+    name: 'delete_task', title: 'Delete tasks',
+    description: 'Delete one task (id) or several (ids) for good.',
+    inputSchema: { type: 'object', properties: { id: str('The task id.'), ids: { type: 'array', items: { type: 'string' }, description: 'Several task ids at once (one confirmation for all of them).' } } },
+    annotations: { title: 'Delete tasks', ...DELETE },
   },
   {
     name: 'create_list', title: 'Create a list',
@@ -312,7 +315,10 @@ class View {
     if (t.priority) parts.push(`P${t.priority}`);
     const labels = this.labelText(t);
     if (labels) parts.push(labels);
-    if (t.notes && t.notes.trim()) parts.push('(has a description)');
+    if (t.notes && t.notes.trim()) {   // shown inline (shortened), so apps rarely need get_task
+      const note = t.notes.trim().replace(/\s+/g, ' ');
+      parts.push(`note: "${note.length > 140 ? `${note.slice(0, 140)}…` : note}"`);
+    }
     return `- ${parts.join(' · ')}  [id: ${t.id}]`;
   }
   where(t: Task) {
@@ -503,55 +509,78 @@ async function updateTask(c: Ctx, args: any) {
   return done(c, t, 'Updated: ');
 }
 
+// The tasks a change is about: "ids" (several, one confirmation in the AI app) or "id". All are
+// checked before anything changes, so a typo in one id doesn't leave the rest half done.
+function targets(c: Ctx, args: any): Task[] {
+  const ids: unknown[] = Array.isArray(args.ids) && args.ids.length ? args.ids : args.id !== undefined ? [args.id] : [];
+  need(ids.length, 'Say which task: an id, or ids for several.');
+  return [...new Set(ids.map(String))].map(id => findTask(c.v, id));
+}
+const each = async (tasks: Task[], fn: (t: Task) => Promise<string>) => {
+  const lines = [];
+  for (const t of tasks) lines.push(await fn(t));
+  return lines.join('\n');
+};
+
 async function moveTask(c: Ctx, args: any) {
-  const t = findTask(c.v, args.id);
+  const tasks = targets(c, args);
   const where = await placement(c, args);
   need(where, 'Say where: a list, or a date (and a start_time for the calendar).');
-  const changes: Partial<Task> = { done_on: null };
-  if (where!.kind === 'list') {
-    Object.assign(changes, { plan_date: null, start_min: null, list_id: where!.list.id, sort_order: nextOrder(c.v.waiting(where!.list.id)) });
-  } else {
-    // Leaving a list for a day: pick up the list's label (inheritListLabel in js/tasks.js).
-    const from = !t.plan_date && !t.done_on && c.v.d.lists.find(l => l.id === t.list_id);
-    if (from && from.label_id && c.v.d.labels.some(l => l.id === from.label_id) && !t.labels.includes(from.label_id)) {
-      changes.labels = [...t.labels, from.label_id];
+  let start = where!.kind === 'day' ? where!.start : null;   // several onto the calendar: one after another
+  return each(tasks, async t => {
+    const changes: Partial<Task> = { done_on: null };
+    if (where!.kind === 'list') {
+      Object.assign(changes, { plan_date: null, start_min: null, list_id: where!.list.id, sort_order: nextOrder(c.v.waiting(where!.list.id)) });
+    } else {
+      // Leaving a list for a day: pick up the list's label (inheritListLabel in js/tasks.js).
+      const from = !t.plan_date && !t.done_on && c.v.d.lists.find(l => l.id === t.list_id);
+      if (from && from.label_id && c.v.d.labels.some(l => l.id === from.label_id) && !t.labels.includes(from.label_id)) {
+        changes.labels = [...t.labels, from.label_id];
+      }
+      Object.assign(changes, { plan_date: where!.date, start_min: start });
+      if (start == null) changes.sort_order = nextOrder(toDoOn(c.v, where!.date).filter(x => x.id !== t.id));
     }
-    Object.assign(changes, { plan_date: where!.date, start_min: where!.start });
-    if (where!.start == null) changes.sort_order = nextOrder(toDoOn(c.v, where!.date).filter(x => x.id !== t.id));
-  }
-  if (args.duration_minutes) changes.duration_min = Number(args.duration_minutes);
-  await c.db.update('tasks', t.id, changes);
-  Object.assign(t, changes);
-  return done(c, t, 'Moved: ');
+    if (args.duration_minutes) changes.duration_min = Number(args.duration_minutes);
+    if (start != null) start = Math.min(start + (changes.duration_min ?? t.duration_min ?? 30), 24 * 60 - 15);
+    await c.db.update('tasks', t.id, changes);
+    Object.assign(t, changes);
+    return done(c, t, 'Moved: ');
+  });
 }
 
 async function completeTask(c: Ctx, args: any) {
-  const t = findTask(c.v, args.id);
+  const tasks = targets(c, args);
   const date = args.date ? parseDate(c.v, args.date) : c.v.today;
   need(date <= c.v.today, "Can't mark a task done on a future day.");
-  const changes: Partial<Task> = { done_on: date };
-  // Done on another day than today: it's logged on that day (markDone in js/tasks.js).
-  if (date !== c.v.today && t.plan_date !== date) Object.assign(changes, { plan_date: date, start_min: null });
-  await c.db.update('tasks', t.id, changes);
-  Object.assign(t, changes);
-  return done(c, t, 'Done: ');
+  return each(tasks, async t => {
+    const changes: Partial<Task> = { done_on: date };
+    // Done on another day than today: it's logged on that day (markDone in js/tasks.js).
+    if (date !== c.v.today && t.plan_date !== date) Object.assign(changes, { plan_date: date, start_min: null });
+    await c.db.update('tasks', t.id, changes);
+    Object.assign(t, changes);
+    return done(c, t, 'Done: ');
+  });
 }
 
 async function uncompleteTask(c: Ctx, args: any) {
-  const t = findTask(c.v, args.id);
-  need(t.done_on, `"${t.title}" isn't done.`);
-  const changes: Partial<Task> = { done_on: null };
-  if (t.plan_date && t.plan_date < c.v.today) Object.assign(changes, { plan_date: null, start_min: null, list_id: 'overdue' });
-  await c.db.update('tasks', t.id, changes);
-  Object.assign(t, changes);
-  return done(c, t, 'Not done any more: ');
+  const tasks = targets(c, args);
+  const notDone = tasks.find(t => !t.done_on);
+  need(!notDone, `"${notDone?.title}" isn't done.`);
+  return each(tasks, async t => {
+    const changes: Partial<Task> = { done_on: null };
+    if (t.plan_date && t.plan_date < c.v.today) Object.assign(changes, { plan_date: null, start_min: null, list_id: 'overdue' });
+    await c.db.update('tasks', t.id, changes);
+    Object.assign(t, changes);
+    return done(c, t, 'Not done any more: ');
+  });
 }
 
 async function deleteTask(c: Ctx, args: any) {
-  const t = findTask(c.v, args.id);
-  await c.db.remove('tasks', [t.id]);
-  c.v.d.tasks = c.v.d.tasks.filter(x => x.id !== t.id);
-  return `Deleted "${t.title}".`;
+  const tasks = targets(c, args);
+  await c.db.remove('tasks', tasks.map(t => t.id));
+  const gone = new Set(tasks.map(t => t.id));
+  c.v.d.tasks = c.v.d.tasks.filter(x => !gone.has(x.id));
+  return `Deleted ${tasks.map(t => `"${t.title}"`).join(', ')}.`;
 }
 
 async function createList(c: Ctx, args: any) {
