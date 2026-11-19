@@ -1104,3 +1104,7 @@ body.playground .settings-block:has(#set-first-name), body.playground .settings-
 .lp-ai-tool { align-self: flex-start; font-size: 12.5px; color: var(--muted); display: flex; align-items: center; gap: 6px; padding-left: 4px; }
 .lp-ai-tool span { font-weight: 700; color: var(--accent); background: var(--accent-soft); padding: 1px 8px; border-radius: 99px; }
 .lp-ai-cta { text-align: center; margin: 24px 0 0; }
+
+/* Settings → Account: "Signed in as …" with Sign out next to it */
+.setting-signout { display: flex; align-items: center; justify-content: space-between; gap: 10px; flex-wrap: wrap; }
+.setting-signout .setting-sub { margin: 0; }

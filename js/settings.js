@@ -114,7 +114,10 @@ const Settings = (() => {
         <span>Password</span>
         <button type="button" id="set-password" class="secondary">Email me a link to set a new password</button>
       </div>
-      <p class="setting-sub">Signed in as ${escapeHtml(user.email)}</p>`;
+      <div class="setting-signout">
+        <span class="setting-sub">Signed in as ${escapeHtml(user.email)}</span>
+        <button type="button" id="set-signout" class="secondary">Sign out</button>
+      </div>`;
   }
 
   function optionHtml(o) {
@@ -141,6 +144,10 @@ const Settings = (() => {
 
   // Same flow as "Forgot password?": an email with a link to choose a new password.
   dialog.addEventListener('click', async e => {
+    if (e.target.id === 'set-signout') {   // same as "Sign out" in the footer
+      await db.auth.signOut();
+      return location.reload();
+    }
     if (e.target.id !== 'set-password') return;
     const error = await Auth.sendPasswordReset(user.email);
     App.toast(error ? `Could not send the email: ${error.message}` : `We emailed ${user.email} a link to set a new password.`);
