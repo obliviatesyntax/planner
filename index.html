@@ -336,6 +336,36 @@
       </ol>
     </section>
 
+    <!-- ---- nothing gets lost: unfinished tasks go to @overdue ----------------------- -->
+    <section class="lp-section" id="overdue">
+      <div class="lp-section-head">
+        <span class="lp-eyebrow">Unfinished tasks</span>
+        <h2>Nothing falls through the cracks.</h2>
+        <p>Didn't get to something? It isn't lost, and it isn't quietly pushed to tomorrow either.
+           Overnight it moves to an <b>@overdue</b> list at the top of your lists, waiting for you to
+           decide: plan it for another day, park it in a list, or let it go. Once it's empty, it's gone.</p>
+      </div>
+      <div class="lp-od" aria-hidden="true">
+        <div class="lp-od-panel">
+          <div class="lp-od-title">Yesterday</div>
+          <div class="m-card done"><i class="on"></i>Ran 5k</div>
+          <div class="m-card p0 lp-od-left"><i></i>Call the insurer</div>
+          <div class="m-card p2 lp-od-left"><i></i>Book flights <u>P2</u></div>
+        </div>
+        <div class="lp-od-arrow">
+          <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8z"/></svg>
+          <span>overnight</span>
+          <b>→</b>
+        </div>
+        <div class="lp-od-panel lp-od-overdue">
+          <div class="lp-od-title">@overdue <em>2</em></div>
+          <div class="m-card p0 lp-od-in"><i></i>Call the insurer</div>
+          <div class="m-card p2 lp-od-in" style="animation-delay:.15s"><i></i>Book flights <u>P2</u></div>
+          <p>Drag each to a day or a list. When it's empty, this list disappears.</p>
+        </div>
+      </div>
+    </section>
+
     <!-- ---- pricing ----------------------------------------------------------- -->
     <section class="lp-section" id="pricing">
       <div class="lp-price">
