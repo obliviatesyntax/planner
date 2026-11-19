@@ -56,6 +56,11 @@ contain both `{{ .Token }}` (the code) and `{{ .ConfirmationURL }}` (the link).
   rename it, write a description, set priority and labels, delete it.
   Hover a task for quick buttons: **P** / **#** / **×**, or click its P1/P2/P3 tag to change priority.
 
+## Docs
+
+- [`docs/ui-mobile-vs-desktop.md`](docs/ui-mobile-vs-desktop.md): how the app and landing page differ on phones and
+  computers, the breakpoints, and a checklist for new features.
+
 ## Code map (read in this order)
 
 | File | What it does |
