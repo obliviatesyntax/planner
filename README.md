@@ -70,6 +70,9 @@ it. It lives at `https://eiwoavnrsdnffiztwziq.supabase.co/functions/v1/mcp`.
   `update_task`, `move_task`, `complete_task`, `uncomplete_task`, `delete_task`, `create_list`,
   `rename_list`, `set_list_label`, `delete_list`, `create_label`, `delete_label`. Each tool is
   marked as reading, changing or deleting, and AI apps use that to ask the user before changes.
+  Built for few calls: `get_plan` returns the date and time, the plan and every list in one go;
+  dates can be words ("next friday"); `add_task` takes several tasks, and move/complete/delete take
+  several ids (or `from_list`), so the user confirms once per request, not once per task.
 - **Rules:** the same as `js/tasks.js`. Keep the two in step; `planner.ts` lists which functions match.
 - **Sign-in:**
   - Supabase Auth is the OAuth server (dashboard → Authentication → OAuth Server: on, dynamic

@@ -33,15 +33,17 @@
 export type Env = { supabaseUrl: string; apiKey: string };
 
 const PROTOCOL_VERSIONS = ['2025-11-25', '2025-06-18', '2025-03-26', '2024-11-05'];
-const SERVER_INFO = { name: 'planner', title: 'Planner', version: '0.3.0' };
+const SERVER_INFO = { name: 'planner', title: 'Planner', version: '0.4.0' };
 const INSTRUCTIONS = `Planner is the user's daily planner. Tasks either wait in lists (@triage is the inbox,
 @overdue holds unfinished tasks from past days, other lists are projects like @salesDeck) or are planned
 on a day: on that day's calendar (with a time) or its to-do list (no time). Done tasks are logged on the
 day they were done. Priorities: P1 must do, P2 should do, P3 nice to have. Labels look like #w (Work).
 Dates are in the user's time zone; get_plan with no date means today. Tools that change a task need its
 id: get it from get_plan, get_lists or search_tasks first. Lists and labels can be named without @ or #.
-To move, complete or delete several tasks, pass all their ids in ONE call (ids: [...]): the user then
-confirms once instead of once per task. Task lines already include a short note; only call get_task for the full text.`;
+Start with get_plan: it has the date and time, the plan and every list, so most questions need nothing else.
+To add several tasks use add_task with tasks: [...]; to move, complete or delete several, pass all their ids
+in ONE call (ids: [...], or from_list to move a whole list): the user then confirms once instead of once per task.
+Dates can be words (tomorrow, friday, next monday). Task lines include a short note; get_task has the full text.`;
 
 // ---- the tools -----------------------------------------------------------------------
 
@@ -50,12 +52,13 @@ const READ_TOOLS = [
   {
     name: 'get_plan',
     title: 'Get the plan',
-    description: "The user's plan for one or more days: each day's calendar (timed tasks), to-do list (no time) and what was done. Defaults to today.",
+    description: "Start here for most questions. The current date and time, the plan for one or more days (each day's calendar, to-do list and what was done), and by default everything waiting in lists (@overdue, @triage, projects) and the labels. Every task line has its id, time, priority, labels, the day it was added and a short note.",
     inputSchema: {
       type: 'object',
       properties: {
-        date: { type: 'string', description: 'First day, YYYY-MM-DD. Default: today in the user\'s time zone.' },
+        date: { type: 'string', description: 'First day: YYYY-MM-DD, or today, tomorrow, yesterday, a weekday ("friday", "next monday", "last friday"), "in 3 days". Default today.' },
         days: { type: 'integer', minimum: 1, maximum: 14, description: 'How many days from that date. Default 1.' },
+        include_lists: { type: 'boolean', description: 'Also list everything waiting in lists (@overdue, @triage, projects). Default true.' },
       },
     },
     annotations: { title: 'Get the plan', ...READ_ONLY },
@@ -75,14 +78,17 @@ const READ_TOOLS = [
   {
     name: 'search_tasks',
     title: 'Search tasks',
-    description: 'Find tasks whose title or description contains the text (not case-sensitive). Says where each one is: which list, day or time, or when it was done.',
+    description: 'Find tasks by text (title or description, not case-sensitive) and/or filters: priority, label, list, the day they were added. Says where each one is: which list, day or time, or when it was done.',
     inputSchema: {
       type: 'object',
       properties: {
-        query: { type: 'string', description: 'Text to look for.' },
-        include_done: { type: 'boolean', description: 'Also search done tasks. Default false.' },
+        query: { type: 'string', description: 'Text to look for in titles and descriptions (optional if a filter is given).' },
+        priority: { type: 'integer', minimum: 0, maximum: 3, description: 'Only this priority (0 = none).' },
+        label: { type: 'string', description: 'Only tasks with this label (name or shortcut).' },
+        list: { type: 'string', description: 'Only tasks waiting in this list.' },
+        added_on: { type: 'string', description: 'Only tasks added on this day (YYYY-MM-DD or today, yesterday, a weekday…).' },
+        include_done: { type: 'boolean', description: 'Also done tasks. Default false.' },
       },
-      required: ['query'],
     },
     annotations: { title: 'Search tasks', ...READ_ONLY },
   },
@@ -105,25 +111,26 @@ const DELETE = { readOnlyHint: false, destructiveHint: true, openWorldHint: fals
 const str = (description: string) => ({ type: 'string', description });
 const WHERE = {
   list: str('Put it in this list, by name (e.g. "salesDeck"). A new name creates the list. Wins over date.'),
-  date: str('Plan it on this day, YYYY-MM-DD. Without start_time it goes on that day\'s to-do list.'),
+  date: str('Plan it on this day: YYYY-MM-DD, or today, tomorrow, a weekday ("friday", "next monday"), "in 3 days". Without start_time it goes on that day\'s to-do list.'),
   start_time: str('Put it on that day\'s calendar at this time, 24-hour HH:MM (e.g. "17:30"). Needs date.'),
   duration_minutes: { type: 'integer', minimum: 5, maximum: 720, description: 'Length on the calendar. Default: the user\'s setting (usually 30).' },
 };
 const WRITE_TOOLS = [
   {
     name: 'add_task', title: 'Add a task',
-    description: 'Add a task. With nothing else it goes to @triage (the inbox); or give a list, or a date (and a time for the calendar).',
+    description: 'Add a task, or several at once with tasks: [...] (one confirmation for all). With nothing else it goes to @triage (the inbox); or give a list, or a date (and a time for the calendar). Fields at the top level apply to every task in tasks unless a task sets its own.',
     inputSchema: {
       type: 'object',
       properties: {
-        title: str('What to do.'), ...WHERE,
+        title: str('What to do (for one task).'),
+        tasks: { type: 'array', description: 'Several tasks: each a title string, or an object with title and any of the other fields.', items: { anyOf: [{ type: 'string' }, { type: 'object', properties: { title: str('What to do.'), list: str('List name.'), date: str('Day.'), start_time: str('HH:MM.'), duration_minutes: { type: 'integer' }, priority: { type: 'integer' }, labels: { type: 'array', items: { type: 'string' } }, description: str('Notes.') }, required: ['title'] }] } },
+        ...WHERE,
         priority: { type: 'integer', minimum: 0, maximum: 3, description: '1 must do, 2 should do, 3 nice to have, 0 none. Default: the user\'s setting.' },
         labels: { type: 'array', items: { type: 'string' }, description: 'Existing labels, by name or shortcut (e.g. "Work" or "w").' },
         description: str('Optional notes.'),
       },
-      required: ['title'],
     },
-    annotations: { title: 'Add a task', ...CHANGE },
+    annotations: { title: 'Add tasks', ...CHANGE },
   },
   {
     name: 'update_task', title: 'Change a task',
@@ -143,7 +150,7 @@ const WRITE_TOOLS = [
   {
     name: 'move_task', title: 'Move tasks',
     description: "Move one task (id) or several (ids) to a list, to a day's to-do list (date), or to a day's calendar (date + start_time; several tasks are placed one after another from that time). Moving a done task makes it not done. A task leaving a list that has a label gets that label. Prefer one call with ids over many calls.",
-    inputSchema: { type: 'object', properties: { id: str('The task id.'), ids: { type: 'array', items: { type: 'string' }, description: 'Several task ids at once (one confirmation for all of them).' }, ...WHERE } },
+    inputSchema: { type: 'object', properties: { id: str('The task id.'), ids: { type: 'array', items: { type: 'string' }, description: 'Several task ids at once (one confirmation for all of them).' }, from_list: str('Instead of ids: every task waiting in this list, e.g. "overdue" to re-plan all of @overdue.'), ...WHERE } },
     annotations: { title: 'Move tasks', ...CHANGE, idempotentHint: true },
   },
   {
@@ -208,7 +215,7 @@ const TOOLS = [...READ_TOOLS, ...WRITE_TOOLS];
 type Task = {
   id: string; title: string; priority: number | null; labels: string[]; list_id: string;
   plan_date: string | null; start_min: number | null; duration_min: number | null;
-  sort_order: number; done_on: string | null; notes?: string | null;
+  sort_order: number; done_on: string | null; notes?: string | null; created_at?: string;
 };
 type List = { id: string; name: string; sort_order: number; label_id?: string | null };
 type Label = { id: string; name: string; shortcut: string; sort_order: number };
@@ -299,6 +306,16 @@ class View {
     this.today = todayIn(this.timeZone);
     this.hour12 = d.user.user_metadata?.settings?.clock !== '24';
   }
+  // "Now: Thursday, Nov 19, 2026, 9:05 AM (America/Los_Angeles); today is 2026-11-19." Starts every
+  // read, so an AI app knows the date and time without asking.
+  nowLine() {
+    const time = new Intl.DateTimeFormat('en-US', { timeZone: this.timeZone, hour: 'numeric', minute: '2-digit', hour12: this.hour12 }).format(new Date());
+    const day = new Date(`${this.today}T12:00:00Z`).toLocaleDateString('en-US', { weekday: 'long', month: 'short', day: 'numeric', year: 'numeric', timeZone: 'UTC' });
+    return `Now: ${day}, ${time} (${this.timeZone}); today is ${this.today}.`;
+  }
+  added(t: Task) {   // the day the task was created, in the user's time zone
+    return t.created_at ? todayIn(this.timeZone, new Date(t.created_at)) : null;
+  }
   // Not done, planned on a day before today: the app moves these to @overdue when it opens.
   isLate = (t: Task) => !t.done_on && !!t.plan_date && t.plan_date < this.today;
   listName(id: string) {
@@ -315,6 +332,8 @@ class View {
     if (t.priority) parts.push(`P${t.priority}`);
     const labels = this.labelText(t);
     if (labels) parts.push(labels);
+    const added = this.added(t);
+    if (added) parts.push(`added ${added === this.today ? 'today' : added}`);
     if (t.notes && t.notes.trim()) {   // shown inline (shortened), so apps rarely need get_task
       const note = t.notes.trim().replace(/\s+/g, ' ');
       parts.push(`note: "${note.length > 140 ? `${note.slice(0, 140)}…` : note}"`);
@@ -338,9 +357,9 @@ class View {
 }
 
 function getPlan(v: View, args: any): string {
-  const start = /^\d{4}-\d{2}-\d{2}$/.test(args?.date ?? '') ? args.date : v.today;
+  const start = args?.date ? parseDate(v, args.date) : v.today;
   const days = Math.min(Math.max(Number(args?.days) || 1, 1), 14);
-  const out = [`Time zone: ${v.timeZone}. Today is ${dayName(v.today, v.today)}.`];
+  const out = [v.nowLine()];
   for (let i = 0; i < days; i++) {
     const date = addDays(start, i);
     const open = v.d.tasks.filter(t => !t.done_on && t.plan_date === date);
@@ -348,18 +367,23 @@ function getPlan(v: View, args: any): string {
     const todo = open.filter(t => t.start_min == null).sort((a, b) => a.sort_order - b.sort_order);
     const done = v.d.tasks.filter(t => t.done_on === date);
     out.push('', `## ${dayName(date, v.today)} (${date})`);
-    if (date < v.today && (calendar.length || todo.length)) out.push('(Unfinished tasks from this day are in @overdue now.)');
+    if (date < v.today && (calendar.length || todo.length)) out.push(`(Its ${calendar.length + todo.length} unfinished task(s) are in @overdue now.)`);
     else {
       out.push('Calendar:', ...(calendar.length ? calendar.map(t => v.line(t, { time: true })) : ['- (nothing)']));
       out.push('To-do:', ...(todo.length ? todo.map(t => v.line(t)) : ['- (nothing)']));
     }
     out.push('Done:', ...(done.length ? done.map(t => v.line(t, { done: true })) : ['- (nothing)']));
   }
+  // Everything not planned yet, too (unless asked not to), so one call answers most questions.
+  if (args?.include_lists !== false) out.push('', '# Waiting in lists (not planned yet)', '', listsBody(v, ''));
   return out.join('\n');
 }
 
 function getLists(v: View, args: any): string {
-  const wanted = String(args?.list ?? '').replace(/^@/, '').trim().toLowerCase();
+  return `${v.nowLine()}\n\n${listsBody(v, String(args?.list ?? ''))}`;
+}
+function listsBody(v: View, list: string): string {
+  const wanted = list.replace(/^@/, '').trim().toLowerCase();
   const lists = [
     { id: 'overdue', name: 'overdue', label_id: null },
     { id: 'triage', name: 'triage', label_id: null },
@@ -381,12 +405,23 @@ function getLists(v: View, args: any): string {
 
 function searchTasks(v: View, args: any): string {
   const q = String(args?.query ?? '').trim().toLowerCase();
-  if (!q) return 'Give some text to search for.';
+  const priority = args?.priority !== undefined ? Number(args.priority) : null;
+  const label = args?.label ? findLabel(v, args.label) : null;
+  const list = args?.list ? findList(v, args.list) : null;
+  if (args?.list) need(list, `No list called @${String(args.list).replace(/^@/, '')}. Lists: ${listNames(v)}.`);
+  const addedOn = args?.added_on ? parseDate(v, args.added_on) : null;
+  need(q || priority !== null || label || list || addedOn, 'Give text to search for, or a filter: priority, label, list or added_on.');
   const found = v.d.tasks.filter(t => (args?.include_done || !t.done_on)
-    && (t.title.toLowerCase().includes(q) || (t.notes || '').toLowerCase().includes(q)));
-  if (!found.length) return `No ${args?.include_done ? '' : 'open '}tasks match "${args.query}".`;
-  return found.slice(0, 50).map(t => `${v.line(t)} — ${v.where(t)}`).join('\n')
-    + (found.length > 50 ? `\n…and ${found.length - 50} more; search for something more specific.` : '');
+    && (!q || t.title.toLowerCase().includes(q) || (t.notes || '').toLowerCase().includes(q))
+    && (priority === null || (t.priority || 0) === priority)
+    && (!label || (t.labels || []).includes(label.id))
+    && (!list || (list.id === 'overdue' ? v.waiting('overdue').includes(t) : (!t.plan_date && !t.done_on && t.list_id === list.id)))
+    && (!addedOn || v.added(t) === addedOn));
+  const what = [q && `"${args.query}"`, priority !== null && `P${priority}`, label && `#${label.shortcut}`, list && `in @${list.name}`, addedOn && `added ${addedOn}`].filter(Boolean).join(', ');
+  if (!found.length) return `${v.nowLine()}\nNo ${args?.include_done ? '' : 'open '}tasks match ${what}.`;
+  return `${v.nowLine()}\n${found.length} ${args?.include_done ? '' : 'open '}task(s) match ${what}:\n`
+    + found.slice(0, 100).map(t => `${v.line(t, { time: true })} — ${v.where(t)}`).join('\n')
+    + (found.length > 100 ? `\n…and ${found.length - 100} more; narrow it down.` : '');
 }
 
 function getTask(v: View, args: any): string {
@@ -398,6 +433,7 @@ function getTask(v: View, args: any): string {
     t.plan_date && t.start_min != null ? `Time: ${clock(t.start_min, v.hour12)}–${clock(t.start_min + (t.duration_min || 30), v.hour12)}` : '',
     `Priority: ${t.priority ? `P${t.priority}` : 'none'}`,
     `Labels: ${v.labelText(t) || 'none'}`,
+    `Added: ${v.added(t) ?? 'unknown'}`,
     `Description: ${t.notes && t.notes.trim() ? `\n${t.notes}` : 'none'}`,
     `Id: ${t.id}`,
   ].filter(Boolean).join('\n');
@@ -435,11 +471,25 @@ function findLabel(v: View, word: unknown): Label {
   need(l, `No label "${word}". Labels: ${v.d.labels.map(x => `${x.name} (#${x.shortcut})`).join(', ') || 'none yet (create_label makes one)'}.`);
   return l!;
 }
+// Dates as YYYY-MM-DD, or in words: today, tomorrow, yesterday, a weekday ("friday" = the coming
+// one, today if it's Friday; "next friday" = a week later than that if it's today), "in 3 days".
+const WEEKDAYS = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday'];
 function parseDate(v: View, date: unknown): string {
   const d = String(date ?? '').trim().toLowerCase();
   if (d === 'today') return v.today;
   if (d === 'tomorrow') return addDays(v.today, 1);
-  need(/^\d{4}-\d{2}-\d{2}$/.test(d) && !isNaN(Date.parse(`${d}T12:00:00Z`)), `"${date}" isn't a date: use YYYY-MM-DD.`);
+  if (d === 'yesterday') return addDays(v.today, -1);
+  const inDays = d.match(/^in (\d{1,3}) days?$/);
+  if (inDays) return addDays(v.today, Number(inDays[1]));
+  const wd = d.match(/^(next |this |last )?([a-z]+)$/);
+  const idx = wd ? WEEKDAYS.findIndex(w => w.startsWith(wd[2]) && wd[2].length >= 3) : -1;
+  if (wd && idx >= 0) {
+    const dow = new Date(`${v.today}T12:00:00Z`).getUTCDay();
+    if (wd[1] === 'last ') return addDays(v.today, -((dow - idx + 7) % 7 || 7));
+    const ahead = (idx - dow + 7) % 7;
+    return addDays(v.today, wd[1] === 'next ' && ahead === 0 ? 7 : ahead);
+  }
+  need(/^\d{4}-\d{2}-\d{2}$/.test(d) && !isNaN(Date.parse(`${d}T12:00:00Z`)), `"${date}" isn't a date: use YYYY-MM-DD, or today, tomorrow, yesterday, a weekday, "next friday", "in 3 days".`);
   return d;
 }
 function parseTime(time: unknown): number {
@@ -478,8 +528,22 @@ async function placement(c: Ctx, args: any) {
 const done = (c: Ctx, t: Task, extra = '') => `${extra}${c.v.line(t, { time: true })} — ${c.v.where(t)}`;
 
 async function addTask(c: Ctx, args: any) {
+  // Several at once: tasks: [{ title, … }]; fields at the top level are defaults for all of them.
+  const { tasks: many, ...defaults } = args;
+  const items = Array.isArray(many) && many.length ? many.map((x: any) => ({ ...defaults, ...(typeof x === 'string' ? { title: x } : x) })) : [args];
+  for (const x of items) {   // check them all before adding any
+    need(String(x.title ?? '').trim(), 'Every task needs a title.');
+    (x.labels || []).forEach((w: string) => findLabel(c.v, w));
+    if (x.date) parseDate(c.v, x.date);
+    if (x.start_time) parseTime(x.start_time);
+  }
+  const lines = [];
+  for (const x of items) lines.push(await addOne(c, x));
+  return lines.join('\n');
+}
+
+async function addOne(c: Ctx, args: any) {
   const title = String(args.title ?? '').trim();
-  need(title, 'Give the task a title.');
   const labels = (args.labels || []).map((w: string) => findLabel(c.v, w).id);
   const where = await placement(c, args) ?? { kind: 'list' as const, list: { id: 'triage', name: 'triage' } };
   const priority = args.priority !== undefined ? Number(args.priority) : Number(settings(c.v).defaultPriority || 0);
@@ -487,11 +551,11 @@ async function addTask(c: Ctx, args: any) {
     id: newId(), title, priority: priority || null, labels, list_id: where.kind === 'list' ? where.list.id : 'triage',
     plan_date: where.kind === 'day' ? where.date : null, start_min: where.kind === 'day' ? where.start : null,
     duration_min: Number(args.duration_minutes) || Number(settings(c.v).defaultDuration) || 30,
-    sort_order: 0, done_on: null, ...(args.description ? { notes: String(args.description) } : {}),
+    sort_order: 0, done_on: null, created_at: new Date().toISOString(), ...(args.description ? { notes: String(args.description) } : {}),
   };
   if (where.kind === 'list') t.sort_order = nextOrder(c.v.waiting(t.list_id));
   else if (t.start_min == null) t.sort_order = nextOrder(toDoOn(c.v, t.plan_date!));
-  await c.db.insert('tasks', { ...t, created_at: new Date().toISOString() });
+  await c.db.insert('tasks', t);
   c.v.d.tasks.push(t);
   return done(c, t, `Added: ${where.kind === 'list' && where.list.created ? `(new list @${where.list.name}) ` : ''}`);
 }
@@ -512,8 +576,15 @@ async function updateTask(c: Ctx, args: any) {
 // The tasks a change is about: "ids" (several, one confirmation in the AI app) or "id". All are
 // checked before anything changes, so a typo in one id doesn't leave the rest half done.
 function targets(c: Ctx, args: any): Task[] {
+  if (args.from_list) {   // every task waiting in a list, e.g. all of @overdue
+    const list = findList(c.v, args.from_list);
+    need(list, `No list called @${String(args.from_list).replace(/^@/, '')}. Lists: ${listNames(c.v)}.`);
+    const waiting = c.v.waiting(list!.id);
+    need(waiting.length, `@${list!.name} is empty.`);
+    return waiting;
+  }
   const ids: unknown[] = Array.isArray(args.ids) && args.ids.length ? args.ids : args.id !== undefined ? [args.id] : [];
-  need(ids.length, 'Say which task: an id, or ids for several.');
+  need(ids.length, 'Say which task: an id, ids for several, or from_list for a whole list.');
   return [...new Set(ids.map(String))].map(id => findTask(c.v, id));
 }
 const each = async (tasks: Task[], fn: (t: Task) => Promise<string>) => {

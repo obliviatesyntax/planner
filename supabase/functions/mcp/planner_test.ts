@@ -99,12 +99,21 @@ Deno.test('initialize, notifications and tools/list', async () => {
 });
 
 Deno.test('get_plan: today, calendar / to-do / done', async () => {
-  const text = await call('get_plan');
-  assertStringIncludes(text, `Time zone: ${tz}`);
+  fresh();
+  const text = await call('get_plan', { include_lists: false });
+  assertStringIncludes(text, `(${tz}); today is ${today}.`);
   assertStringIncludes(text, '[ ] Design review · 10:00 AM–11:00 AM · P2 · #w  [id: t1]');
   assertStringIncludes(text, '[ ] Reply to Sam · note: "about the passport form"');
   assertStringIncludes(text, '[x] Morning run');
   assert(!text.includes('Book flights'));   // yesterday's: in @overdue, not today
+  // by default the lists come along, so one call answers most questions
+  const all = await call('get_plan');
+  assertStringIncludes(all, '# Waiting in lists');
+  assertStringIncludes(all, '[ ] Book flights · P2');
+  assertStringIncludes(all, 'Labels: Work #w');
+  // dates in words
+  assertStringIncludes(await call('get_plan', { date: 'yesterday', include_lists: false }), `## Yesterday`);
+  assertStringIncludes(await call('get_plan', { date: 'in 2 days', include_lists: false }), `(${shift(2)})`);
 });
 
 Deno.test('get_lists: overdue first, list labels, labels at the end', async () => {
@@ -220,4 +229,50 @@ Deno.test('several tasks at once: move (one after another on the calendar), comp
   assertStringIncludes(await call('delete_task', { ids: ['t5', 't6'] }), 'Deleted "Renew passport", "Update pricing slide"');
   assertEquals([row('tasks', 't5'), row('tasks', 't6')], [undefined, undefined]);
   assertStringIncludes(await callError('move_task', { list: 'triage' }), 'Say which task');
+});
+
+Deno.test('dates in words: weekdays, next / last', async () => {
+  fresh();
+  const dow = new Date(`${today}T12:00:00Z`).getUTCDay();
+  const names = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday'];
+  const todayName = names[dow], tomorrowName = names[(dow + 1) % 7];
+  for (const [word, expected] of [[todayName, today], [`next ${todayName}`, shift(7)], [tomorrowName, shift(1)], [`last ${todayName}`, shift(-7)], [tomorrowName.slice(0, 3), shift(1)]]) {
+    await call('add_task', { title: `on ${word}`, date: word });
+    assertEquals(DB.tasks.at(-1).plan_date, expected, word);
+  }
+  assertStringIncludes(await callError('add_task', { title: 'x', date: 'someday' }), "isn't a date");
+});
+
+Deno.test('add several tasks at once; top-level fields are defaults', async () => {
+  fresh();
+  const text = await call('add_task', { list: 'kitchenReno', priority: 2, tasks: ['Buy tiles', { title: 'Book a plumber', date: 'tomorrow', start_time: '10:00' }, 'Pick grout'] });
+  assertEquals(text.split('\n').length, 3);
+  assertStringIncludes(text, '(new list @kitchenReno)');
+  const [a, b, c] = DB.tasks.slice(-3);
+  assertEquals([a.title, a.priority, b.title, b.list_id === a.list_id, c.sort_order], ['Buy tiles', 2, 'Book a plumber', true, 2]);
+  assertEquals([b.plan_date, b.start_min], [null, null]);   // a list wins over a date, as in quick add
+  // one bad task: nothing is added
+  const before = DB.tasks.length;
+  assertStringIncludes(await callError('add_task', { tasks: ['ok', { title: 'bad', labels: ['nope'] }] }), 'No label "nope"');
+  assertEquals(DB.tasks.length, before);
+});
+
+Deno.test('move a whole list (from_list), e.g. all of @overdue to tomorrow', async () => {
+  fresh();
+  const text = await call('move_task', { from_list: 'overdue', date: 'tomorrow' });
+  assertStringIncludes(text, 'Book flights');
+  assertEquals(row('tasks', 't4').plan_date, shift(1));
+  assertStringIncludes(await callError('move_task', { from_list: 'overdue', date: 'tomorrow' }), '@overdue is empty');
+});
+
+Deno.test('search by filters only: priority, label, list, added_on', async () => {
+  fresh();
+  DB.tasks.find(r => r.id === 't5').created_at = new Date().toISOString();
+  assertStringIncludes(await call('search_tasks', { priority: 1 }), 'Update pricing slide');
+  assertStringIncludes(await call('search_tasks', { label: 'work' }), 'Design review');
+  const inSales = await call('search_tasks', { list: 'salesDeck' });
+  assertStringIncludes(inSales, '1 open task(s) match in @salesDeck');
+  const addedToday = await call('search_tasks', { added_on: 'today' });
+  assertStringIncludes(addedToday, 'Renew passport · added today');
+  assertStringIncludes(await callError('search_tasks', {}), 'Give text to search for, or a filter');
 });
