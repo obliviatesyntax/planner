@@ -4,6 +4,8 @@
 // rename it, give it a label, or delete it (and its tasks, with Undo). Drag a task up to a day or a
 // time to commit; if the list has a label, the task picks it up then.
 //
+// Lists are packed like a Pinterest board (see pack()), so one long list doesn't leave gaps.
+//
 // @overdue (built in) comes first, but only while it has tasks: yesterday's unfinished ones.
 // Move each to a day or another list and it disappears. You can't add to it or drop into it.
 
@@ -40,6 +42,26 @@ const Lists = (() => {
         </div>
       </div>`;
     if (creating) root.querySelector('.list-new-input').focus();
+    pack();
+  }
+
+  // ---- packing: no big gaps under short lists ----------------------------------------
+  // The grid has tiny rows (ROW px, see .lists-grid in styles.css) and each list spans as many
+  // as its height needs. The browser places each next list in the first free spot, which is the
+  // bottom of the shortest column, so lists fill in like a Pinterest board while staying in
+  // your order on the page (left to right, then down; drag-to-reorder still works).
+  const ROW = 2, GAP = 10;
+  const sizes = new ResizeObserver(() => requestAnimationFrame(pack));   // a list grew/shrank, or the window changed
+  function pack() {
+    const grid = root.querySelector('.lists-grid');
+    if (!grid) return;
+    sizes.disconnect();
+    sizes.observe(grid);
+    for (const item of grid.children) {
+      sizes.observe(item);
+      const span = Math.ceil((item.getBoundingClientRect().height + GAP) / ROW);
+      if (item.style.gridRowEnd !== `span ${span}`) item.style.gridRowEnd = `span ${span}`;
+    }
   }
 
   // The list's label, shown next to its name ("@kitchenReno #p").
