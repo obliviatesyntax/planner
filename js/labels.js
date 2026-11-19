@@ -1,15 +1,21 @@
 // labels.js — the label chips at the top: filter by label, create and delete labels.
 //
 // Nothing selected ("All") = every task shows. Select one or more labels = only tasks that
-// have at least one of them show, everywhere on the main page.
+// have at least one of them show, everywhere on the main page. A task waiting in a list with
+// a label (the list window sets it) counts as having that label too.
 
 const Labels = (() => {
   const bar = document.getElementById('labels-bar');
   let selected = new Set();
   let adding = false;     // is the "new label" box open?
 
+  // A task waiting in a list also counts as having that list's label (e.g. everything in
+  // @salesDeck #w shows under Work), so tasks don't need to repeat their list's label.
+  // Once it's on a day it has the label itself (it's added when the task is moved there).
   function matches(task) {
-    return !selected.size || task.labels.some(id => selected.has(id));
+    if (!selected.size) return true;
+    const list = !task.planDate && Tasks.list(task.list);
+    return task.labels.some(id => selected.has(id)) || Boolean(list && list.label && selected.has(list.label));
   }
 
   function selectedIds() { return [...selected]; }
