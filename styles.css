@@ -1053,7 +1053,7 @@ body.playground .settings-block:has(#set-first-name), body.playground .settings-
    "Use Planner from Claude, ChatGPT or Gemini" (#connect-dialog, js/connect.js)
    ========================================================================== */
 #connect-dialog {
-  border: 1px solid var(--line); border-radius: 14px; padding: 0; width: min(600px, calc(100vw - 24px));
+  border: 1px solid var(--line); border-radius: 14px; padding: 0; width: min(680px, calc(100vw - 24px));
   max-height: calc(100vh - 48px); box-shadow: var(--shadow-lg);
 }
 #connect-dialog::backdrop { background: rgba(17, 24, 39, .3); }
@@ -1062,9 +1062,32 @@ body.playground .settings-block:has(#set-first-name), body.playground .settings-
 .connect-url { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; padding: 10px 12px; background: var(--bg); border-radius: 10px; }
 .connect-url span { font-weight: 600; font-size: 13px; }
 .connect-url code { flex: 1 1 260px; font-size: 12.5px; word-break: break-all; user-select: all; }
-.connect-app { padding: 12px 14px; border: 1px solid var(--line); border-radius: 10px; }
-.connect-app h3 { margin: 0 0 6px; font-size: 15px; display: flex; align-items: center; gap: 8px; }
-.connect-app ol { margin: 0; padding-left: 20px; }
+.connect-h { margin: 6px 0 -4px; font-size: 13px; text-transform: uppercase; letter-spacing: .05em; }
+.connect-h .muted { text-transform: none; letter-spacing: 0; font-weight: 400; }
+.connect-app { border: 1px solid var(--line); border-radius: 10px; margin-top: -6px; }
+.connect-app summary {
+  list-style: none; cursor: pointer; padding: 10px 14px; font-weight: 600; font-size: 15px;
+  display: flex; align-items: center; gap: 8px;
+}
+.connect-app summary::-webkit-details-marker { display: none; }
+.connect-app summary::after {   /* the down arrow; turns up when open */
+  content: ''; margin-left: auto; width: 7px; height: 7px; border: solid var(--muted); border-width: 0 2px 2px 0;
+  transform: rotate(45deg) translate(-2px, -2px); transition: transform .15s;
+}
+.connect-app[open] summary::after { transform: rotate(-135deg) translate(-2px, -2px); }
+.connect-app summary:hover { background: var(--bg); border-radius: 10px; }
+.connect-app ol, .connect-app .connect-note { margin-left: 14px; margin-right: 14px; }
+.connect-app .connect-note { margin-bottom: 12px; }
+.connect-app ol { margin-top: 0; margin-bottom: 0; padding-left: 20px; }
+.connect-examples { display: grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); gap: 14px; }
+.connect-examples section { display: flex; flex-direction: column; gap: 6px; align-items: flex-start; }
+.connect-examples h4 { margin: 0; font-size: 12.5px; color: var(--muted); font-weight: 600; }
+.connect-examples button {
+  text-align: left; font: inherit; font-size: 13px; line-height: 1.4; padding: 6px 10px; border-radius: 10px;
+  border: 1px solid var(--line); background: var(--panel); cursor: copy; color: var(--text);
+}
+.connect-examples button:hover { border-color: var(--accent); background: var(--accent-soft); }
+.connect-examples button.copied { border-color: #86efac; background: #dcfce7; }
 .connect-app li + li { margin-top: 3px; }
 .connect-note { margin: 8px 0 0; font-size: 12.5px; color: var(--muted); }
 .connect-tag { font-size: 11px; font-weight: 600; padding: 1px 8px; border-radius: 99px; background: var(--bg); color: var(--muted); }

@@ -515,9 +515,9 @@
     <span class="muted"><b>today 5pm</b>, <b>tomorrow</b>, <b>fri 6-7pm</b> → plan · <b>@listName</b> → list · <b>p1 p2 p3</b> priority · <b>#p</b> label · click the calendar to add at a time · drag to “Done today” to complete · click a task to open it</span>
     <span class="spacer"></span>
     <div class="footer-actions">
+      <button type="button" data-connect title="Use Planner from Claude, ChatGPT or Gemini">Connect AI apps</button>
       <button type="button" id="export-btn">Export backup</button>
       <label class="file-btn">Import backup<input type="file" id="import-input" accept="application/json" hidden></label>
-      <button type="button" data-connect title="Use Planner from Claude, ChatGPT or Gemini">Connect AI apps</button>
       <button type="button" id="footer-settings-btn">Settings</button>
       <button type="button" id="signout-btn" class="pg-hide">Sign out</button>
       <button type="button" class="pg-only" data-reset>Start over</button>
@@ -587,27 +587,27 @@
         <h2>Use Planner from Claude, ChatGPT or Gemini</h2>
         <button type="button" class="icon-btn" data-close title="Close">×</button>
       </div>
-      <p class="muted">Connect once, then just ask: “What's on today?”, “Move the dentist to Friday at 5 PM”,
-        “Add buy tiles to @kitchenReno”. It uses your real Planner, as you. The AI app asks you before it changes anything.</p>
+      <p class="muted">Connect once, then talk to your real Planner. It signs in as you, and the AI app asks before it changes anything.</p>
 
+      <h3 class="connect-h">1. Connect your app</h3>
       <div class="connect-url">
         <span>Server URL</span>
         <code id="connect-url">https://eiwoavnrsdnffiztwziq.supabase.co/functions/v1/mcp</code>
         <button type="button" class="secondary" data-copy>Copy</button>
       </div>
 
-      <section class="connect-app">
-        <h3>Claude <span class="connect-tag ok">Works</span></h3>
+      <details class="connect-app">
+        <summary>Claude <span class="connect-tag ok">Works</span></summary>
         <ol>
           <li>On claude.ai or in the Claude desktop app: <b>Settings → Connectors → Add custom connector</b>.</li>
           <li>Name it <b>Planner</b>, paste the server URL, and under OAuth client pick <b>Register automatically</b>.</li>
           <li>Click <b>Add</b>, then <b>Connect</b>. Sign in to Planner if asked and click <b>Allow</b>.</li>
         </ol>
         <p class="connect-note">Custom connectors may depend on your Claude plan.</p>
-      </section>
+      </details>
 
-      <section class="connect-app">
-        <h3>ChatGPT <span class="connect-tag">Web only to set up</span></h3>
+      <details class="connect-app">
+        <summary>ChatGPT <span class="connect-tag">Set up on the web</span></summary>
         <ol>
           <li>On chatgpt.com, go to <b>Plugins</b> (chatgpt.com/plugins), click <b>+</b>, then <b>Add custom MCP server</b>.</li>
           <li>Name it <b>Planner</b>, paste the server URL, and choose <b>OAuth</b> for authentication.</li>
@@ -615,10 +615,10 @@
           <li>In a chat, type <b>@</b> and pick Planner.</li>
         </ol>
         <p class="connect-note">Not available on every ChatGPT plan or workspace: workspace admins can turn it off.</p>
-      </section>
+      </details>
 
-      <section class="connect-app">
-        <h3>Gemini <span class="connect-tag warn">US only, for now</span></h3>
+      <details class="connect-app">
+        <summary>Gemini <span class="connect-tag warn">US only, for now</span></summary>
         <ol>
           <li>On gemini.google.com: <b>Settings → Connected Apps</b> (or Personal Intelligence → Connected Apps), then <b>Add a custom app</b>.</li>
           <li>Paste the server URL, click <b>Next</b>, sign in to Planner and click <b>Allow</b>.</li>
@@ -626,7 +626,50 @@
         </ol>
         <p class="connect-note">Google limits custom apps to people in the US, 18 or over, signed in with a personal
           Google account (not work or school), using Gemini in English with History on. Elsewhere it isn't possible yet.</p>
-      </section>
+      </details>
+
+      <h3 class="connect-h">2. Then just ask <span class="muted">(click one to copy it)</span></h3>
+      <div class="connect-examples">
+        <section>
+          <h4>See your day</h4>
+          <button type="button" data-ask>What's on my plan today?</button>
+          <button type="button" data-ask>What do I have this week?</button>
+          <button type="button" data-ask>Is anything overdue?</button>
+          <button type="button" data-ask>What's left in @salesDeck?</button>
+        </section>
+        <section>
+          <h4>Add</h4>
+          <button type="button" data-ask>Add “call mom” tomorrow at 9 PM</button>
+          <button type="button" data-ask>Add buy tiles, pick grout and book a plumber to @kitchenReno</button>
+          <button type="button" data-ask>Remind me to renew my passport on Friday, P1</button>
+        </section>
+        <section>
+          <h4>Plan and move</h4>
+          <button type="button" data-ask>Move everything in @overdue to tomorrow</button>
+          <button type="button" data-ask>Put my P1 tasks on today's calendar, an hour each, from 10 AM</button>
+          <button type="button" data-ask>Push the dentist to next Monday at 5 PM</button>
+        </section>
+        <section>
+          <h4>Finish up</h4>
+          <button type="button" data-ask>Mark “reply to Sam” done</button>
+          <button type="button" data-ask>What did I get done yesterday?</button>
+          <button type="button" data-ask>Delete the test tasks I added today</button>
+        </section>
+        <section>
+          <h4>Organize</h4>
+          <button type="button" data-ask>Create a list @weekly with label Work</button>
+          <button type="button" data-ask>Rename @kitchenReno to @kitchen</button>
+          <button type="button" data-ask>Label everything in @salesDeck as Work</button>
+        </section>
+        <section>
+          <h4>Think it through</h4>
+          <button type="button" data-ask>Plan my afternoon around my calendar</button>
+          <button type="button" data-ask>Which tasks have I been putting off?</button>
+          <button type="button" data-ask>Turn this email into tasks: …</button>
+        </section>
+      </div>
+      <p class="connect-note">Lists and labels by name (@kitchenReno, Work or #w); days and times in plain words. If a request
+        is unclear, the AI asks you, and it always asks before changing anything.</p>
     </div>
   </dialog>
 
