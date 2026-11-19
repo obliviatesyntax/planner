@@ -225,6 +225,8 @@ const App = (() => {
 // person's data from the database and draw the page.
 window.addEventListener('DOMContentLoaded', async () => {
   const user = await Auth.currentUser();
+  const authorization = Consent.pending();   // connecting Planner to Claude etc.: see consent.js
+  if (authorization) return user ? Consent.show(user, authorization) : Consent.askToSignIn();
   if (!user) return Auth.showSignIn();
   if (Auth.needsNewPassword()) return Auth.showNewPassword(user);   // back from a "Forgot password" email
   Auth.showApp(user);

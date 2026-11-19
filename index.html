@@ -436,6 +436,15 @@
     </footer>
   </div>
 
+  <!-- "Allow Claude to use your Planner?" — the OAuth consent page (js/consent.js) -->
+  <div id="consent" class="consent" hidden>
+    <div class="consent-brand">
+      <svg class="logo" viewBox="0 0 64 64" aria-hidden="true"><rect width="64" height="64" rx="15" fill="#4f46e5"/><rect x="13" y="17" width="38" height="34" rx="6" fill="none" stroke="#fff" stroke-width="5"/><path d="M13 27h38" stroke="#fff" stroke-width="5"/><path d="M24 39l5 5 10-11" fill="none" stroke="#fff" stroke-width="5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      Planner
+    </div>
+    <div class="signin-card consent-card" id="consent-card"></div>
+  </div>
+
   <div id="app" hidden>
   <!-- Only in playground mode (index.html?playground, js/playground.js): says nothing is saved -->
   <div class="pg-banner pg-only" role="status">
@@ -568,7 +577,7 @@
   <div id="toast" class="toast" hidden></div>
 
   <!-- Plain scripts, loaded in order. No build step. -->
-  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.117.3/dist/umd/supabase.min.js"></script>
   <script src="js/supabase-config.js"></script>
   <script src="js/config.js"></script>
   <script src="js/utils.js"></script>
@@ -585,6 +594,7 @@
   <script src="js/swipe.js"></script>
   <script src="js/lists.js"></script>
   <script src="js/settings.js"></script>
+  <script src="js/consent.js"></script>
   <script src="js/app.js"></script>
   <script src="js/voice.js"></script>
   <script src="js/help.js"></script>

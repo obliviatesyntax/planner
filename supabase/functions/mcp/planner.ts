@@ -13,6 +13,11 @@
 // calendarList, doneList); keep them in step. One difference: the app moves unfinished tasks
 // from past days to @overdue when it opens; here, without writing, we show them as overdue.
 //
+// Signing in (OAuth): Supabase Auth is the sign-in server (Authentication → OAuth Server in the
+// dashboard). A request without a valid token gets "401" plus a pointer to this server's
+// "protected resource metadata", which names Supabase as where to sign in. Claude then registers
+// itself, sends you to Planner's "Allow" page (js/consent.js), and comes back with a token.
+//
 // The protocol part is the "Streamable HTTP" transport, in its simplest form: each POST is one
 // JSON-RPC request and gets one JSON answer. No sessions, no streaming.
 
@@ -298,13 +303,30 @@ export async function answer(msg: Rpc, load: () => Promise<Data>) {
   }
 }
 
+// Where this server lives, and the document that tells AI apps where to sign in (RFC 9728).
+export const resourceUrl = (env: Env) => `${env.supabaseUrl}/functions/v1/mcp`;
+export const metadataUrl = (env: Env) => `${resourceUrl(env)}/.well-known/oauth-protected-resource`;
+export function protectedResourceMetadata(env: Env) {
+  return {
+    resource: resourceUrl(env),
+    authorization_servers: [`${env.supabaseUrl}/auth/v1`],
+    scopes_supported: ['email'],
+    bearer_methods_supported: ['header'],
+    resource_name: 'Planner',
+  };
+}
+
 // The whole HTTP side. `env` says which Supabase project to read.
 export async function handle(req: Request, env: Env): Promise<Response> {
   const json = (body: unknown, status = 200, headers: Record<string, string> = {}) =>
     new Response(JSON.stringify(body), { status, headers: { 'Content-Type': 'application/json', ...headers } });
-  const unauthorized = (message: string) =>
-    json({ error: 'unauthorized', message }, 401, { 'WWW-Authenticate': 'Bearer realm="planner"' });
+  const unauthorized = (message: string) => json({ error: 'unauthorized', message }, 401, {
+    'WWW-Authenticate': `Bearer resource_metadata="${metadataUrl(env)}", scope="email"`,
+  });
 
+  if (new URL(req.url).pathname.endsWith('/.well-known/oauth-protected-resource')) {
+    return json(protectedResourceMetadata(env), 200, { 'Access-Control-Allow-Origin': '*', 'Cache-Control': 'max-age=3600' });
+  }
   if (req.method !== 'POST') return new Response('Planner MCP server: send MCP requests with POST.', { status: 405, headers: { Allow: 'POST' } });
 
   const token = (req.headers.get('Authorization') || '').replace(/^Bearer\s+/i, '');

@@ -43,7 +43,16 @@ Deno.test('no or bad token: 401 asking to sign in', async () => {
   assertEquals((await post({ jsonrpc: '2.0', id: 1, method: 'initialize' }, '')).status, 401);
   const res = await post({ jsonrpc: '2.0', id: 1, method: 'initialize' }, 'bad');
   assertEquals(res.status, 401);
-  assert(res.headers.get('WWW-Authenticate')?.startsWith('Bearer'));
+  assertEquals(res.headers.get('WWW-Authenticate'),
+    'Bearer resource_metadata="https://example.supabase.co/functions/v1/mcp/.well-known/oauth-protected-resource", scope="email"');
+});
+
+Deno.test('protected resource metadata names Supabase Auth as the sign-in server', async () => {
+  const res = await handle(new Request('https://x/mcp/.well-known/oauth-protected-resource'), env);
+  assertEquals(res.status, 200);
+  const meta = await res.json();
+  assertEquals(meta.resource, 'https://example.supabase.co/functions/v1/mcp');
+  assertEquals(meta.authorization_servers, ['https://example.supabase.co/auth/v1']);
 });
 
 Deno.test('initialize, notifications and tools/list', async () => {
