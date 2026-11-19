@@ -12,7 +12,8 @@ const Cards = (() => {
   const TRASH_ICON = '<svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 6h18"/><path d="M8 6V4h8v2"/><path d="M19 6l-1 14H6L5 6"/><path d="M10 11v6M14 11v6"/></svg>';
 
   // where: "list" | "plan" | "calendar" | "done"
-  // style: position (calendar blocks); size: "short" / "short tiny" for short calendar blocks.
+  // style: position (calendar blocks); size: "short" / "short tiny" for short calendar blocks,
+  // or "panel" for cards in the Done today panel (never compressed).
   // Calendar blocks show a short time ("10–11") — or, when the calendar is cramped
   // (Calendar.isCompressed(): week view on desktop, 2+ days on a phone), no time and no P tag
   // (the coloured edge shows priority; the tag appears on hover). See docs/ui-mobile-vs-desktop.md.
@@ -22,10 +23,13 @@ const Cards = (() => {
       : where === 'calendar' ? (Calendar.isCompressed() ? '' : formatTimeRange(task.startMin, task.startMin + task.duration))
       : formatTime(task.startMin);
     const p = task.priority || 0;   // 0 = no priority set
+    // In a compressed view everything inside the day columns (calendar blocks, to-do cards, a past
+    // day's done cards) drops the P tag. Not the lists below, and not the "Done today" panel.
+    const compressed = Calendar.isCompressed() && where !== 'list' && size !== 'panel';
     const canDelete = where !== 'done';   // lists, to-do lists and calendar blocks
     const hasLabels = Tasks.allLabels().length > 0;   // no labels exist yet: no "#" button
     return `
-      <div class="card p${p} ${where === 'calendar' ? `event ${size} ${Calendar.isCompressed() ? 'compressed' : ''}` : ''} ${where === 'done' ? 'done' : ''}" draggable="true"
+      <div class="card p${p} ${where === 'calendar' ? `event ${size}` : ''} ${compressed ? 'compressed' : ''} ${where === 'done' ? 'done' : ''}" draggable="true"
            data-task="${task.id}" ${style ? `style="${style}"` : ''}>
         <input type="checkbox" class="check" ${where === 'done' ? 'checked title="Mark as not done"' : 'title="Mark done"'}>
         <div class="body">

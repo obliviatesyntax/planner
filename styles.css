@@ -452,11 +452,15 @@ main { padding: 0 24px; max-width: 1480px; margin: 0 auto; }
 .card.event .card-actions { top: 1px; right: 30px; }
 /* Compressed calendar (week on desktop, 2+ days on phones): no P1/P2/P3 tag — the coloured
    left edge says it (red / amber / blue, a bit thicker here) — and the tag shows on hover. */
-.card.event.compressed { border-left-width: 4px; }
-.card.event.compressed .prio { display: none; }
-.card.event.compressed:hover .prio { display: inline-block; }
+.card.compressed { border-left-width: 4px; }
+.card.compressed .prio { display: none; }
+.card.compressed:hover .prio { display: inline-block; }
+.card.compressed .card-actions { right: 6px; }
+.card.compressed:hover .card-actions { right: 34px; }
 .card.event.compressed .card-actions { right: 4px; }
 .card.event.compressed:hover .card-actions { right: 30px; }
+.card.compressed.p0:hover .card-actions { right: 6px; }          /* no priority: nothing to make room for */
+.card.event.compressed.p0:hover .card-actions { right: 4px; }
 .card.event.p0 .card-actions { right: 4px; }
 /* Up to 30 minutes: a single line, title cut with "…" rather than wrapping out of the box */
 .card.event.short { align-items: center; padding-top: 0; padding-bottom: 0; line-height: 18px; }

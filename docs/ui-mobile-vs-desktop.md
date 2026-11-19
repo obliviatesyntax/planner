@@ -58,7 +58,11 @@ user-agent sniffing: a narrow desktop window behaves like a phone.
 
 ## Relaxed vs compressed calendar blocks (internal concept)
 
-Not a user-facing term. It's about how much a calendar block can show in the width it has.
+Not a user-facing term. It's about how much a task card can show in the width it has.
+
+**What it applies to:** everything inside the **day columns** of a compressed view: calendar
+blocks, the day's to-do cards, and a past day's done cards. **Not** the lists below the plan and
+**not** the "Done today" panel, which have room to spare.
 
 **Which views are which**
 
@@ -89,6 +93,7 @@ coloured edge (priority)                    thicker coloured edge (4px) carries 
 | Priority colour on the left edge | 3px | 4px |
 | Labels (#w) | Shown | Shown if they fit |
 | Hover buttons (P # 🗑) | Float over the text | Same |
+| Applies to | — | Calendar blocks, to-do cards and past-day done cards in the day columns |
 
 **Why:** in a narrow column every character counts. The time repeats what the grid says, and the
 P tag repeats what the edge colour says, so both go. Edge colours are chosen to be told apart at
@@ -96,8 +101,8 @@ a glance: **P1 red** (#dc2626), **P2 amber** (#f5b301), **P3 blue** (#2563eb); n
 (P2 text on tags uses a darker amber, #b45309, so it stays readable.)
 
 **Code:** decided in `Planner.render()` (`js/planner.js`, `Calendar.setCompressed(...)`); a
-compressed block gets the `compressed` class in `Cards.html()` (`js/cards.js`); the styles are
-`.card.event.compressed` in `styles.css`.
+card gets the `compressed` class in `Cards.html()` (`js/cards.js`) unless it's in a list or the
+Done today panel (`size = 'panel'`); the styles are `.card.compressed` in `styles.css`.
 
 ## Calendar sizing (same on both)
 
