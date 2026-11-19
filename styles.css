@@ -996,8 +996,10 @@ html { scroll-behavior: smooth; }
 }
 
 /* ==========================================================================
-   Playground (playground.html): a banner that says nothing is saved
+   Playground mode (index.html?playground, js/playground.js adds body.playground):
+   a banner that says nothing is saved. pg-only = only in this mode, pg-hide = not in it.
    ========================================================================== */
+body:not(.playground) .pg-only, body.playground .pg-hide { display: none !important; }
 .pg-banner {
   position: sticky; top: 0; z-index: 25; min-height: 44px; box-sizing: border-box;
   display: flex; align-items: center; justify-content: center; flex-wrap: wrap; gap: 6px 14px;

@@ -70,7 +70,7 @@ contain both `{{ .Token }}` (the code) and `{{ .ConfirmationURL }}` (the link).
 | `js/utils.js` | Date, time and text helpers. |
 | `js/when.js` | Reads days and times from plain English for quick add ("today 5pm"). |
 | `js/landing.js` | The signed-out landing page: buttons that open the sign-in card, the typing demo. (Page text is in `index.html`.) |
-| `playground.html`, `js/playground.js` | The try-it page linked from the landing page: the real app with no account and no database. `playground.js` stands in for `supabase-config.js`, `auth.js` and `store.js` and seeds the landing demo's tasks; nothing is saved. Its app markup is a copy of `index.html`'s, so keep the two in step. |
+| `js/playground.js` | Playground mode, `index.html?playground` (linked from the landing page): the same page and code, with no account and no database. Swaps in a pretend sign-in and an in-memory store seeded with the landing demo's tasks; nothing is saved. Elements with `pg-only` show only in this mode, `pg-hide` ones hide. |
 | `js/help.js` | The **i** button next to quick add: "Adding tasks" help (examples live in `index.html`). |
 | `js/voice.js` | Mic button: speech to text (browser built-in), spoken "list weekly" → `@weekly` etc. |
 | `js/supabase-config.js` | Which Supabase project to use (URL + public key), code-or-link switch. |

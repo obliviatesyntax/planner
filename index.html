@@ -29,7 +29,7 @@
         <a href="#how">How it works</a>
         <a href="#pricing">Pricing</a>
         <a href="#faq">FAQ</a>
-        <a href="playground.html">Playground</a>
+        <a href="?playground">Playground</a>
       </nav>
       <div class="lp-nav-cta">
         <button type="button" class="lp-btn-ghost" data-auth="signin">Sign in</button>
@@ -49,7 +49,7 @@
         </p>
         <div class="lp-hero-cta">
           <button type="button" class="primary lp-big" data-auth="signup">Get started, it's free</button>
-          <a href="playground.html" class="lp-btn-ghost lp-big">Try the playground →</a>
+          <a href="?playground" class="lp-btn-ghost lp-big">Try the playground →</a>
         </div>
         <ul class="lp-checks">
           <li>Everything on one screen</li>
@@ -173,7 +173,7 @@
         <li><b>Calendar or list view</b>: 1 day, 2 days, a week, or one scrolling list</li>
         <li><b>Drag</b> from any list onto a day or a time</li>
       </ul>
-      <a href="playground.html" class="lp-try">Try it yourself in the playground, no account needed. Nothing is saved →</a>
+      <a href="?playground" class="lp-try">Try it yourself in the playground, no account needed. Nothing is saved →</a>
     </section>
 
 
@@ -422,7 +422,7 @@
       <h2>Ready for a calmer day?</h2>
       <p>Set up in under a minute. Free to use.</p>
       <button type="button" class="lp-btn-light lp-big" data-auth="signup">Get started</button>
-      <p class="lp-final-try"><a href="playground.html">or try the playground first</a></p>
+      <p class="lp-final-try"><a href="?playground">or try the playground first</a></p>
     </section>
 
     <footer class="lp-footer">
@@ -436,6 +436,16 @@
   </div>
 
   <div id="app" hidden>
+  <!-- Only in playground mode (index.html?playground, js/playground.js): says nothing is saved -->
+  <div class="pg-banner pg-only" role="status">
+    <span class="pg-badge">Playground</span>
+    <span class="pg-text">Try anything: add, drag, tick off, delete. <b>Nothing is saved</b>, and reloading starts over.</span>
+    <span class="pg-actions">
+      <button type="button" class="pg-reset" data-reset>Start over</button>
+      <a href="./#signup" class="pg-cta">Create a free account</a>
+    </span>
+  </div>
+
   <!-- Pinned top bar.  Left: logo, name, date & time.  Centre: quick add (type, ⓘ tips, mic, Add).
        Right: your name and a settings button.  On phones only the logo and quick add show. -->
   <header class="topbar">
@@ -482,7 +492,9 @@
       <button type="button" id="export-btn">Export backup</button>
       <label class="file-btn">Import backup<input type="file" id="import-input" accept="application/json" hidden></label>
       <button type="button" id="footer-settings-btn">Settings</button>
-      <button type="button" id="signout-btn">Sign out</button>
+      <button type="button" id="signout-btn" class="pg-hide">Sign out</button>
+      <button type="button" class="pg-only" data-reset>Start over</button>
+      <a href="./#signup" class="primary pg-footer-cta pg-only">Create a free account</a>
     </div>
   </footer>
 
@@ -562,6 +574,7 @@
   <script src="js/when.js"></script>
   <script src="js/auth.js"></script>
   <script src="js/store.js"></script>
+  <script src="js/playground.js"></script>
   <script src="js/tasks.js"></script>
   <script src="js/labels.js"></script>
   <script src="js/cards.js"></script>

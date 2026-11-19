@@ -1,5 +1,9 @@
 // config.js — the lists and numbers that shape the page. Edit these to change it.
 
+// Playground mode: index.html?playground runs the real app with no account and nothing saved
+// (see js/playground.js). Linked from the landing page.
+const PLAYGROUND = new URLSearchParams(location.search).has('playground');
+
 // The default list. Every person has it, it's always first and can't be deleted.
 // New tasks without a day/time or an @list land here, and so do unfinished tasks from past days.
 const TRIAGE_LIST = { id: 'triage', name: 'triage' };
