@@ -73,9 +73,9 @@ function seed() {
     // lists
     task('Renew passport'),
     task('Call the bank'),
-    task('Update pricing slide', { list: 'l-sales', priority: 1, labels: ['lbl-w'] }),
-    task('Collect customer quotes', { list: 'l-sales', labels: ['lbl-w'] }),
-    task('Add Q3 numbers', { list: 'l-sales', labels: ['lbl-w'] }),
+    task('Update pricing slide', { list: 'l-sales', priority: 1 }),
+    task('Collect customer quotes', { list: 'l-sales' }),
+    task('Add Q3 numbers', { list: 'l-sales' }),
     task('Get 3 contractor quotes', { list: 'l-kitchen', priority: 1 }),
     task('Pick cabinet colour', { list: 'l-kitchen' }),
     task('Buy cedar planks', { list: 'l-bird' }),
