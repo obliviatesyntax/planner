@@ -299,7 +299,12 @@ main { padding: 0 24px; max-width: 1480px; margin: 0 auto; }
 .done-cell { background: var(--past); }
 /* A past day next to upcoming ones (2 days / week): no hours, just its done list running the
    full height of the column, one plain colour from top to bottom. */
-.done-cell.flows { border-bottom-color: transparent; }
+.done-cell.flows { border-bottom-color: transparent; position: relative; padding: 0; min-height: 0; }
+.flows-inner {   /* its height is set by planner.js (fitFlows): down to the bottom of the plan */
+  position: absolute; left: 0; right: 0; top: 0; z-index: 2; padding: 8px; overflow-y: auto;
+  display: flex; flex-direction: column; gap: 6px; background: var(--past);
+}
+.flows-inner .col-add { margin-top: 0; }
 .plan-cell.drag-over, .done-cell.drag-over { box-shadow: 0 0 0 2px var(--accent) inset; }
 
 /* 1-day view: to-do list and a tall calendar side by side */

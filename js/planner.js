@@ -228,15 +228,29 @@ const Planner = (() => {
   // ---- pieces shared by the views --------------------------------------------
 
   // A past day: only what got done, crossed out. Drop a task here to mark it done that day.
+  // With "flows" (a past day next to upcoming ones), the list doesn't stretch the shared To-do
+  // row: it hangs from the top of the column and uses the column's full height, down through the
+  // calendar part (which a past day doesn't need). fitFlows() sets that height after drawing.
   function doneCellHtml(date, cls = '') {
     const done = Tasks.doneList(date).filter(Labels.matches);
-    return `
-      <div class="done-cell ${cls}" data-drop="done" data-date="${date}">
+    const inner = `
         <div class="list">${done.map(t => Cards.html(t, 'done')).join('')}</div>
         ${done.length ? '' : '<p class="empty">Nothing done</p>'}
-        <button type="button" class="col-add" data-done="${date}" title="Log something you did that day">+ Add</button>
+        <button type="button" class="col-add" data-done="${date}" title="Log something you did that day">+ Add</button>`;
+    return `
+      <div class="done-cell ${cls}" data-drop="done" data-date="${date}">
+        ${cls.includes('flows') ? `<div class="flows-inner">${inner}</div>` : inner}
       </div>`;
   }
+
+  // Each flowing past-day list reaches the bottom of the plan box (scrolls if it's even longer).
+  function fitFlows() {
+    root.querySelectorAll('.done-cell.flows').forEach(cell => {
+      const box = cell.closest('.plan-days').getBoundingClientRect();
+      cell.firstElementChild.style.height = `${box.bottom - cell.getBoundingClientRect().top - 1}px`;
+    });
+  }
+  const flowSizes = new ResizeObserver(fitFlows);
 
   function todoCellHtml(date, cls = '', withTimed = false) {
     const timed = withTimed ? Tasks.calendarList(date).filter(Labels.matches) : [];
@@ -371,6 +385,10 @@ const Planner = (() => {
         ${cal ? cal.html : listViewHtml()}
         ${donePanelHtml()}
       </div>`;
+
+    flowSizes.disconnect();
+    const box = root.querySelector('.plan-days');
+    if (box && root.querySelector('.done-cell.flows')) { flowSizes.observe(box); fitFlows(); }
 
     // Scroll: keep where you were, or show the calendar window / today in the list.
     const scroller = root.querySelector('.cal-scroll, .plan-listview');
