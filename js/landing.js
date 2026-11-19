@@ -119,32 +119,56 @@ const Landing = (() => {
   const card = (text, extra = '') => `<div class="m-card p0 ${extra}"><i></i>${text}</div>`;
 
   // ---- the app preview at the top ------------------------------------------------
-  // Types "Call mom at 9PM" (the live preview popup shows where it'll go), adds it to today's
-  // calendar, then drags "Renew passport" from @triage onto tomorrow's to-do list.
+  // Three beats, looping:
+  //   1. type "Draft launch email @launchV2" (the live preview shows ☰ @launchV2) → it lands there
+  //   2. drag "Renew passport" from @triage onto today's calendar at 2 PM
+  //   3. tick "Reply to Sam" off: checkbox pop, green flash, burst, it flies into Done today
 
   const pv = document.getElementById('pv');
   const pvInput = document.getElementById('pv-input');
   const pvPopup = document.getElementById('pv-popup');
   const pvTodo = document.getElementById('pv-todo');
   const pvCal = document.getElementById('pv-cal');
+  const pvSlot = document.getElementById('pv-slot');
   const pvTriage = document.getElementById('pv-triage');
-  const pvTomorrow = document.getElementById('pv-tomorrow');
-  const PV_TEXT = 'Call mom at 9PM';
+  const pvWork = document.getElementById('pv-work');
+  const pvDone = document.getElementById('pv-done');
+  const pvDoneCount = document.getElementById('pv-done-count');
+  const PV_TEXT = 'Draft launch email @launchV2';
+  const plain = (text, extra = '') => `<div class="m-card p0 ${extra}"><i></i>${text}</div>`;
 
   function pvReset() {
     pvInput.textContent = '';
     pvPopup.hidden = true;
     pvTodo.innerHTML = '<div class="m-card p1"><i></i>Finish launch doc <s class="m-tag" style="--c:#5f3dc4">#w</s><u>P1</u></div>'
-      + '<div class="m-card p2"><i></i>Reply to Sam <u>P2</u></div>';
+      + '<div class="m-card p2" id="pv-sam"><i></i>Reply to Sam <u>P2</u></div>';
     pvCal.querySelectorAll('.lp-new').forEach(el => el.remove());
-    pvTriage.innerHTML = '<b>@triage</b>' + card('Renew passport') + card('Call the bank');
-    pvTomorrow.innerHTML = '<div class="m-card p3"><i></i>Plan weekend trip <u>P3</u></div>';
+    pvTriage.innerHTML = '<b>@triage</b>' + plain('Renew passport') + plain('Call the bank');
+    pvWork.innerHTML = '<b>@launchV2 <s class="m-tag" style="--c:#5f3dc4">#w</s></b>'
+      + '<div class="m-card p1"><i></i>Write release notes <u>P1</u></div>' + plain('Book demo room');
+    pvDone.querySelectorAll('.lp-new').forEach(el => el.remove());
+    pvDoneCount.textContent = '3';
   }
   function pvShowPopup(text) {
     pvPopup.innerHTML = `${describe(text)}<span class="lp-pv-hint">Enter to add</span>`;
     pvPopup.hidden = false;
   }
-  const pvEvent = '<div class="m-event p0 lp-pop lp-new" style="top:78%;height:16%"><i></i>Call mom<small>9:00–9:30 PM</small></div>';
+
+  // Green dots bursting out of a checkbox (same idea as the real app).
+  function burstAt(el) {
+    const r = el.getBoundingClientRect();
+    for (let i = 0; i < 10; i++) {
+      const dot = document.createElement('span');
+      dot.className = 'burst-dot';
+      dot.style.left = `${r.left + r.width / 2 - 3}px`;
+      dot.style.top = `${r.top + r.height / 2 - 3}px`;
+      document.body.appendChild(dot);
+      const angle = (i / 10) * Math.PI * 2, dist = 16 + Math.random() * 12;
+      dot.animate([{ transform: 'translate(0,0) scale(1)', opacity: 1 },
+        { transform: `translate(${Math.cos(angle) * dist}px, ${Math.sin(angle) * dist}px) scale(.4)`, opacity: 0 }],
+      { duration: 520, easing: 'cubic-bezier(.2,.8,.3,1)' }).finished.then(() => dot.remove());
+    }
+  }
 
   let pvRunning = false;
   async function pvLoop() {
@@ -158,28 +182,50 @@ const Landing = (() => {
         pvShowPopup(PV_TEXT);
         return;
       }
-      await sleep(1000);
-      // 1. Type, with the live preview updating as words arrive
+      await sleep(900);
+
+      // 1. Type into quick add; the preview shows it's headed for @launchV2. Enter → it lands there.
       await a.moveCursor((({ x, y }) => ({ x: x + 40, y: y + 10 }))(a.at(pvInput)), 500);
       for (let n = 1; n <= PV_TEXT.length; n++) {
         pvInput.textContent = PV_TEXT.slice(0, n);
-        if (n >= 4) pvShowPopup(PV_TEXT.slice(0, n));
-        await sleep(n === 8 ? 450 : 70);   // a little pause after "Call mom"
+        if (n >= 5) pvShowPopup(PV_TEXT.slice(0, n));
+        await sleep(n === 18 ? 380 : 60);   // a beat after "Draft launch email"
       }
-      await sleep(1300);
-      // 2. Press Enter: it lands on today's calendar at 9 PM
+      await sleep(1100);
       document.getElementById('pv-add').classList.add('pressed');
       await sleep(160);
       document.getElementById('pv-add').classList.remove('pressed');
       pvInput.textContent = '';
       pvPopup.hidden = true;
-      pvCal.insertAdjacentHTML('beforeend', pvEvent);
-      await sleep(1200);
-      // 3. Drag "Renew passport" from @triage onto tomorrow's to-do list
-      pvTomorrow.insertAdjacentHTML('beforeend', card('Renew passport', 'lp-landing'));
-      const landing = pvTomorrow.lastElementChild;
-      await a.carry(pvTriage.querySelector('.m-card'), landing, () => landing.classList.remove('lp-landing'));
-      await sleep(3000);
+      pvWork.insertAdjacentHTML('beforeend', plain('Draft launch email', 'lp-pop'));
+      await sleep(1100);
+
+      // 2. Drag "Renew passport" from @triage onto today's calendar at 2 PM.
+      await a.carry(pvTriage.querySelector('.m-card'), pvSlot, () => pvCal.insertAdjacentHTML('beforeend',
+        '<div class="m-event p0 lp-pop lp-new" style="top:33%;height:12%"><i></i>Renew passport<small>2–2:30</small></div>'));
+      await sleep(900);
+
+      // 3. Tick "Reply to Sam" off: pop + green flash + burst, then it flies into Done today.
+      const sam = document.getElementById('pv-sam');
+      const box = sam.querySelector('i');
+      const b = a.at(box);
+      await a.moveCursor({ x: b.x + 3, y: b.y + 3 }, 600);
+      sam.classList.add('completing');
+      box.classList.add('on');
+      burstAt(box);
+      await sleep(450);
+      pvDone.querySelector('b').insertAdjacentHTML('afterend',
+        '<div class="m-card done lp-new lp-landing"><i class="on"></i>Reply to Sam</div>');
+      const landing = pvDone.querySelector('.lp-landing');
+      await a.carry(sam, landing, () => {
+        landing.classList.remove('lp-landing');
+        landing.classList.add('just-done');
+        pvDoneCount.textContent = '4';
+        pvDoneCount.classList.remove('bump');
+        void pvDoneCount.offsetWidth;   // restart the bump animation
+        pvDoneCount.classList.add('bump');
+      });
+      await sleep(3200);
     }
     pvRunning = false;
   }

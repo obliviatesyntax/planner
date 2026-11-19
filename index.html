@@ -114,8 +114,9 @@
     </section>
 
     <!-- ---- product preview: a picture of the app drawn in HTML, animated by js/landing.js:
-         types "Call mom at 9PM" (with the live preview popup), adds it, then drags a task
-         from @triage onto tomorrow's to-do list. ------------------------------------------ -->
+         1) types "Draft launch email @launchV2" (live preview popup) → it lands in @launchV2
+         2) drags "Renew passport" from @triage onto today's calendar at 2 PM
+         3) ticks "Reply to Sam" off: pop, burst, it flies into Done today -------------------- -->
     <section class="lp-preview-wrap" aria-label="What Planner looks like">
       <div class="lp-window" id="pv">
         <div class="lp-window-bar"><span></span><span></span><span></span><em>planner</em></div>
@@ -135,6 +136,7 @@
                 <div class="lp-todo" id="pv-todo"></div>
                 <div class="lp-cal" id="pv-cal">
                   <div class="m-now" style="top:30%"></div>
+                  <div class="lp-pv-slot" id="pv-slot"></div>
                   <div class="m-event p2" style="top:6%;height:20%"><i></i>Design review<small>10:00–11:00 AM</small></div>
                   <div class="m-event p3" style="top:46%;height:18%"><i></i>Gym <s class="m-tag" style="--c:#2b8a3e">#p</s><small>6:00–7:00 PM</small></div>
                 </div>
@@ -149,8 +151,8 @@
                 </div>
               </div>
             </div>
-            <div class="lp-done">
-              <b>Done today <em>3</em></b>
+            <div class="lp-done" id="pv-done">
+              <b>Done today <em id="pv-done-count">3</em></b>
               <div class="m-card done"><i class="on"></i>Morning run</div>
               <div class="m-card done"><i class="on"></i>Pay rent</div>
               <div class="m-card done"><i class="on"></i>Standup notes</div>
@@ -158,6 +160,7 @@
           </div>
           <div class="lp-app-lists" id="pv-lists">
             <div class="lp-list" id="pv-triage"><b>@triage</b><div class="m-card p0"><i></i>Renew passport</div><div class="m-card p0"><i></i>Call the bank</div></div>
+            <div class="lp-list" id="pv-work"><b>@launchV2 <s class="m-tag" style="--c:#5f3dc4">#w</s></b><div class="m-card p1"><i></i>Write release notes <u>P1</u></div><div class="m-card p0"><i></i>Book demo room</div></div>
             <div class="lp-list"><b>@kitchenReno</b><div class="m-card p1"><i></i>Get 3 contractor quotes <u>P1</u></div><div class="m-card p0"><i></i>Pick cabinet colour</div></div>
             <div class="lp-list"><b>@birdhouse</b><div class="m-card p0"><i></i>Buy cedar planks</div><div class="m-card p3"><i></i>Find a 1.5" hole saw <u>P3</u></div></div>
           </div>
