@@ -528,7 +528,9 @@ main { padding: 0 24px; max-width: 1480px; margin: 0 auto; }
 .card.completing .title { text-decoration: line-through; text-decoration-color: var(--done); color: var(--muted); }
 @keyframes checkPop { 0% { transform: scale(1); } 45% { transform: scale(1.5); } 100% { transform: scale(1); } }
 .burst-dot { position: fixed; width: 6px; height: 6px; border-radius: 50%; background: var(--done); pointer-events: none; z-index: 60; }
-.done-ghost {
+/* .card.event too: calendar blocks are position:absolute with z-index 1 (.card.event), which
+   would otherwise win and place the flying copy relative to the page, off by the scroll. */
+.done-ghost, .card.event.done-ghost {
   position: fixed; z-index: 55; margin: 0; pointer-events: none; transform-origin: top left;
   background: #f0fdf4; border-color: #bbf7d0; box-shadow: 0 12px 30px rgba(22, 163, 74, .25);
 }
