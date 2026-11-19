@@ -170,7 +170,7 @@ const Calendar = (() => {
   // scrolled out of view (outside the calendar, so they never cover a task). Click to scroll.
   function hintsRowHtml(dates, where) {
     return `<div class="plan-grid cal-hints ${where}" style="--days:${dates.length}"><div></div>${
-      dates.map(d => `<div class="cal-hint" data-date="${d}"></div>`).join('')}</div>`;
+      dates.map(d => `<div class="cal-hint ${d < todayISO() ? 'is-past' : ''}" data-date="${d}"></div>`).join('')}</div>`;
   }
 
   function updateHints(scroller) {
@@ -276,14 +276,15 @@ const Planner = (() => {
               <b>${dayName(d)}</b> <span class="muted">${shortDate(d)}</span>
             </div>`).join('')}
           <div class="row-label">To do</div>
-          ${days.map(d => isPast(d) ? doneCellHtml(d, 'tall') : todoCellHtml(d)).join('')}
+          ${days.map(d => isPast(d) ? doneCellHtml(d, `tall ${upcoming.length ? 'flows' : ''}`) : todoCellHtml(d)).join('')}
         </div>
         ${win ? `
           ${Calendar.hintsRowHtml(days, 'top')}
           <div class="cal-scroll" style="height:${win.span * Calendar.pxPerMinute()}px">
             <div class="plan-grid cal-grid">
               ${Calendar.gutterHtml()}
-              ${days.map(d => isPast(d) ? '<div class="cal-past"></div>' : Calendar.dayHtml(d)).join('')}
+              ${days.map(d => isPast(d)   // a past day has no hours: its done list just carries on down
+                ? `<div class="cal-past" data-drop="done" data-date="${d}"></div>` : Calendar.dayHtml(d)).join('')}
             </div>
           </div>
           ${Calendar.hintsRowHtml(days, 'bottom')}` : ''}
