@@ -95,11 +95,11 @@ const Lists = (() => {
               ${Tasks.allLabels().map(lab => `
                 <button type="button" class="tv-label-chip ${l.label === lab.id ? 'on' : ''}" data-list-label="${lab.id}" style="--c:${lab.color}">#${escapeHtml(lab.shortcut)} ${escapeHtml(lab.name)}</button>`).join('')}
             </div>
-            <p class="lv-hint">A task moved from this list onto a day or a time gets this label. One label per list; tap it again to remove.</p>
+            <p class="lv-hint">Tasks planned from this list get this label.</p>
           </div>` : `
           <div class="lv-label">
             <span class="tv-label">Label for this list</span>
-            <p class="lv-hint">No labels yet. Create one with <b>+</b> in the label bar at the top (e.g. "Work #w"), then come back here to give this list a label.</p>
+            <p class="lv-hint">No labels yet. Add one with <b>+</b> at the top.</p>
           </div>`}
         <div class="tv-foot">
           <button type="button" class="tv-delete">Delete list${n ? ` and its ${n} task${n === 1 ? '' : 's'}` : ''}</button>

@@ -507,7 +507,14 @@ main { padding: 0 24px; max-width: 1480px; margin: 0 auto; }
   background: rgba(255, 255, 255, .1); border: 1.5px dashed rgba(255, 255, 255, .35); text-align: center; padding: 4px;
 }
 .drop-target.drag-over { background: var(--accent); border-style: solid; border-color: var(--accent); transform: scale(1.04); }
-.drop-target.done.drag-over { background: var(--done); border-color: var(--done); }
+.drop-target.delete { border-color: rgba(252, 165, 165, .55); color: #fecaca; }
+.drop-target.delete.drag-over { background: var(--p1); border-color: var(--p1); color: #fff; }
+/* Desktop: a compact bar centred at the bottom */
+@media (min-width: 701px) {
+  .drop-bar { left: 50%; right: auto; transform: translateX(-50%); width: min(560px, calc(100vw - 32px)); }
+  @keyframes barUp { from { transform: translate(-50%, 30px); opacity: 0; } to { transform: translateX(-50%); opacity: 1; } }
+  .drop-target { min-height: 52px; }
+}
 
 /* A done card: crossed out and quiet */
 .card.done { background: #fafafa; border-left-color: #d1d5db; box-shadow: none; }

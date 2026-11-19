@@ -13,7 +13,6 @@ user-agent sniffing: a narrow desktop window behaves like a phone.
 | ≤ 600px | small phone | Task window becomes a bottom sheet | `styles.css` (`@media (max-width: 600px)`) |
 | ≤ 700px | **phone** | Quick-add bar moves to the bottom; brand, date, name and gear hidden; phone default view; no Week view; calendar "compressed" from 2 days up; phone setting used | `styles.css` (`max-width: 700px`), `js/planner.js` (`phoneQuery`), `js/settings.js` (`deviceKey`) |
 | ≤ 900px | narrow | Plan stacks (Done today below the days); 1-day view stacks to-do above the calendar; tighter page padding | `styles.css` (`max-width: 900px`) |
-| ≤ 900px **or** touch screen | narrow/touch | Drop bar appears while dragging a task | `js/dnd.js` (`narrow`) |
 | touch input (any width) | touch | Swipe gestures on tasks | `js/swipe.js` (`pointerType === 'touch'`) |
 | ≤ 960px / ≤ 640px | landing | Landing page reflows (see the end of this doc) | `styles.css` (landing section) |
 
@@ -33,7 +32,7 @@ user-agent sniffing: a narrow desktop window behaves like a phone.
 | **Task hover buttons (P # 🗑)** | Appear on mouse hover, floating over the text | No hover on touch; a tap opens the task window instead (use swipes or the window) |
 | **Opening a task** | Click a task: centred window | Tap a task: **bottom sheet** (≤ 600px) |
 | **Task window labels** | Field names shown (Priority, Labels, Day, Time, List) | Priority and Labels rows have no names (self-explanatory); Day/Time/List use small icons; hint text and "Changes save automatically" hidden |
-| **Moving tasks** | Drag and drop anywhere; or the task window's Move block | Drag (with the **drop bar**: Today · Tomorrow · @triage · Done), **swipe**, or the task window's Move block |
+| **Moving tasks** | Drag and drop anywhere (a **drop bar** with Today · Tomorrow · Triage · Delete appears at the bottom, centred); or the task window's Move block | Drag (same **drop bar**, full width, above the bottom bar), **swipe**, or the task window's Move block |
 | **Swipe gestures** | — | Swipe **right** = done (or not done); swipe **left** = next day (planned task) or today (list task); Undo toast |
 | **Text boxes** | 14px | 16px, so iPhones don't zoom in when you tap them |
 | **Voice input (mic)** | Chrome, Edge, Safari | Same: depends on the browser, not the device; hidden where unsupported (e.g. Firefox) |
@@ -48,8 +47,9 @@ user-agent sniffing: a narrow desktop window behaves like a phone.
 - **Hover doesn't exist on touch.** Anything only reachable by hovering (P, #, delete) also has
   a touch route: tap to open the task window, or swipe.
 - **Native drag and drop is weak on phones.** Browsers don't scroll the page during a touch
-  drag (and some barely start one), so phones get the drop bar (targets come to you) and
-  swipes. The planned long-term fix is our own pointer-based drag: long-press to pick a task
+  drag (and some barely start one), so phones get swipes, and everyone gets the drop bar
+  (targets come to you). The bar has no "Done" on purpose: the checkbox on each task is the way
+  to mark done, and it has the nicer animation. The planned long-term fix is our own pointer-based drag: long-press to pick a task
   up, the page auto-scrolls near the screen edges, and the same code works for mouse and touch.
 - **Things that work the same everywhere:** click/tap a list's header to rename or delete it;
   "+ Add" under Done today or a past day logs a task as already done on that day.

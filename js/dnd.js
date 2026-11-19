@@ -9,9 +9,10 @@
 //
 // Lists: drag a list's header (data-list-drag) left/right to reorder the lists.
 //
-// Phones / narrow screens: while a task is being dragged, a bar slides up from the bottom with
-// big targets (Today · Tomorrow · @triage · Done), so you rarely need to scroll mid-drag.
-// They're ordinary drop places (data-drop="…") — the same drop code handles them.
+// Drop bar (phone and desktop): while a task is being dragged, a bar slides up from the bottom
+// with big targets (Today · Tomorrow · Triage · Delete), so you rarely need to scroll mid-drag.
+// They're ordinary drop places (data-drop="…") handled by the same drop code; data-drop="delete"
+// deletes the task (with Undo). Marking done isn't here on purpose: use the checkbox.
 
 const Dnd = (() => {
   let dragId = null;      // task being dragged
@@ -88,7 +89,10 @@ const Dnd = (() => {
     dropBar.hidden = true;
     const { drop, list: listId, date } = zone.dataset;
     if (drop === 'calendar') Tasks.moveToCalendar(id, date, Calendar.minutesAt(zone, e.clientY - grabOffset));
-    else if (drop === 'done') {
+    else if (drop === 'delete') {
+      const removed = Tasks.remove(id);
+      App.toast(`Deleted “${removed.title}”`, 'Undo', () => Tasks.restore(removed));
+    } else if (drop === 'done') {
       const title = Tasks.get(id).title;
       Cards.markJustDone(id);   // glow where it lands
       Tasks.markDone(id, date);
@@ -145,16 +149,13 @@ const Dnd = (() => {
   // ---- phone drop bar ----------------------------------------------------------
 
   const dropBar = document.getElementById('drop-bar');
-  const narrow = window.matchMedia('(max-width: 900px), (pointer: coarse)');
-
   function showDropBar() {
-    if (!narrow.matches) return;
     const today = todayISO();
     dropBar.innerHTML = `
       <div class="drop-target" data-drop="plan" data-date="${today}">Today</div>
       <div class="drop-target" data-drop="plan" data-date="${addDays(today, 1)}">Tomorrow</div>
-      <div class="drop-target" data-drop="list" data-list="${TRIAGE_LIST.id}">@triage</div>
-      <div class="drop-target done" data-drop="done" data-date="${today}">✓ Done</div>`;
+      <div class="drop-target" data-drop="list" data-list="${TRIAGE_LIST.id}">Triage</div>
+      <div class="drop-target delete" data-drop="delete">Delete</div>`;
     dropBar.hidden = false;
   }
 
