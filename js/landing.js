@@ -137,10 +137,11 @@ const Landing = (() => {
   const card = (text, extra = '') => `<div class="m-card p0 ${extra}"><i></i>${text}</div>`;
 
   // ---- the app preview at the top ------------------------------------------------
-  // Three beats, looping:
+  // Four beats, looping:
   //   1. type "Add Q3 numbers @salesDeck" (the live preview shows ☰ @salesDeck) → it lands there
-  //   2. drag "Renew passport" from @triage onto today's calendar at 2 PM
-  //   3. tick "Reply to Sam" off: checkbox pop, green flash, burst, it flies into Done today
+  //   2. type "Call mom at 9PM" (the preview shows 📅 today, 9 PM) → it lands on today's calendar
+  //   3. drag "Renew passport" from @triage onto today's calendar at 2 PM
+  //   4. tick "Reply to Sam" off: checkbox pop, green flash, burst, it flies into Done today
 
   const pv = document.getElementById('pv');
   const pvInput = document.getElementById('pv-input');
@@ -153,6 +154,7 @@ const Landing = (() => {
   const pvDone = document.getElementById('pv-done');
   const pvDoneCount = document.getElementById('pv-done-count');
   const PV_TEXT = 'Add Q3 numbers @salesDeck';
+  const PV_TEXT_2 = 'Call mom at 9PM';
   const plain = (text, extra = '') => `<div class="m-card p0 ${extra}"><i></i>${text}</div>`;
 
   function pvReset() {
@@ -188,6 +190,22 @@ const Landing = (() => {
     }
   }
 
+  // Types text into the preview's quick add (the live preview popup follows along), pauses
+  // after `pauseAt` characters, then presses Add.
+  async function pvType(text, pauseAt) {
+    for (let n = 1; n <= text.length; n++) {
+      pvInput.textContent = text.slice(0, n);
+      if (n >= 5) pvShowPopup(text.slice(0, n));
+      await sleep(n === pauseAt ? 380 : 60);
+    }
+    await sleep(1100);
+    document.getElementById('pv-add').classList.add('pressed');
+    await sleep(160);
+    document.getElementById('pv-add').classList.remove('pressed');
+    pvInput.textContent = '';
+    pvPopup.hidden = true;
+  }
+
   let pvRunning = false;
   async function pvLoop() {
     if (!pv || pvRunning) return;
@@ -204,26 +222,22 @@ const Landing = (() => {
 
       // 1. Type into quick add; the preview shows it's headed for @salesDeck. Enter → it lands there.
       await a.moveCursor((({ x, y }) => ({ x: x + 40, y: y + 10 }))(a.at(pvInput)), 500);
-      for (let n = 1; n <= PV_TEXT.length; n++) {
-        pvInput.textContent = PV_TEXT.slice(0, n);
-        if (n >= 5) pvShowPopup(PV_TEXT.slice(0, n));
-        await sleep(n === 14 ? 380 : 60);   // a beat after "Add Q3 numbers"
-      }
-      await sleep(1100);
-      document.getElementById('pv-add').classList.add('pressed');
-      await sleep(160);
-      document.getElementById('pv-add').classList.remove('pressed');
-      pvInput.textContent = '';
-      pvPopup.hidden = true;
+      await pvType(PV_TEXT, 14);   // a beat after "Add Q3 numbers"
       pvWork.insertAdjacentHTML('beforeend', plain('Add Q3 numbers', 'lp-pop'));
       await sleep(1100);
 
-      // 2. Drag "Renew passport" from @triage onto today's calendar at 2 PM.
+      // 2. Type a task with a time; the preview shows today at 9 PM. Enter → it's on the calendar.
+      await pvType(PV_TEXT_2, 8);   // a beat after "Call mom"
+      pvCal.insertAdjacentHTML('beforeend',
+        '<div class="m-event p0 lp-pop lp-new" style="top:70%;height:12%"><i></i>Call mom<small>9:00–9:30 PM</small></div>');
+      await sleep(1100);
+
+      // 3. Drag "Renew passport" from @triage onto today's calendar at 2 PM.
       await a.carry(pvTriage.querySelector('.m-card'), pvSlot, () => pvCal.insertAdjacentHTML('beforeend',
-        '<div class="m-event p0 lp-pop lp-new" style="top:33%;height:12%"><i></i>Renew passport<small>2–2:30</small></div>'));
+        '<div class="m-event p0 lp-pop lp-new" style="top:33%;height:12%"><i></i>Renew passport<small>2:00–2:30 PM</small></div>'));
       await sleep(900);
 
-      // 3. Tick "Reply to Sam" off: pop + green flash + burst, then it flies into Done today.
+      // 4. Tick "Reply to Sam" off: pop + green flash + burst, then it flies into Done today.
       const sam = document.getElementById('pv-sam');
       const box = sam.querySelector('i');
       const b = a.at(box);
