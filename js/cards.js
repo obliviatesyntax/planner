@@ -24,7 +24,8 @@ const Cards = (() => {
       : formatTime(task.startMin);
     const p = task.priority || 0;   // 0 = no priority set
     // In a compressed view everything inside the day columns (calendar blocks, to-do cards, a past
-    // day's done cards) drops the P tag. Not the lists below, and not the "Done today" panel.
+    // day's done cards) drops the P tag (shown on hover) and has no hover buttons; click to open.
+    // Not the lists below, and not the "Done today" panel.
     const compressed = Calendar.isCompressed() && where !== 'list' && size !== 'panel';
     const canDelete = where !== 'done';   // lists, to-do lists and calendar blocks
     const hasLabels = Tasks.allLabels().length > 0;   // no labels exist yet: no "#" button

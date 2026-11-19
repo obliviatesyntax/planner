@@ -92,7 +92,7 @@ coloured edge (priority)                    thicker coloured edge (4px) carries 
 | P1 / P2 / P3 tag | Shown at the right | Hidden; appears on hover |
 | Priority colour on the left edge | 3px | 4px |
 | Labels (#w) | Shown | Shown if they fit |
-| Hover buttons (P # 🗑) | Float over the text | Same |
+| Hover buttons (P # 🗑) | Float over the text | **None**: click/tap the card to open it and set priority, labels or delete there |
 | Applies to | — | Calendar blocks, to-do cards and past-day done cards in the day columns |
 
 **Why:** in a narrow column every character counts. The time repeats what the grid says, and the
