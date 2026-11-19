@@ -54,6 +54,10 @@ const Settings = (() => {
     if (saved.defaultView && saved.defaultViewDesktop === undefined) values.defaultViewDesktop = saved.defaultView;
     const version = saved.version || 1;
     if (values.defaultViewPhone === 'week') values.defaultViewPhone = 'cal2';   // week isn't offered on phones
+    // Remember this device's time zone on the account, so the Claude connector
+    // (supabase/functions/mcp) knows what "today" is for you.
+    const timeZone = Intl.DateTimeFormat().resolvedOptions().timeZone;
+    if (user && timeZone && (user.user_metadata || {}).time_zone !== timeZone) db.auth.updateUser({ data: { time_zone: timeZone } });
     if (version < VERSION && Object.keys(saved).length) {
       if (version < 2) values.defaultPriority = 0;   // version 2: everyone starts with "None"
       if (version < 3) values.minHours = 4;          // version 3: 4–9 hour calendar window

@@ -57,6 +57,23 @@ contain both `{{ .Token }}` (the code) and `{{ .ConfirmationURL }}` (the link).
   rename it, write a description, set priority and labels, delete it.
   Hover a task for quick buttons: **P** / **#** / **×**, or click its P1/P2/P3 tag to change priority.
 
+## Use Planner from Claude (MCP, read-only for now)
+
+`supabase/functions/mcp/` is an MCP server, so AI apps can read your Planner. It lives at
+`https://eiwoavnrsdnffiztwziq.supabase.co/functions/v1/mcp`. Its tools are `get_plan`,
+`get_lists`, `search_tasks` and `get_task`, and it can't change anything yet. It reads the
+database as you, using your sign-in token, so you only ever see your own tasks. The app saves
+your time zone on your account, so the server knows when your "today" is.
+
+- **Test it:** `deno test supabase/functions/mcp`
+- **Deploy it:** `supabase functions deploy mcp --project-ref eiwoavnrsdnffiztwziq --no-verify-jwt --use-api`
+- **Try it in Claude Code** (until sign-in for Claude/ChatGPT is built):
+  1. Open the app signed in. In the browser console, run
+     `(await db.auth.getSession()).data.session.access_token` and copy the token. It's valid
+     for about an hour.
+  2. Run `claude mcp add --transport http planner https://eiwoavnrsdnffiztwziq.supabase.co/functions/v1/mcp --header "Authorization: Bearer <token>"`.
+  3. Afterwards, run `claude mcp remove planner`, because the token is stored in Claude Code's settings.
+
 ## Docs
 
 - [`docs/ui-mobile-vs-desktop.md`](docs/ui-mobile-vs-desktop.md): how the app and landing page differ on phones and
@@ -71,6 +88,7 @@ contain both `{{ .Token }}` (the code) and `{{ .ConfirmationURL }}` (the link).
 | `js/when.js` | Reads days and times from plain English for quick add ("today 5pm"). |
 | `js/landing.js` | The signed-out landing page: buttons that open the sign-in card, the typing demo. (Page text is in `index.html`.) |
 | `js/playground.js` | Playground mode, `index.html?playground` (linked from the landing page): the same page and code, with no account and no database. Swaps in a pretend sign-in and an in-memory store seeded with the landing demo's tasks; nothing is saved. Elements with `pg-only` show only in this mode, `pg-hide` ones hide. |
+| `supabase/functions/mcp/` | The MCP server for Claude and other AI apps: `planner.ts` (tools and protocol), `index.ts` (start-up), `planner_test.ts`. Its rules for where a task shows match `js/tasks.js`. |
 | `js/help.js` | The **i** button next to quick add: "Adding tasks" help (examples live in `index.html`). |
 | `js/voice.js` | Mic button: speech to text (browser built-in), spoken "list weekly" → `@weekly` etc. |
 | `js/supabase-config.js` | Which Supabase project to use (URL + public key), code-or-link switch. |
