@@ -296,7 +296,11 @@ const Landing = (() => {
     dndRunning = false;
   }
 
-  function start() { play(); pvLoop(); dndLoop(); }
+  function start() {
+    play(); pvLoop(); dndLoop();
+    // Coming from the playground's "Create a free account": open that tab.
+    if (location.hash === '#signup') page.querySelector('[data-auth="signup"]').click();
+  }
   if (!page.hidden) start();
   return { play: start };
 })();

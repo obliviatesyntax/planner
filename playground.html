@@ -1,0 +1,169 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Planner playground</title>
+  <meta name="robots" content="noindex">
+  <meta name="description" content="Try Planner without an account. Nothing is saved. A simple, free planner on one screen: no menus, no tabs. Organize tasks into lists by project, then plan the few you'll do each day.">
+  <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='15' fill='%234f46e5'/%3E%3Crect x='13' y='17' width='38' height='34' rx='6' fill='none' stroke='white' stroke-width='5'/%3E%3Cpath d='M13 27h38' stroke='white' stroke-width='5'/%3E%3Cpath d='M24 39l5 5 10-11' fill='none' stroke='white' stroke-width='5' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap">
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body class="playground">
+  <!-- ============================================================================
+       Playground: the real app with no account and no database (js/playground.js replaces
+       supabase-config.js, auth.js and store.js). Everything is in memory; reload = start over.
+       The app markup below is a copy of index.html's: keep the two in step.
+       ============================================================================ -->
+  <div class="pg-banner" role="status">
+    <span class="pg-badge">Playground</span>
+    <span class="pg-text">Try anything: add, drag, tick off, delete. <b>Nothing is saved</b>, and reloading starts over.</span>
+    <span class="pg-actions">
+      <button type="button" class="pg-reset" data-reset>Start over</button>
+      <a href="./#signup" class="pg-cta">Create a free account</a>
+    </span>
+  </div>
+
+  <div id="app" hidden>
+  <!-- Pinned top bar.  Left: logo, name, date & time.  Centre: quick add (type, ⓘ tips, mic, Add).
+       Right: your name and a settings button.  On phones only the logo and quick add show. -->
+  <header class="topbar">
+    <div class="brand">
+      <svg class="logo" viewBox="0 0 64 64" aria-hidden="true"><rect width="64" height="64" rx="15" fill="#4f46e5"/><rect x="13" y="17" width="38" height="34" rx="6" fill="none" stroke="#fff" stroke-width="5"/><path d="M13 27h38" stroke="#fff" stroke-width="5"/><path d="M24 39l5 5 10-11" fill="none" stroke="#fff" stroke-width="5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      <span class="brand-text"><span class="brand-name">Planner</span><span id="today-label" class="muted"></span></span>
+    </div>
+
+    <!-- Quick add: type and press Enter. A day/time puts it on the plan, @list or nothing puts it in a list.
+         See app.js (form submit) and when.js. -->
+    <form id="quick-add" class="quick-add" autocomplete="off">
+      <div class="qa-field">
+        <input id="qa-title" placeholder="Add a task…  e.g. “Dentist tomorrow at 5 PM”">
+        <button type="button" id="help-btn" class="qa-help" title="How to add tasks (press ?)">i</button>
+      </div>
+      <button type="button" id="mic-btn" class="mic-btn" title="Speak a task">
+        <svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="9" y="2" width="6" height="12" rx="3"/><path d="M5 10a7 7 0 0 0 14 0"/><path d="M12 17v4"/></svg>
+      </button>
+      <button type="submit" class="primary">Add</button>
+      <!-- Live preview of what Enter would add, and where (js/app.js → renderPreview) -->
+      <div id="qa-preview" class="qa-preview" hidden aria-live="polite"></div>
+    </form>
+
+    <div class="account">
+      <span id="user-email" class="muted"></span>
+      <button type="button" id="settings-btn" class="icon-only" title="Settings" aria-label="Settings"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 1 1-4 0v-.09a1.65 1.65 0 0 0-1-1.51 1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 1 1 0-4h.09a1.65 1.65 0 0 0 1.51-1 1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 1 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 1 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg></button>
+    </div>
+  </header>
+
+  <main id="main-view">
+    <!-- Label filter chips: All · Work #w · Personal #p · + (see js/labels.js) -->
+    <div id="labels-bar" class="labels-bar"></div>
+
+
+    <!-- Top: what you've committed to (js/planner.js). Bottom: your lists (js/lists.js). -->
+    <section id="planner" class="section"></section>
+    <section id="lists" class="section"></section>
+  </main>
+
+  <footer class="footer">
+    <span class="muted"><b>today 5pm</b>, <b>tomorrow</b>, <b>fri 6-7pm</b> → plan · <b>@listName</b> → list · <b>p1 p2 p3</b> priority · <b>#p</b> label · click the calendar to add at a time · drag to “Done today” to complete · click a task to open it</span>
+    <span class="spacer"></span>
+    <div class="footer-actions">
+      <button type="button" id="export-btn">Export backup</button>
+      <label class="file-btn">Import backup<input type="file" id="import-input" accept="application/json" hidden></label>
+      <button type="button" id="footer-settings-btn">Settings</button>
+      <button type="button" data-reset>Start over</button>
+      <a href="./#signup" class="primary pg-footer-cta">Create a free account</a>
+    </div>
+  </footer>
+
+  </div>
+
+  <!-- "How to add tasks" help, opened by the i button next to quick add (js/help.js).
+       Edit the examples here; your own labels and lists are filled in below them. -->
+  <dialog id="help-dialog">
+    <div class="help">
+      <div class="settings-head">
+        <h2>Adding tasks</h2>
+        <button type="button" class="icon-btn" data-close title="Close">×</button>
+      </div>
+      <p class="muted">Type in the box and press <kbd>Enter</kbd>, or click the mic and speak. Mix and match anything below in one line.</p>
+
+      <h3>Where it goes</h3>
+      <table class="help-table">
+        <tr><td><code>Dentist today 5pm</code></td><td>Today's calendar at 5:00 PM</td></tr>
+        <tr><td><code>Gym fri 6-7pm</code></td><td>Friday's calendar, 6:00 to 7:00 PM</td></tr>
+        <tr><td><code>Review doc nov 20 at 14:00 for 1h</code></td><td>Nov 20, 2:00 PM, one hour long</td></tr>
+        <tr><td><code>Call mom tomorrow</code></td><td>Tomorrow's to-do list (a day, no time)</td></tr>
+        <tr><td><code>Renew passport @weekly</code></td><td>The @weekly list (created if it's new)</td></tr>
+        <tr><td><code>Buy groceries</code></td><td>@triage (no day, time or list)</td></tr>
+      </table>
+      <p class="help-note">Days: today, tonight, tomorrow, monday…friday (or mon, tue…), next monday, nov 20.
+        Times: 5pm, 5:30pm, 17:00, noon, 6-7pm. Length: for 45 min, for 1h. An <code>@list</code> wins over a day or time.</p>
+
+      <h3>Priority and labels</h3>
+      <table class="help-table">
+        <tr><td><code>p1</code> <code>p2</code> <code>p3</code></td><td>Priority: must do, should do, nice to have</td></tr>
+        <tr><td><code>#p</code> <code>#work</code></td><td>Labels, by shortcut or name; add several</td></tr>
+        <tr><td><code>Dentist tomorrow 5pm p1 #p</code></td><td>All together</td></tr>
+      </table>
+      <p class="help-note" id="help-yours"></p>
+
+      <h3>Speaking</h3>
+      <table class="help-table">
+        <tr><td>“… <b>list weekly</b>”, “… <b>in list upcoming E</b>”</td><td><code>@weekly</code>, <code>@upcomingE</code></td></tr>
+        <tr><td>“… <b>at weekly</b>” (an existing list)</td><td><code>@weekly</code></td></tr>
+        <tr><td>“… <b>label personal</b>”, “… <b>tag work</b>”</td><td><code>#p</code>, <code>#w</code></td></tr>
+        <tr><td>“… <b>priority one</b>”, “… <b>P 1</b>”</td><td><code>p1</code></td></tr>
+        <tr><td>“Call mom tomorrow at 5 p.m.”</td><td>Days and times as above</td></tr>
+      </table>
+      <p class="help-note">The words appear in the box: check them, then press <kbd>Enter</kbd>. Works in Chrome, Edge and Safari.</p>
+
+      <h3>Other ways</h3>
+      <ul class="help-list">
+        <li><b>+ Add</b> under a day or a list adds straight there.</li>
+        <li><b>Click an empty spot on the calendar</b> to add a task at that time.</li>
+        <li><b>Drag</b> tasks between lists, days, times and “Done today”.</li>
+        <li><b>Click a task</b> to open it: rename it, add a description, set priority and labels, or delete it.</li>
+        <li>Unfinished tasks from past days wait in <code>@overdue</code> (top of your lists) until you re-plan them.</li>
+        <li>Press <kbd>N</kbd> to jump to the box, <kbd>?</kbd> to open this help.</li>
+      </ul>
+    </div>
+  </dialog>
+
+  <!-- A list, opened by clicking its header (js/lists.js): rename or delete -->
+  <dialog id="list-dialog"></dialog>
+
+  <!-- A task, opened by clicking it (js/taskview.js) -->
+  <dialog id="task-dialog"></dialog>
+
+  <!-- Settings window, filled in by js/settings.js -->
+  <dialog id="settings-dialog"></dialog>
+
+  <!-- Phones: drop targets that slide up while you drag a task (js/dnd.js) -->
+  <div id="drop-bar" class="drop-bar" hidden></div>
+
+  <div id="toast" class="toast" hidden></div>
+
+  <!-- Plain scripts, loaded in order. No build step. Same as index.html, except
+       playground.js stands in for supabase-config.js, auth.js and store.js, and no landing.js. -->
+  <script src="js/config.js"></script>
+  <script src="js/utils.js"></script>
+  <script src="js/when.js"></script>
+  <script src="js/playground.js"></script>
+  <script src="js/tasks.js"></script>
+  <script src="js/labels.js"></script>
+  <script src="js/cards.js"></script>
+  <script src="js/taskview.js"></script>
+  <script src="js/planner.js"></script>
+  <script src="js/dnd.js"></script>
+  <script src="js/swipe.js"></script>
+  <script src="js/lists.js"></script>
+  <script src="js/settings.js"></script>
+  <script src="js/app.js"></script>
+  <script src="js/voice.js"></script>
+  <script src="js/help.js"></script>
+</body>
+</html>
