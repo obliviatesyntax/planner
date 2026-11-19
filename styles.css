@@ -201,8 +201,9 @@ main { padding: 0 24px; max-width: 1480px; margin: 0 auto; }
 .chip.active { background: var(--c, var(--text)); border-color: var(--c, var(--text)); color: #fff; }
 .chip.active .sc { color: rgba(255,255,255,.75); }
 .chip.active .dot { background: #fff; }
-.chip-del { border: 0; background: none; padding: 0 0 0 2px; color: inherit; opacity: .5; display: none; }
-.chip:hover .chip-del { display: inline; }
+.chip-del { border: 0; background: none; padding: 0 0 0 2px; color: inherit; opacity: .5; display: none; place-items: center; }
+.chip-del svg { display: block; pointer-events: none; }
+.chip:hover .chip-del { display: inline-grid; }
 .chip-del:hover { opacity: 1; }
 .chip-add { font-weight: 700; padding: 3px 11px; color: var(--muted); }
 .label-input { padding: 4px 10px; border: 1px solid var(--accent); border-radius: 99px; outline: none; width: 210px; }

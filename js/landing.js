@@ -120,7 +120,7 @@ const Landing = (() => {
 
   // ---- the app preview at the top ------------------------------------------------
   // Three beats, looping:
-  //   1. type "Draft launch email @launchV2" (the live preview shows ☰ @launchV2) → it lands there
+  //   1. type "Add Q3 numbers @salesDeck" (the live preview shows ☰ @salesDeck) → it lands there
   //   2. drag "Renew passport" from @triage onto today's calendar at 2 PM
   //   3. tick "Reply to Sam" off: checkbox pop, green flash, burst, it flies into Done today
 
@@ -134,7 +134,7 @@ const Landing = (() => {
   const pvWork = document.getElementById('pv-work');
   const pvDone = document.getElementById('pv-done');
   const pvDoneCount = document.getElementById('pv-done-count');
-  const PV_TEXT = 'Draft launch email @launchV2';
+  const PV_TEXT = 'Add Q3 numbers @salesDeck';
   const plain = (text, extra = '') => `<div class="m-card p0 ${extra}"><i></i>${text}</div>`;
 
   function pvReset() {
@@ -144,8 +144,8 @@ const Landing = (() => {
       + '<div class="m-card p2" id="pv-sam"><i></i>Reply to Sam <u>P2</u></div>';
     pvCal.querySelectorAll('.lp-new').forEach(el => el.remove());
     pvTriage.innerHTML = '<b>@triage</b>' + plain('Renew passport') + plain('Call the bank');
-    pvWork.innerHTML = '<b>@launchV2 <s class="m-tag" style="--c:#5f3dc4">#w</s></b>'
-      + '<div class="m-card p1"><i></i>Write release notes <u>P1</u></div>' + plain('Book demo room');
+    pvWork.innerHTML = '<b>@salesDeck <s class="m-tag" style="--c:#5f3dc4">#w</s></b>'
+      + '<div class="m-card p1"><i></i>Update pricing slide <u>P1</u></div>' + plain('Collect customer quotes');
     pvDone.querySelectorAll('.lp-new').forEach(el => el.remove());
     pvDoneCount.textContent = '3';
   }
@@ -184,12 +184,12 @@ const Landing = (() => {
       }
       await sleep(900);
 
-      // 1. Type into quick add; the preview shows it's headed for @launchV2. Enter → it lands there.
+      // 1. Type into quick add; the preview shows it's headed for @salesDeck. Enter → it lands there.
       await a.moveCursor((({ x, y }) => ({ x: x + 40, y: y + 10 }))(a.at(pvInput)), 500);
       for (let n = 1; n <= PV_TEXT.length; n++) {
         pvInput.textContent = PV_TEXT.slice(0, n);
         if (n >= 5) pvShowPopup(PV_TEXT.slice(0, n));
-        await sleep(n === 18 ? 380 : 60);   // a beat after "Draft launch email"
+        await sleep(n === 14 ? 380 : 60);   // a beat after "Add Q3 numbers"
       }
       await sleep(1100);
       document.getElementById('pv-add').classList.add('pressed');
@@ -197,7 +197,7 @@ const Landing = (() => {
       document.getElementById('pv-add').classList.remove('pressed');
       pvInput.textContent = '';
       pvPopup.hidden = true;
-      pvWork.insertAdjacentHTML('beforeend', plain('Draft launch email', 'lp-pop'));
+      pvWork.insertAdjacentHTML('beforeend', plain('Add Q3 numbers', 'lp-pop'));
       await sleep(1100);
 
       // 2. Drag "Renew passport" from @triage onto today's calendar at 2 PM.
