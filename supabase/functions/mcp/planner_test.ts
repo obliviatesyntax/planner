@@ -7,7 +7,7 @@ const tz = 'America/Los_Angeles';
 const today = todayIn(tz);
 const shift = (n: number) => { const d = new Date(`${today}T12:00:00Z`); d.setUTCDate(d.getUTCDate() + n); return d.toISOString().slice(0, 10); };
 
-const DB: Record<string, unknown[]> = {
+const BASE: Record<string, any[]> = {
   tasks: [
     { id: 't1', title: 'Design review', priority: 2, labels: ['w'], list_id: 'triage', plan_date: today, start_min: 600, duration_min: 60, sort_order: 0, done_on: null },
     { id: 't2', title: 'Reply to Sam', priority: null, labels: [], list_id: 'triage', plan_date: today, start_min: null, duration_min: 30, sort_order: 1, done_on: null, notes: 'about the passport form' },
@@ -20,14 +20,26 @@ const DB: Record<string, unknown[]> = {
   labels: [{ id: 'w', name: 'Work', shortcut: 'w', sort_order: 0 }],
 };
 
-// Pretend Supabase: /auth/v1/user and /rest/v1/<table>, only for the token "good".
+let DB: Record<string, any[]> = structuredClone(BASE);
+const fresh = () => { DB = structuredClone(BASE); };
+const row = (table: string, id: string) => DB[table].find(r => r.id === id);
+
+// Pretend Supabase: /auth/v1/user and /rest/v1/<table> (read, insert, update, delete by id),
+// only for the token "good".
 globalThis.fetch = (async (input: string | URL | Request, init?: RequestInit) => {
-  const url = String(input);
+  const url = new URL(String(input));
   const auth = new Headers(init?.headers).get('Authorization');
   if (auth !== 'Bearer good') return new Response('{"msg":"bad jwt"}', { status: 401 });
-  if (url.endsWith('/auth/v1/user')) return Response.json({ id: 'u1', user_metadata: { time_zone: tz } });
-  const name = url.match(/rest\/v1\/(\w+)/)![1];
-  return Response.json(DB[name]);
+  if (url.pathname.endsWith('/auth/v1/user')) return Response.json({ id: 'u1', user_metadata: { time_zone: tz, settings: { defaultDuration: 45 } } });
+  const name = url.pathname.match(/rest\/v1\/(\w+)/)![1];
+  const method = init?.method ?? 'GET';
+  const id = url.searchParams.get('id') ?? '';
+  const ids = id.startsWith('eq.') ? [id.slice(3)] : id.startsWith('in.(') ? id.slice(4, -1).split(',').map(x => x.replace(/"/g, '')) : [];
+  if (method === 'GET') return Response.json(DB[name]);
+  if (method === 'POST') { DB[name].push(...JSON.parse(String(init!.body))); return new Response(null, { status: 201 }); }
+  if (method === 'PATCH') { DB[name].filter(r => ids.includes(r.id)).forEach(r => Object.assign(r, JSON.parse(String(init!.body)))); return new Response(null, { status: 204 }); }
+  if (method === 'DELETE') { DB[name] = DB[name].filter(r => !ids.includes(r.id)); return new Response(null, { status: 204 }); }
+  return new Response('?', { status: 400 });
 }) as typeof fetch;
 
 const post = (body: unknown, token = 'good') => handle(new Request('https://x/mcp', {
@@ -36,6 +48,11 @@ const post = (body: unknown, token = 'good') => handle(new Request('https://x/mc
 const call = async (name: string, args = {}) => {
   const res = await post({ jsonrpc: '2.0', id: 1, method: 'tools/call', params: { name, arguments: args } });
   const body = await res.json();
+  return body.result.content[0].text as string;
+};
+const callError = async (name: string, args = {}) => {
+  const body = await (await post({ jsonrpc: '2.0', id: 1, method: 'tools/call', params: { name, arguments: args } })).json();
+  assert(body.result.isError, `${name} should have failed`);
   return body.result.content[0].text as string;
 };
 
@@ -61,8 +78,10 @@ Deno.test('initialize, notifications and tools/list', async () => {
   assertEquals(init.result.serverInfo.name, 'planner');
   assertEquals((await post({ jsonrpc: '2.0', method: 'notifications/initialized' })).status, 202);
   const list = await (await post({ jsonrpc: '2.0', id: 2, method: 'tools/list' })).json();
-  assertEquals(list.result.tools.map((t: { name: string }) => t.name), ['get_plan', 'get_lists', 'search_tasks', 'get_task']);
-  assert(list.result.tools.every((t: any) => t.annotations.readOnlyHint));
+  const tools = Object.fromEntries(list.result.tools.map((t: any) => [t.name, t.annotations]));
+  for (const name of ['get_plan', 'get_lists', 'search_tasks', 'get_task']) assert(tools[name].readOnlyHint);
+  for (const name of ['add_task', 'move_task', 'complete_task', 'create_list']) assert(!tools[name].readOnlyHint && !tools[name].destructiveHint);
+  for (const name of ['delete_task', 'delete_list', 'delete_label']) assert(tools[name].destructiveHint);
 });
 
 Deno.test('get_plan: today, calendar / to-do / done', async () => {
@@ -90,4 +109,84 @@ Deno.test('search_tasks and get_task', async () => {
   assert(!(await call('search_tasks', { query: 'run' })).includes('Morning run'));
   assertStringIncludes(await call('search_tasks', { query: 'run', include_done: true }), 'done on Today');
   assertStringIncludes(await call('get_task', { id: 't2' }), 'about the passport form');
+});
+
+// ---- changing things --------------------------------------------------------------------------
+
+Deno.test('add_task: @triage by default, a day, a calendar time, a new list', async () => {
+  fresh();
+  assertStringIncludes(await call('add_task', { title: 'Buy milk' }), 'in @triage');
+  const t = DB.tasks.find(r => r.title === 'Buy milk');
+  assertEquals([t.list_id, t.plan_date, t.duration_min, t.sort_order], ['triage', null, 45, 1]);   // after Renew passport
+
+  assertStringIncludes(await call('add_task', { title: 'Call mom', date: today, start_time: '21:00', priority: 2, labels: ['work'] }),
+    'Call mom · 9:00 PM–9:45 PM · P2 · #w');
+  assertEquals(DB.tasks.find(r => r.title === 'Call mom').start_min, 21 * 60);
+
+  assertStringIncludes(await call('add_task', { title: 'Sand it', list: 'birdhouse' }), '(new list @birdhouse)');
+  assert(DB.lists.some(l => l.name === 'birdhouse'));
+
+  assertStringIncludes(await callError('add_task', { title: 'x', list: 'overdue' }), '@overdue is built in');
+  assertStringIncludes(await callError('add_task', { title: 'x', labels: ['nope'] }), 'No label "nope"');
+  assertStringIncludes(await callError('add_task', { title: 'x', date: '2026-13-45' }), "isn't a date");
+  assertStringIncludes(await callError('add_task', { title: 'x', date: today, start_time: '25:00' }), "isn't a time");
+});
+
+Deno.test("move_task: out of a labelled list picks up its label; to a list un-plans", async () => {
+  fresh();
+  assertStringIncludes(await call('move_task', { id: 't6', date: today, start_time: '14:00' }), `on the calendar Today`);
+  assertEquals(row('tasks', 't6').labels, ['w']);   // @salesDeck has #w
+  await call('move_task', { id: 't1', list: 'triage' });
+  assertEquals([row('tasks', 't1').plan_date, row('tasks', 't1').start_min, row('tasks', 't1').list_id], [null, null, 'triage']);
+  assertStringIncludes(await callError('move_task', { id: 't1' }), 'Say where');
+  assertStringIncludes(await callError('move_task', { id: 'nope', list: 'triage' }), 'No task with id nope');
+});
+
+Deno.test('complete_task / uncomplete_task, and back to @overdue from a past day', async () => {
+  fresh();
+  await call('complete_task', { id: 't2' });
+  assertEquals(row('tasks', 't2').done_on, today);
+  await call('uncomplete_task', { id: 't2' });
+  assertEquals([row('tasks', 't2').done_on, row('tasks', 't2').plan_date], [null, today]);
+
+  await call('complete_task', { id: 't4', date: shift(-1) });   // yesterday's task, done yesterday
+  assertEquals(row('tasks', 't4').done_on, shift(-1));
+  await call('uncomplete_task', { id: 't4' });
+  assertEquals([row('tasks', 't4').plan_date, row('tasks', 't4').list_id], [null, 'overdue']);
+  assertStringIncludes(await callError('complete_task', { id: 't5', date: shift(2) }), 'future');
+});
+
+Deno.test('update_task and delete_task', async () => {
+  fresh();
+  await call('update_task', { id: 't5', title: 'Renew passport soon', priority: 1, labels: ['w'], description: 'form DS-82' });
+  assertEquals([row('tasks', 't5').title, row('tasks', 't5').priority, row('tasks', 't5').labels, row('tasks', 't5').notes],
+    ['Renew passport soon', 1, ['w'], 'form DS-82']);
+  await call('update_task', { id: 't5', priority: 0 });
+  assertEquals(row('tasks', 't5').priority, null);
+  assertStringIncludes(await call('delete_task', { id: 't5' }), 'Deleted "Renew passport soon"');
+  assertEquals(row('tasks', 't5'), undefined);
+});
+
+Deno.test('lists: create, rename, label, delete (with its waiting tasks)', async () => {
+  fresh();
+  assertStringIncludes(await call('create_list', { name: '@weekly', label: 'w' }), 'Created @weekly with label #w');
+  assertStringIncludes(await callError('create_list', { name: 'weekly' }), 'already a list');
+  assertStringIncludes(await call('rename_list', { list: 'salesDeck', new_name: 'salesQ4' }), 'Renamed @salesDeck to @salesQ4');
+  assertStringIncludes(await callError('rename_list', { list: 'triage', new_name: 'inbox' }), "can't be renamed");
+  assertStringIncludes(await call('set_list_label', { list: 'salesQ4', label: '' }), 'has no label');
+  assertEquals(row('lists', 'sales').label_id, null);
+  await call('move_task', { id: 't1', list: 'salesQ4' });
+  await call('add_task', { title: 'Planned from sales', date: today });
+  await call('move_task', { id: DB.tasks.at(-1).id, date: today });
+  assertStringIncludes(await call('delete_list', { list: 'salesQ4' }), 'the 2 tasks waiting in it');
+  assertEquals([row('tasks', 't6'), row('tasks', 't1'), row('lists', 'sales')], [undefined, undefined, undefined]);
+});
+
+Deno.test('labels: shortcut picked like the app, delete removes it everywhere', async () => {
+  fresh();
+  assertStringIncludes(await call('create_label', { name: 'Personal' }), '(#p)');
+  assertStringIncludes(await call('create_label', { name: 'Pets' }), '(#pe)');
+  assertStringIncludes(await callError('create_label', { name: 'personal' }), 'already a label');
+  await call('delete_label', { label: 'w' });
+  assertEquals([row('tasks', 't1').labels, row('lists', 'sales').label_id, row('labels', 'w')], [[], null, undefined]);
 });

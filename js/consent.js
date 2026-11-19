@@ -63,10 +63,10 @@ const Consent = (() => {
     try { site = new URL(data.redirect_uri).host; } catch { /* no address to show */ }
     page(`
       <h1>Allow <b>${name}</b> to use your Planner?</h1>
-      <p>${name} will be able to use Planner as you: see your tasks, lists and labels${site ? `, and send you back to <b>${escapeHtml(site)}</b>` : ''}.</p>
+      <p>${name} will be able to use Planner as you: see your tasks, lists and labels, and add, change, move, complete or delete them${site ? `. You'll go back to <b>${escapeHtml(site)}</b>` : ''}.</p>
       <ul class="consent-list">
         <li>Only allow apps you trust.</li>
-        <li>Right now, Planner's connector can only read. It can't add, change or delete anything.</li>
+        <li>Claude, ChatGPT and Gemini ask you before they change anything.</li>
       </ul>
       <p class="muted consent-who">Signed in as ${escapeHtml(user.email || '')} · <button type="button" class="link-btn" data-consent="switch">Not you?</button></p>
       <div class="consent-actions">

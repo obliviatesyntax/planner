@@ -1048,3 +1048,34 @@ body.playground .settings-block:has(#set-first-name), body.playground .settings-
 .consent-actions { display: flex; gap: 10px; justify-content: flex-end; margin-top: 6px; }
 .consent-btn { padding: 10px 18px; text-decoration: none; text-align: center; }
 @media (max-width: 480px) { .consent-actions .consent-btn { flex: 1; } }
+
+/* ==========================================================================
+   "Use Planner from Claude, ChatGPT or Gemini" (#connect-dialog, js/connect.js)
+   ========================================================================== */
+#connect-dialog {
+  border: 1px solid var(--line); border-radius: 14px; padding: 0; width: min(600px, calc(100vw - 24px));
+  max-height: calc(100vh - 48px); box-shadow: var(--shadow-lg);
+}
+#connect-dialog::backdrop { background: rgba(17, 24, 39, .3); }
+.connect { padding: 20px 22px; display: flex; flex-direction: column; gap: 14px; font-size: 14px; line-height: 1.5; }
+.connect > p { margin: 0; }
+.connect-url { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; padding: 10px 12px; background: var(--bg); border-radius: 10px; }
+.connect-url span { font-weight: 600; font-size: 13px; }
+.connect-url code { flex: 1 1 260px; font-size: 12.5px; word-break: break-all; user-select: all; }
+.connect-app { padding: 12px 14px; border: 1px solid var(--line); border-radius: 10px; }
+.connect-app h3 { margin: 0 0 6px; font-size: 15px; display: flex; align-items: center; gap: 8px; }
+.connect-app ol { margin: 0; padding-left: 20px; }
+.connect-app li + li { margin-top: 3px; }
+.connect-note { margin: 8px 0 0; font-size: 12.5px; color: var(--muted); }
+.connect-tag { font-size: 11px; font-weight: 600; padding: 1px 8px; border-radius: 99px; background: var(--bg); color: var(--muted); }
+.connect-tag.ok { background: #dcfce7; color: #166534; }
+.connect-tag.warn { background: #fef3c7; color: #92400e; }
+
+/* landing: "Plan by just asking" chat picture */
+.lp-ai { max-width: 560px; margin: 0 auto; display: flex; flex-direction: column; gap: 10px; font-size: 15px; }
+.lp-ai-msg { padding: 10px 14px; border-radius: 16px; line-height: 1.5; max-width: 85%; }
+.lp-ai-msg.you { align-self: flex-end; background: var(--accent); color: #fff; border-bottom-right-radius: 4px; }
+.lp-ai-msg.bot { align-self: flex-start; background: var(--panel); border: 1px solid var(--line); border-bottom-left-radius: 4px; box-shadow: var(--shadow); }
+.lp-ai-tool { align-self: flex-start; font-size: 12.5px; color: var(--muted); display: flex; align-items: center; gap: 6px; padding-left: 4px; }
+.lp-ai-tool span { font-weight: 700; color: var(--accent); background: var(--accent-soft); padding: 1px 8px; border-radius: 99px; }
+.lp-ai-cta { text-align: center; margin: 24px 0 0; }

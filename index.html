@@ -369,6 +369,22 @@
       </div>
     </section>
 
+    <!-- ---- use Planner from AI apps (the window itself is #connect-dialog) ------------- -->
+    <section class="lp-section" id="ai">
+      <div class="lp-section-head">
+        <span class="lp-eyebrow">Works with your AI</span>
+        <h2>Plan by just asking.</h2>
+        <p>Connect Planner to <b>Claude</b>, <b>ChatGPT</b> or <b>Gemini</b> and talk to your real plan: see what's on,
+           add tasks, move them around, tick them off. It signs in as you, and asks before it changes anything.</p>
+      </div>
+      <div class="lp-ai" aria-hidden="true">
+        <div class="lp-ai-msg you">Move everything in @overdue to tomorrow morning</div>
+        <div class="lp-ai-tool"><span>Planner</span> move_task × 2</div>
+        <div class="lp-ai-msg bot">Done. <b>Call the insurer</b> is at 9:00 AM and <b>Book flights</b> at 9:30 AM tomorrow. @overdue is empty now.</div>
+      </div>
+      <p class="lp-ai-cta"><button type="button" class="lp-btn-ghost lp-big" data-connect>How to connect →</button></p>
+    </section>
+
     <!-- ---- pricing ----------------------------------------------------------- -->
     <section class="lp-section" id="pricing">
       <div class="lp-price">
@@ -501,6 +517,7 @@
     <div class="footer-actions">
       <button type="button" id="export-btn">Export backup</button>
       <label class="file-btn">Import backup<input type="file" id="import-input" accept="application/json" hidden></label>
+      <button type="button" data-connect title="Use Planner from Claude, ChatGPT or Gemini">Connect AI apps</button>
       <button type="button" id="footer-settings-btn">Settings</button>
       <button type="button" id="signout-btn" class="pg-hide">Sign out</button>
       <button type="button" class="pg-only" data-reset>Start over</button>
@@ -562,6 +579,57 @@
     </div>
   </dialog>
 
+  <!-- "Connect an AI app": how to use Planner from Claude, ChatGPT or Gemini (js/connect.js).
+       Opened from the landing page and from the footer of the app. Server: supabase/functions/mcp -->
+  <dialog id="connect-dialog">
+    <div class="connect">
+      <div class="settings-head">
+        <h2>Use Planner from Claude, ChatGPT or Gemini</h2>
+        <button type="button" class="icon-btn" data-close title="Close">×</button>
+      </div>
+      <p class="muted">Connect once, then just ask: “What's on today?”, “Move the dentist to Friday at 5 PM”,
+        “Add buy tiles to @kitchenReno”. It uses your real Planner, as you. The AI app asks you before it changes anything.</p>
+
+      <div class="connect-url">
+        <span>Server URL</span>
+        <code id="connect-url">https://eiwoavnrsdnffiztwziq.supabase.co/functions/v1/mcp</code>
+        <button type="button" class="secondary" data-copy>Copy</button>
+      </div>
+
+      <section class="connect-app">
+        <h3>Claude <span class="connect-tag ok">Works</span></h3>
+        <ol>
+          <li>On claude.ai or in the Claude desktop app: <b>Settings → Connectors → Add custom connector</b>.</li>
+          <li>Name it <b>Planner</b>, paste the server URL, and under OAuth client pick <b>Register automatically</b>.</li>
+          <li>Click <b>Add</b>, then <b>Connect</b>. Sign in to Planner if asked and click <b>Allow</b>.</li>
+        </ol>
+        <p class="connect-note">Custom connectors may depend on your Claude plan.</p>
+      </section>
+
+      <section class="connect-app">
+        <h3>ChatGPT <span class="connect-tag">Web only to set up</span></h3>
+        <ol>
+          <li>On chatgpt.com, go to <b>Plugins</b> (chatgpt.com/plugins), click <b>+</b>, then <b>Add custom MCP server</b>.</li>
+          <li>Name it <b>Planner</b>, paste the server URL, and choose <b>OAuth</b> for authentication.</li>
+          <li>Accept the warning, <b>Create</b> and <b>Install</b> it, then sign in to Planner and click <b>Allow</b>.</li>
+          <li>In a chat, type <b>@</b> and pick Planner.</li>
+        </ol>
+        <p class="connect-note">Not available on every ChatGPT plan or workspace: workspace admins can turn it off.</p>
+      </section>
+
+      <section class="connect-app">
+        <h3>Gemini <span class="connect-tag warn">US only, for now</span></h3>
+        <ol>
+          <li>On gemini.google.com: <b>Settings → Connected Apps</b> (or Personal Intelligence → Connected Apps), then <b>Add a custom app</b>.</li>
+          <li>Paste the server URL, click <b>Next</b>, sign in to Planner and click <b>Allow</b>.</li>
+          <li>In a chat, type <b>@</b> and pick Planner. Once added, it also works in the Gemini mobile app.</li>
+        </ol>
+        <p class="connect-note">Google limits custom apps to people in the US, 18 or over, signed in with a personal
+          Google account (not work or school), using Gemini in English with History on. Elsewhere it isn't possible yet.</p>
+      </section>
+    </div>
+  </dialog>
+
   <!-- A list, opened by clicking its header (js/lists.js): rename or delete -->
   <dialog id="list-dialog"></dialog>
 
@@ -595,6 +663,7 @@
   <script src="js/lists.js"></script>
   <script src="js/settings.js"></script>
   <script src="js/consent.js"></script>
+  <script src="js/connect.js"></script>
   <script src="js/app.js"></script>
   <script src="js/voice.js"></script>
   <script src="js/help.js"></script>

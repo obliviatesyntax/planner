@@ -1,4 +1,4 @@
-// planner.ts — the Planner MCP server: lets Claude (or another AI app) read your Planner.
+// planner.ts — the Planner MCP server: lets Claude, ChatGPT or Gemini use your Planner.
 //
 // MCP ("Model Context Protocol") is how AI apps call outside tools. Claude sends small JSON
 // requests ("which tools do you have?", "run get_plan for tomorrow") over HTTPS, and this answers.
@@ -7,11 +7,19 @@
 //   We read the database AS YOU with that token, so the same row-level security as the app
 //   applies: you only ever see your own tasks. No admin key is used anywhere here.
 //
-//   Read-only for now: get_plan, get_lists, search_tasks, get_task. Nothing here writes.
+//   Reading:  get_plan, get_lists, search_tasks, get_task.
+//   Changing: add_task, update_task, move_task, complete_task, uncomplete_task, delete_task,
+//             create_list, rename_list, set_list_label, delete_list, create_label, delete_label.
+//   The AI apps ask you before running a tool that changes things (and warn more for deletes).
 //
-// The rules for where a task shows up are the same as js/tasks.js (listTasks, planList,
-// calendarList, doneList); keep them in step. One difference: the app moves unfinished tasks
-// from past days to @overdue when it opens; here, without writing, we show them as overdue.
+// The rules are the same as js/tasks.js; keep them in step:
+//   where a task shows (listTasks, planList, calendarList, doneList), what moving does
+//   (moveToList, moveToPlan, moveToCalendar, inheritListLabel), done / not done (toggleDone,
+//   markDone), lists (addList, renameList, setListLabel, removeList) and labels (addLabel,
+//   suggestShortcut, removeLabel).
+// One difference: the app moves unfinished tasks from past days to @overdue when it opens;
+// here we don't write for that, we just show them as overdue.
+// A Planner tab that's already open doesn't see changes made here until it's reloaded.
 //
 // Signing in (OAuth): Supabase Auth is the sign-in server (Authentication → OAuth Server in the
 // dashboard). A request without a valid token gets "401" plus a pointer to this server's
@@ -24,17 +32,18 @@
 export type Env = { supabaseUrl: string; apiKey: string };
 
 const PROTOCOL_VERSIONS = ['2025-11-25', '2025-06-18', '2025-03-26', '2024-11-05'];
-const SERVER_INFO = { name: 'planner', title: 'Planner', version: '0.1.0' };
+const SERVER_INFO = { name: 'planner', title: 'Planner', version: '0.2.0' };
 const INSTRUCTIONS = `Planner is the user's daily planner. Tasks either wait in lists (@triage is the inbox,
 @overdue holds unfinished tasks from past days, other lists are projects like @salesDeck) or are planned
 on a day: on that day's calendar (with a time) or its to-do list (no time). Done tasks are logged on the
 day they were done. Priorities: P1 must do, P2 should do, P3 nice to have. Labels look like #w (Work).
-Dates are in the user's time zone; get_plan with no date means today. This connection is read-only.`;
+Dates are in the user's time zone; get_plan with no date means today. Tools that change a task need its
+id: get it from get_plan, get_lists or search_tasks first. Lists and labels can be named without @ or #.`;
 
 // ---- the tools -----------------------------------------------------------------------
 
 const READ_ONLY = { readOnlyHint: true, openWorldHint: false };
-const TOOLS = [
+const READ_TOOLS = [
   {
     name: 'get_plan',
     title: 'Get the plan',
@@ -87,6 +96,110 @@ const TOOLS = [
   },
 ];
 
+// Tools that change things. destructiveHint: deleting can't be undone from here.
+const CHANGE = { readOnlyHint: false, destructiveHint: false, openWorldHint: false };
+const DELETE = { readOnlyHint: false, destructiveHint: true, openWorldHint: false };
+const str = (description: string) => ({ type: 'string', description });
+const WHERE = {
+  list: str('Put it in this list, by name (e.g. "salesDeck"). A new name creates the list. Wins over date.'),
+  date: str('Plan it on this day, YYYY-MM-DD. Without start_time it goes on that day\'s to-do list.'),
+  start_time: str('Put it on that day\'s calendar at this time, 24-hour HH:MM (e.g. "17:30"). Needs date.'),
+  duration_minutes: { type: 'integer', minimum: 5, maximum: 720, description: 'Length on the calendar. Default: the user\'s setting (usually 30).' },
+};
+const WRITE_TOOLS = [
+  {
+    name: 'add_task', title: 'Add a task',
+    description: 'Add a task. With nothing else it goes to @triage (the inbox); or give a list, or a date (and a time for the calendar).',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        title: str('What to do.'), ...WHERE,
+        priority: { type: 'integer', minimum: 0, maximum: 3, description: '1 must do, 2 should do, 3 nice to have, 0 none. Default: the user\'s setting.' },
+        labels: { type: 'array', items: { type: 'string' }, description: 'Existing labels, by name or shortcut (e.g. "Work" or "w").' },
+        description: str('Optional notes.'),
+      },
+      required: ['title'],
+    },
+    annotations: { title: 'Add a task', ...CHANGE },
+  },
+  {
+    name: 'update_task', title: 'Change a task',
+    description: 'Rename a task, or change its priority, labels or description. Only the fields given change.',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        id: str('The task id.'), title: str('New title.'),
+        priority: { type: 'integer', minimum: 0, maximum: 3, description: '1, 2, 3, or 0 for none.' },
+        labels: { type: 'array', items: { type: 'string' }, description: 'The full new set of labels (names or shortcuts); [] removes all.' },
+        description: str('New description; "" removes it.'),
+      },
+      required: ['id'],
+    },
+    annotations: { title: 'Change a task', ...CHANGE, idempotentHint: true },
+  },
+  {
+    name: 'move_task', title: 'Move a task',
+    description: "Move a task to a list, to a day's to-do list (date), or to a day's calendar (date + start_time). Moving a done task makes it not done. A task leaving a list that has a label gets that label.",
+    inputSchema: { type: 'object', properties: { id: str('The task id.'), ...WHERE }, required: ['id'] },
+    annotations: { title: 'Move a task', ...CHANGE, idempotentHint: true },
+  },
+  {
+    name: 'complete_task', title: 'Mark a task done',
+    description: 'Mark a task done: today by default, or on another day (it then shows in that day\'s done list).',
+    inputSchema: { type: 'object', properties: { id: str('The task id.'), date: str('Done on this day, YYYY-MM-DD. Default today.') }, required: ['id'] },
+    annotations: { title: 'Mark a task done', ...CHANGE, idempotentHint: true },
+  },
+  {
+    name: 'uncomplete_task', title: 'Mark a task not done',
+    description: 'Undo "done". It goes back where it was; if that was a past day, to @overdue.',
+    inputSchema: { type: 'object', properties: { id: str('The task id.') }, required: ['id'] },
+    annotations: { title: 'Mark a task not done', ...CHANGE, idempotentHint: true },
+  },
+  {
+    name: 'delete_task', title: 'Delete a task',
+    description: 'Delete a task for good.',
+    inputSchema: { type: 'object', properties: { id: str('The task id.') }, required: ['id'] },
+    annotations: { title: 'Delete a task', ...DELETE },
+  },
+  {
+    name: 'create_list', title: 'Create a list',
+    description: 'Create a list (one word, letters and digits, like "weekly" or "kitchenReno"), optionally with a label its tasks get when planned.',
+    inputSchema: { type: 'object', properties: { name: str('List name.'), label: str('Optional existing label, by name or shortcut.') }, required: ['name'] },
+    annotations: { title: 'Create a list', ...CHANGE },
+  },
+  {
+    name: 'rename_list', title: 'Rename a list',
+    description: 'Rename a list. @triage and @overdue are built in and can\'t be renamed.',
+    inputSchema: { type: 'object', properties: { list: str('Current name.'), new_name: str('New name.') }, required: ['list', 'new_name'] },
+    annotations: { title: 'Rename a list', ...CHANGE, idempotentHint: true },
+  },
+  {
+    name: 'set_list_label', title: "Set a list's label",
+    description: 'Give a list one label (its tasks count as that label, and get it when moved onto a day), or remove it with label "".',
+    inputSchema: { type: 'object', properties: { list: str('List name.'), label: str('Existing label by name or shortcut, or "" for none.') }, required: ['list', 'label'] },
+    annotations: { title: "Set a list's label", ...CHANGE, idempotentHint: true },
+  },
+  {
+    name: 'delete_list', title: 'Delete a list',
+    description: 'Delete a list AND the tasks waiting in it. Tasks from it that are already planned or done stay (they move to @triage). @triage and @overdue can\'t be deleted.',
+    inputSchema: { type: 'object', properties: { list: str('List name.') }, required: ['list'] },
+    annotations: { title: 'Delete a list', ...DELETE },
+  },
+  {
+    name: 'create_label', title: 'Create a label',
+    description: 'Create a label like "Work" with a short shortcut like "w" (picked automatically if not given).',
+    inputSchema: { type: 'object', properties: { name: str('Label name.'), shortcut: str('Optional short code, letters and digits.') }, required: ['name'] },
+    annotations: { title: 'Create a label', ...CHANGE },
+  },
+  {
+    name: 'delete_label', title: 'Delete a label',
+    description: 'Delete a label. Tasks and lists that had it just lose it; nothing else is deleted.',
+    inputSchema: { type: 'object', properties: { label: str('Label name or shortcut.') }, required: ['label'] },
+    annotations: { title: 'Delete a label', ...DELETE },
+  },
+];
+const TOOLS = [...READ_TOOLS, ...WRITE_TOOLS];
+
 // ---- reading the database as the user ---------------------------------------------------
 
 type Task = {
@@ -115,6 +228,29 @@ async function table<T>(env: Env, token: string, name: string): Promise<T[]> {
   if (res.status === 401) throw new AuthError('Sign-in token expired.');
   if (!res.ok) throw new Error(`Could not read ${name}: ${res.status} ${await res.text()}`);
   return await res.json();
+}
+
+// Changes, also as the user (row-level security applies; new rows get user_id = you).
+export class Db {
+  constructor(private env: Env, private token: string) {}
+  private async send(method: string, path: string, body?: unknown) {
+    const res = await fetch(`${this.env.supabaseUrl}/rest/v1/${path}`, {
+      method,
+      headers: {
+        apikey: this.env.apiKey, Authorization: `Bearer ${this.token}`,
+        'Content-Type': 'application/json', Prefer: 'return=minimal',
+      },
+      body: body === undefined ? undefined : JSON.stringify(body),
+    });
+    if (res.status === 401) throw new AuthError('Sign-in token expired.');
+    if (!res.ok) throw new Error(`Could not save (${res.status}): ${await res.text()}`);
+  }
+  insert(table: string, row: object) { return this.send('POST', table, [row]); }
+  update(table: string, id: string, changes: object) { return this.send('PATCH', `${table}?id=eq.${encodeURIComponent(id)}`, changes); }
+  remove(table: string, ids: string[]) {
+    if (!ids.length) return Promise.resolve();
+    return this.send('DELETE', `${table}?id=in.(${ids.map(id => `"${id.replace(/"/g, '')}"`).join(',')})`);
+  }
 }
 
 export type Data = { user: User; tasks: Task[]; lists: List[]; labels: Label[] };
@@ -261,8 +397,243 @@ function getTask(v: View, args: any): string {
   ].filter(Boolean).join('\n');
 }
 
-const RUN: Record<string, (v: View, args: any) => string> = {
-  get_plan: getPlan, get_lists: getLists, search_tasks: searchTasks, get_task: getTask,
+
+// ---- changing things: same rules as js/tasks.js ----------------------------------------------
+
+const LIST_NAME = /^[A-Za-z][A-Za-z0-9]{0,29}$/;   // as in js/config.js
+const LABEL_COLORS = ['#5f3dc4', '#2b8a3e', '#1971c2', '#c2255c', '#e8590c', '#0c8599', '#5c940d', '#862e9c'];
+const newId = () => Date.now().toString(36) + Math.random().toString(36).slice(2, 6);   // as js/utils.js
+
+class Problem extends Error {}   // a mistake in what was asked: told back to the AI as is
+const need = (ok: unknown, message: string) => { if (!ok) throw new Problem(message); };
+
+type Ctx = { v: View; db: Db };
+
+function findTask(v: View, id: unknown): Task {
+  const t = v.d.tasks.find(x => x.id === String(id ?? ''));
+  need(t, `No task with id ${id}. Use search_tasks or get_lists to find the id.`);
+  return t!;
+}
+function findList(v: View, name: unknown): List | { id: 'overdue' | 'triage'; name: string } | undefined {
+  const n = String(name ?? '').replace(/^@/, '').trim().toLowerCase();
+  if (n === 'overdue') return { id: 'overdue', name: 'overdue' };
+  if (n === 'triage') return v.d.lists.find(l => l.id === 'triage') || { id: 'triage', name: 'triage' };
+  return v.d.lists.find(l => l.name.toLowerCase() === n);
+}
+function listNames(v: View) {
+  return ['triage', ...v.d.lists.filter(l => l.id !== 'triage').map(l => l.name)].map(n => `@${n}`).join(', ');
+}
+function findLabel(v: View, word: unknown): Label {
+  const w = String(word ?? '').replace(/^#/, '').trim().toLowerCase();
+  const l = v.d.labels.find(x => x.shortcut === w) || v.d.labels.find(x => x.name.toLowerCase() === w);
+  need(l, `No label "${word}". Labels: ${v.d.labels.map(x => `${x.name} (#${x.shortcut})`).join(', ') || 'none yet (create_label makes one)'}.`);
+  return l!;
+}
+function parseDate(v: View, date: unknown): string {
+  const d = String(date ?? '').trim().toLowerCase();
+  if (d === 'today') return v.today;
+  if (d === 'tomorrow') return addDays(v.today, 1);
+  need(/^\d{4}-\d{2}-\d{2}$/.test(d) && !isNaN(Date.parse(`${d}T12:00:00Z`)), `"${date}" isn't a date: use YYYY-MM-DD.`);
+  return d;
+}
+function parseTime(time: unknown): number {
+  const m = String(time ?? '').trim().match(/^(\d{1,2}):(\d{2})$/);
+  need(m && Number(m[1]) < 24 && Number(m[2]) < 60, `"${time}" isn't a time: use 24-hour HH:MM, like 09:30 or 17:00.`);
+  return Number(m![1]) * 60 + Number(m![2]);
+}
+const nextOrder = (items: Task[]) => items.reduce((max, t) => Math.max(max, t.sort_order + 1), 0);
+const toDoOn = (v: View, date: string) => v.d.tasks.filter(t => !t.done_on && t.plan_date === date && t.start_min == null);
+const settings = (v: View) => v.d.user.user_metadata?.settings || {};
+
+// Finds an existing list or creates one, like typing @name in quick add.
+async function listFor(c: Ctx, name: unknown): Promise<{ id: string; name: string; created?: boolean }> {
+  const n = String(name ?? '').replace(/^@/, '').trim();
+  need(n.toLowerCase() !== 'overdue', '@overdue is built in: it only collects unfinished tasks from past days. Pick another list.');
+  const found = findList(c.v, n);
+  if (found) return found;
+  need(LIST_NAME.test(n), `"${n}" can't be a list name: one word, letters and digits, like weekly or kitchenReno.`);
+  const list = { id: newId(), name: n, sort_order: c.v.d.lists.length };
+  await c.db.insert('lists', list);
+  c.v.d.lists.push(list);
+  return { ...list, created: true };
+}
+
+// Where a task goes, from { list | date [+ start_time] [+ duration_minutes] }. Shared by add and move.
+async function placement(c: Ctx, args: any) {
+  if (args.list) return { kind: 'list' as const, list: await listFor(c, args.list) };
+  if (args.date) {
+    const date = parseDate(c.v, args.date);
+    const start = args.start_time ? parseTime(args.start_time) : null;
+    return { kind: 'day' as const, date, start };
+  }
+  need(!args.start_time, 'A start_time needs a date too.');
+  return null;
+}
+const done = (c: Ctx, t: Task, extra = '') => `${extra}${c.v.line(t, { time: true })} — ${c.v.where(t)}`;
+
+async function addTask(c: Ctx, args: any) {
+  const title = String(args.title ?? '').trim();
+  need(title, 'Give the task a title.');
+  const labels = (args.labels || []).map((w: string) => findLabel(c.v, w).id);
+  const where = await placement(c, args) ?? { kind: 'list' as const, list: { id: 'triage', name: 'triage' } };
+  const priority = args.priority !== undefined ? Number(args.priority) : Number(settings(c.v).defaultPriority || 0);
+  const t: Task = {
+    id: newId(), title, priority: priority || null, labels, list_id: where.kind === 'list' ? where.list.id : 'triage',
+    plan_date: where.kind === 'day' ? where.date : null, start_min: where.kind === 'day' ? where.start : null,
+    duration_min: Number(args.duration_minutes) || Number(settings(c.v).defaultDuration) || 30,
+    sort_order: 0, done_on: null, ...(args.description ? { notes: String(args.description) } : {}),
+  };
+  if (where.kind === 'list') t.sort_order = nextOrder(c.v.waiting(t.list_id));
+  else if (t.start_min == null) t.sort_order = nextOrder(toDoOn(c.v, t.plan_date!));
+  await c.db.insert('tasks', { ...t, created_at: new Date().toISOString() });
+  c.v.d.tasks.push(t);
+  return done(c, t, `Added: ${where.kind === 'list' && where.list.created ? `(new list @${where.list.name}) ` : ''}`);
+}
+
+async function updateTask(c: Ctx, args: any) {
+  const t = findTask(c.v, args.id);
+  const changes: Partial<Task> = {};
+  if (args.title !== undefined) { changes.title = String(args.title).trim(); need(changes.title, 'The title can\'t be empty.'); }
+  if (args.priority !== undefined) changes.priority = Number(args.priority) || null;
+  if (args.labels !== undefined) changes.labels = [...new Set<string>((args.labels || []).map((w: string) => findLabel(c.v, w).id))];
+  if (args.description !== undefined) changes.notes = String(args.description);
+  need(Object.keys(changes).length, 'Nothing to change: give a title, priority, labels or description.');
+  await c.db.update('tasks', t.id, changes);
+  Object.assign(t, changes);
+  return done(c, t, 'Updated: ');
+}
+
+async function moveTask(c: Ctx, args: any) {
+  const t = findTask(c.v, args.id);
+  const where = await placement(c, args);
+  need(where, 'Say where: a list, or a date (and a start_time for the calendar).');
+  const changes: Partial<Task> = { done_on: null };
+  if (where!.kind === 'list') {
+    Object.assign(changes, { plan_date: null, start_min: null, list_id: where!.list.id, sort_order: nextOrder(c.v.waiting(where!.list.id)) });
+  } else {
+    // Leaving a list for a day: pick up the list's label (inheritListLabel in js/tasks.js).
+    const from = !t.plan_date && !t.done_on && c.v.d.lists.find(l => l.id === t.list_id);
+    if (from && from.label_id && c.v.d.labels.some(l => l.id === from.label_id) && !t.labels.includes(from.label_id)) {
+      changes.labels = [...t.labels, from.label_id];
+    }
+    Object.assign(changes, { plan_date: where!.date, start_min: where!.start });
+    if (where!.start == null) changes.sort_order = nextOrder(toDoOn(c.v, where!.date).filter(x => x.id !== t.id));
+  }
+  if (args.duration_minutes) changes.duration_min = Number(args.duration_minutes);
+  await c.db.update('tasks', t.id, changes);
+  Object.assign(t, changes);
+  return done(c, t, 'Moved: ');
+}
+
+async function completeTask(c: Ctx, args: any) {
+  const t = findTask(c.v, args.id);
+  const date = args.date ? parseDate(c.v, args.date) : c.v.today;
+  need(date <= c.v.today, "Can't mark a task done on a future day.");
+  const changes: Partial<Task> = { done_on: date };
+  // Done on another day than today: it's logged on that day (markDone in js/tasks.js).
+  if (date !== c.v.today && t.plan_date !== date) Object.assign(changes, { plan_date: date, start_min: null });
+  await c.db.update('tasks', t.id, changes);
+  Object.assign(t, changes);
+  return done(c, t, 'Done: ');
+}
+
+async function uncompleteTask(c: Ctx, args: any) {
+  const t = findTask(c.v, args.id);
+  need(t.done_on, `"${t.title}" isn't done.`);
+  const changes: Partial<Task> = { done_on: null };
+  if (t.plan_date && t.plan_date < c.v.today) Object.assign(changes, { plan_date: null, start_min: null, list_id: 'overdue' });
+  await c.db.update('tasks', t.id, changes);
+  Object.assign(t, changes);
+  return done(c, t, 'Not done any more: ');
+}
+
+async function deleteTask(c: Ctx, args: any) {
+  const t = findTask(c.v, args.id);
+  await c.db.remove('tasks', [t.id]);
+  c.v.d.tasks = c.v.d.tasks.filter(x => x.id !== t.id);
+  return `Deleted "${t.title}".`;
+}
+
+async function createList(c: Ctx, args: any) {
+  const name = String(args.name ?? '').replace(/^@/, '').trim();
+  need(!findList(c.v, name), `There's already a list called @${findList(c.v, name)?.name}.`);
+  const label = args.label ? findLabel(c.v, args.label) : null;
+  const list = await listFor(c, name);
+  if (label) await c.db.update('lists', list.id, { label_id: label.id });
+  return `Created @${list.name}${label ? ` with label #${label.shortcut}` : ''}.`;
+}
+
+function ownList(c: Ctx, name: unknown, verb: string): List {
+  const l = findList(c.v, name);
+  need(l, `No list called @${String(name).replace(/^@/, '')}. Lists: ${listNames(c.v)}.`);
+  need(l!.id !== 'triage' && l!.id !== 'overdue', `@${l!.name} is built in and can't be ${verb}.`);
+  return l as List;
+}
+
+async function renameList(c: Ctx, args: any) {
+  const l = ownList(c, args.list, 'renamed');
+  const name = String(args.new_name ?? '').replace(/^@/, '').trim();
+  need(!['triage', 'overdue'].includes(name.toLowerCase()), `@${name} is a built-in list name. Pick another.`);
+  need(LIST_NAME.test(name), `"${name}" can't be a list name: one word, letters and digits.`);
+  const clash = findList(c.v, name);
+  need(!clash || clash.id === l.id, `There's already a list called @${clash?.name}.`);
+  await c.db.update('lists', l.id, { name });
+  const old = l.name;
+  l.name = name;
+  return `Renamed @${old} to @${name}.`;
+}
+
+async function setListLabel(c: Ctx, args: any) {
+  const l = findList(c.v, args.list);
+  need(l && l.id !== 'overdue', `No list called @${String(args.list).replace(/^@/, '')} (and @overdue can't have a label). Lists: ${listNames(c.v)}.`);
+  const label = String(args.label ?? '').trim() ? findLabel(c.v, args.label) : null;
+  if (!c.v.d.lists.some(x => x.id === l!.id)) await c.db.insert('lists', { id: l!.id, name: l!.name, sort_order: -1 });   // @triage row, if missing
+  await c.db.update('lists', l!.id, { label_id: label ? label.id : null });
+  return label ? `@${l!.name} now has label #${label.shortcut} (${label.name}).` : `@${l!.name} has no label now.`;
+}
+
+async function deleteList(c: Ctx, args: any) {
+  const l = ownList(c, args.list, 'deleted');
+  const waiting = c.v.waiting(l.id);
+  const others = c.v.d.tasks.filter(t => t.list_id === l.id && !waiting.includes(t));
+  await c.db.remove('tasks', waiting.map(t => t.id));
+  for (const t of others) await c.db.update('tasks', t.id, { list_id: 'triage' });   // planned/done ones live on
+  await c.db.remove('lists', [l.id]);
+  return `Deleted @${l.name} and the ${waiting.length} task${waiting.length === 1 ? '' : 's'} waiting in it${waiting.length ? `: ${waiting.map(t => t.title).join(', ')}` : ''}.`;
+}
+
+async function createLabel(c: Ctx, args: any) {
+  const name = String(args.name ?? '').trim();
+  need(name, 'Give the label a name.');
+  need(!c.v.d.labels.some(l => l.name.toLowerCase() === name.toLowerCase()), `There's already a label called ${name}.`);
+  let shortcut = String(args.shortcut ?? '').toLowerCase().replace(/[^a-z0-9]/g, '');
+  if (shortcut) need(!c.v.d.labels.some(l => l.shortcut === shortcut), `#${shortcut} is already used by another label.`);
+  else {   // "Personal" -> "p", or "pe", "per"… (suggestShortcut in js/tasks.js)
+    const letters = name.toLowerCase().replace(/[^a-z0-9]/g, '') || 'label';
+    for (let n = 1; n <= letters.length && !shortcut; n++) if (!c.v.d.labels.some(l => l.shortcut === letters.slice(0, n))) shortcut = letters.slice(0, n);
+    for (let i = 2; !shortcut; i++) if (!c.v.d.labels.some(l => l.shortcut === letters + i)) shortcut = letters + i;
+  }
+  const label = { id: newId(), name, shortcut, color: LABEL_COLORS[c.v.d.labels.length % LABEL_COLORS.length], sort_order: c.v.d.labels.length };
+  await c.db.insert('labels', label);
+  c.v.d.labels.push(label);
+  return `Created label ${name} (#${shortcut}).`;
+}
+
+async function deleteLabel(c: Ctx, args: any) {
+  const label = findLabel(c.v, args.label);
+  for (const t of c.v.d.tasks.filter(t => (t.labels || []).includes(label.id))) {
+    await c.db.update('tasks', t.id, { labels: t.labels.filter(x => x !== label.id) });
+  }
+  for (const l of c.v.d.lists.filter(l => l.label_id === label.id)) await c.db.update('lists', l.id, { label_id: null });
+  await c.db.remove('labels', [label.id]);
+  return `Deleted label ${label.name} (#${label.shortcut}). Tasks and lists that had it keep everything else.`;
+}
+
+const RUN: Record<string, (c: Ctx, args: any) => string | Promise<string>> = {
+  get_plan: (c, a) => getPlan(c.v, a), get_lists: (c, a) => getLists(c.v, a), search_tasks: (c, a) => searchTasks(c.v, a), get_task: (c, a) => getTask(c.v, a),
+  add_task: addTask, update_task: updateTask, move_task: moveTask, complete_task: completeTask,
+  uncomplete_task: uncompleteTask, delete_task: deleteTask, create_list: createList, rename_list: renameList,
+  set_list_label: setListLabel, delete_list: deleteList, create_label: createLabel, delete_label: deleteLabel,
 };
 
 // ---- the protocol: JSON-RPC over HTTP POST ----------------------------------------------------
@@ -271,8 +642,9 @@ type Rpc = { jsonrpc: '2.0'; id?: string | number | null; method: string; params
 const reply = (id: Rpc['id'], result: unknown) => ({ jsonrpc: '2.0', id, result });
 const fail = (id: Rpc['id'], code: number, message: string) => ({ jsonrpc: '2.0', id, error: { code, message } });
 
-// Answers one JSON-RPC message. `load` fetches the user's data (only called for tool calls).
-export async function answer(msg: Rpc, load: () => Promise<Data>) {
+// Answers one JSON-RPC message. `load` fetches the user's data (only called for tool calls);
+// `db` saves changes.
+export async function answer(msg: Rpc, load: () => Promise<Data>, db: Db) {
   switch (msg.method) {
     case 'initialize': {
       const asked = msg.params?.protocolVersion;
@@ -291,11 +663,12 @@ export async function answer(msg: Rpc, load: () => Promise<Data>) {
       const run = RUN[msg.params?.name];
       if (!run) return fail(msg.id, -32602, `Unknown tool: ${msg.params?.name}`);
       try {
-        const text = run(new View(await load()), msg.params?.arguments ?? {});
+        const text = await run({ v: new View(await load()), db }, msg.params?.arguments ?? {});
         return reply(msg.id, { content: [{ type: 'text', text }], isError: false });
       } catch (err) {
         if (err instanceof AuthError) throw err;
-        return reply(msg.id, { content: [{ type: 'text', text: `Something went wrong: ${(err as Error).message}` }], isError: true });
+        const text = err instanceof Problem ? (err as Error).message : `Something went wrong: ${(err as Error).message}`;
+        return reply(msg.id, { content: [{ type: 'text', text }], isError: true });
       }
     }
     default:
@@ -339,12 +712,13 @@ export async function handle(req: Request, env: Env): Promise<Response> {
   const messages: Rpc[] = Array.isArray(body) ? body : [body];
   let data: Promise<Data> | null = null;
   const load = () => (data ??= loadData(env, token, user));   // at most once per request
+  const db = new Db(env, token);
 
   const answers = [];
   try {
     for (const m of messages) {
       if (m.id === undefined || m.id === null) continue;   // a notification: nothing to answer
-      answers.push(await answer(m, load));
+      answers.push(await answer(m, load, db));
     }
   } catch (err) {
     if (err instanceof AuthError) return unauthorized(err.message);

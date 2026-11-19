@@ -57,22 +57,32 @@ contain both `{{ .Token }}` (the code) and `{{ .ConfirmationURL }}` (the link).
   rename it, write a description, set priority and labels, delete it.
   Hover a task for quick buttons: **P** / **#** / **×**, or click its P1/P2/P3 tag to change priority.
 
-## Use Planner from Claude (MCP, read-only for now)
+## Use Planner from Claude, ChatGPT or Gemini (MCP)
 
-`supabase/functions/mcp/` is an MCP server, so AI apps can read your Planner. It lives at
-`https://eiwoavnrsdnffiztwziq.supabase.co/functions/v1/mcp`. Its tools are `get_plan`,
-`get_lists`, `search_tasks` and `get_task`, and it can't change anything yet. It reads the
-database as you, using your sign-in token, so you only ever see your own tasks. The app saves
-your time zone on your account, so the server knows when your "today" is.
+`supabase/functions/mcp/` is an MCP server: AI apps can read and change your Planner through
+it. It lives at `https://eiwoavnrsdnffiztwziq.supabase.co/functions/v1/mcp`.
 
+- **For users:** "Connect AI apps" in the app's footer (and "How to connect" on the landing page)
+  opens step-by-step instructions for each app (`#connect-dialog` in `index.html`, `js/connect.js`).
+- **Status:** tested with Claude. ChatGPT and Gemini follow the same standard, but haven't been
+  tried yet. Gemini only allows custom apps in the US (18+, personal Google account, English).
+- **Tools.** Reading: `get_plan`, `get_lists`, `search_tasks`, `get_task`. Changing: `add_task`,
+  `update_task`, `move_task`, `complete_task`, `uncomplete_task`, `delete_task`, `create_list`,
+  `rename_list`, `set_list_label`, `delete_list`, `create_label`, `delete_label`. Each tool is
+  marked as reading, changing or deleting, and AI apps use that to ask the user before changes.
+- **Rules:** the same as `js/tasks.js`. Keep the two in step; `planner.ts` lists which functions match.
+- **Sign-in:**
+  - Supabase Auth is the OAuth server (dashboard → Authentication → OAuth Server: on, dynamic
+    client registration on, Authorization Path `/planner/index.html`).
+  - The AI app registers itself and sends the user to `index.html?authorization_id=…`, where
+    `js/consent.js` shows "Allow … to use your Planner?".
+  - The resulting token reads and writes the database as that user, so row-level security keeps
+    everyone to their own tasks. No admin key is used.
+- **Time zone:** the app saves the user's time zone on their account, so "today" is right.
+- **Known gap:** a Planner tab that's already open doesn't see changes made from an AI app until
+  it's reloaded. Reload before editing in the app.
 - **Test it:** `deno test supabase/functions/mcp`
 - **Deploy it:** `supabase functions deploy mcp --project-ref eiwoavnrsdnffiztwziq --no-verify-jwt --use-api`
-- **Try it in Claude Code** (until sign-in for Claude/ChatGPT is built):
-  1. Open the app signed in. In the browser console, run
-     `(await db.auth.getSession()).data.session.access_token` and copy the token. It's valid
-     for about an hour.
-  2. Run `claude mcp add --transport http planner https://eiwoavnrsdnffiztwziq.supabase.co/functions/v1/mcp --header "Authorization: Bearer <token>"`.
-  3. Afterwards, run `claude mcp remove planner`, because the token is stored in Claude Code's settings.
 
 ## Docs
 
@@ -88,7 +98,8 @@ your time zone on your account, so the server knows when your "today" is.
 | `js/when.js` | Reads days and times from plain English for quick add ("today 5pm"). |
 | `js/landing.js` | The signed-out landing page: buttons that open the sign-in card, the typing demo. (Page text is in `index.html`.) |
 | `js/playground.js` | Playground mode, `index.html?playground` (linked from the landing page): the same page and code, with no account and no database. Swaps in a pretend sign-in and an in-memory store seeded with the landing demo's tasks; nothing is saved. Elements with `pg-only` show only in this mode, `pg-hide` ones hide. |
-| `supabase/functions/mcp/` | The MCP server for Claude and other AI apps: `planner.ts` (tools and protocol), `index.ts` (start-up), `planner_test.ts`. Its rules for where a task shows match `js/tasks.js`. |
+| `supabase/functions/mcp/` | The MCP server for Claude, ChatGPT and Gemini: `planner.ts` (tools, rules and protocol), `index.ts` (start-up), `planner_test.ts`. Its rules match `js/tasks.js`. |
+| `js/consent.js`, `js/connect.js` | "Allow … to use your Planner?" (the sign-in step for AI apps), and the "Connect AI apps" instructions window. |
 | `js/help.js` | The **i** button next to quick add: "Adding tasks" help (examples live in `index.html`). |
 | `js/voice.js` | Mic button: speech to text (browser built-in), spoken "list weekly" → `@weekly` etc. |
 | `js/supabase-config.js` | Which Supabase project to use (URL + public key), code-or-link switch. |
