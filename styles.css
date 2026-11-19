@@ -871,7 +871,7 @@ html { scroll-behavior: smooth; }
 .lp-dnd-cal .h:first-child { transform: none; }
 .lp-dnd-slot { position: absolute; left: 6px; right: 6px; top: 33.3%; height: 33.3%; }
 .lp-dnd .m-event { left: 6px; right: 6px; }
-.lp-ghost { position: absolute; z-index: 5; margin: 0; box-shadow: 0 12px 30px rgba(16, 24, 40, .2); pointer-events: none; }
+.lp-ghost { position: absolute; z-index: 5; margin: 0; box-shadow: 0 12px 30px rgba(16, 24, 40, .2); pointer-events: none; transform-origin: top left; }
 .lp-pop { animation: pop .35s ease-out; }
 @keyframes pop { from { transform: scale(.92); opacity: .4; } to { transform: none; opacity: 1; } }
 .lp-hand { position: absolute; left: 0; top: 0; z-index: 6; pointer-events: none; filter: drop-shadow(0 2px 3px rgba(0,0,0,.25)); }

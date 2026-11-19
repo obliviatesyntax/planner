@@ -113,7 +113,25 @@ const Landing = (() => {
       el.remove();
       drop();
     }
-    return { at, moveCursor, carry };
+    // Like the app after ticking a box: only the card moves (the cursor stays put on the
+    // checkbox), quicker, no tilt; it settles into `target`, then drop() runs.
+    async function glide(el, target, drop) {
+      const from = at(el);
+      const ghost = el.cloneNode(true);
+      ghost.classList.add('lp-ghost');
+      Object.assign(ghost.style, { left: `${from.x}px`, top: `${from.y}px`, width: `${from.w}px` });
+      stage.appendChild(ghost);
+      el.style.visibility = 'hidden';
+      const to = at(target);
+      await ghost.animate([
+        { transform: 'translate(0,0) scale(1)', opacity: 1 },
+        { transform: `translate(${to.x - from.x}px, ${to.y - from.y}px) scale(${to.w / from.w})`, opacity: .85 },
+      ], { duration: 550, easing: 'cubic-bezier(.4,0,.2,1)', fill: 'forwards' }).finished;
+      ghost.remove();
+      el.remove();
+      drop();
+    }
+    return { at, moveCursor, carry, glide };
   }
 
   const card = (text, extra = '') => `<div class="m-card p0 ${extra}"><i></i>${text}</div>`;
@@ -217,7 +235,7 @@ const Landing = (() => {
       pvDone.querySelector('b').insertAdjacentHTML('afterend',
         '<div class="m-card done lp-new lp-landing"><i class="on"></i>Reply to Sam</div>');
       const landing = pvDone.querySelector('.lp-landing');
-      await a.carry(sam, landing, () => {
+      await a.glide(sam, landing, () => {   // the card goes to Done on its own: no dragging
         landing.classList.remove('lp-landing');
         landing.classList.add('just-done');
         pvDoneCount.textContent = '4';
