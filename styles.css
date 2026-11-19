@@ -1108,3 +1108,34 @@ body.playground .settings-block:has(#set-first-name), body.playground .settings-
 /* Settings → Account: "Signed in as …" with Sign out next to it */
 .setting-signout { display: flex; align-items: center; justify-content: space-between; gap: 10px; flex-wrap: wrap; }
 .setting-signout .setting-sub { margin: 0; }
+
+/* landing: "Half list app. Half calendar." — list apps + calendar apps = Planner */
+.lp-hybrid { display: grid; grid-template-columns: 1fr auto 1fr auto 1.25fr; gap: 14px; align-items: stretch; }
+.lp-hybrid-card { background: var(--panel); border: 1px solid var(--line); border-radius: 16px; padding: 20px 22px; box-shadow: var(--shadow); }
+.lp-hybrid-card h3 { margin: 0; font-size: 18px; }
+.lp-hybrid-sub { margin: 4px 0 14px; color: var(--muted); font-size: 14px; }
+.lp-hybrid-card ul { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 8px; font-size: 14.5px; }
+.lp-hybrid-card li { display: flex; gap: 8px; align-items: baseline; }
+.lp-hybrid-card li::before { flex: none; width: 16px; text-align: center; font-weight: 800; }
+.lp-hybrid-card li.ok::before { content: '✓'; color: var(--done); }
+.lp-hybrid-card li.no::before { content: '✕'; color: #9ca3af; }
+.lp-hybrid-card li.no { color: #6b7280; }
+.lp-hybrid-op { align-self: center; font-size: 28px; font-weight: 800; color: var(--muted); }
+.lp-hybrid-us { border-color: #c7d2fe; background: linear-gradient(180deg, #fafaff, #fff); box-shadow: 0 18px 40px rgba(79, 70, 229, .14); }
+.lp-hybrid-us h3 { color: var(--accent); }
+.lp-hybrid-pic { display: grid; grid-template-columns: 1fr auto 1fr; gap: 8px; align-items: center; margin-bottom: 14px; font-size: 12px; }
+.lp-hybrid-pic i { font-style: normal; color: var(--accent); font-weight: 800; }
+.lp-hybrid-list, .lp-hybrid-cal { display: flex; flex-direction: column; gap: 4px; padding: 8px; border: 1px solid var(--line); border-radius: 10px; background: #fff; min-width: 0; }
+.lp-hybrid-list b, .lp-hybrid-cal b { font-size: 11.5px; }
+.lp-hybrid-list span { padding: 3px 6px; border: 1px solid var(--line); border-left: 3px solid #d1d5db; border-radius: 6px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.lp-hybrid-list .lp-hybrid-moving { border-style: dashed; color: var(--muted); }
+.lp-hybrid-slot { padding: 3px 6px; border-top: 1px dashed var(--line); color: #9ca3af; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.lp-hybrid-filled { border: 0; border-left: 3px solid var(--accent); background: var(--accent-soft); color: var(--text); border-radius: 6px; font-weight: 600; }
+@media (max-width: 960px) {
+  .lp-hybrid { grid-template-columns: 1fr; max-width: 520px; margin: 0 auto; }
+  .lp-hybrid-op { justify-self: center; line-height: 1; }
+}
+.lp-hybrid-one { grid-template-columns: 1fr; }
+.lp-hybrid-pic em { font-size: 11.5px; color: var(--muted); padding: 2px 2px 0; }
+.lp-hybrid-field { padding: 3px 6px; border: 1px solid var(--line); border-radius: 6px; }
+.lp-hybrid-need { border-color: #fca5a5; color: #b91c1c; background: #fef2f2; }
