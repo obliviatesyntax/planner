@@ -119,7 +119,8 @@ Done today panel (`size = 'panel'`); the styles are `.card.compressed` in `style
 | Menu links (Why, Features…) | Shown | Hidden | Hidden; only "Get started" in the menu bar |
 | Hero | Text left, sign-in card right | Stacked | Stacked; buttons full width, one per row |
 | App preview animation | Full (days, Done today, 4 lists) | Same | Done today hidden; 2 lists shown |
-| Feature / step cards | 3 columns | 2 columns | 1 column |
+| Feature cards | 3 columns | 2 columns | 1 column |
+| How it works (step + live demo) | Step text above its demo | Same | Same; demos stack (list above today) |
 | Comparison table | 3 columns | 3 columns | Row title on its own line, then the two answers |
 
 ## Checklist when adding something new

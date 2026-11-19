@@ -159,7 +159,7 @@ const Landing = (() => {
   // Lights up one step in the bar above the preview and says what's happening.
   const pvCaption = document.getElementById('pv-caption');
   function pvStep(step, caption) {
-    document.querySelectorAll('#pv-steps .lp-step').forEach(el => el.classList.toggle('on', el.dataset.step === step));
+    document.querySelectorAll('#pv-steps .lp-stepbar-item').forEach(el => el.classList.toggle('on', el.dataset.step === step));
     pvCaption.classList.remove('show');
     void pvCaption.offsetWidth;   // restart the fade-in
     pvCaption.innerHTML = caption;
