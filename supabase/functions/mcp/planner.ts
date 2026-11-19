@@ -690,22 +690,39 @@ export function protectedResourceMetadata(env: Env) {
 }
 
 // The whole HTTP side. `env` says which Supabase project to read.
+// Some AI apps (possibly Gemini on the web) talk to the server from inside a web page, so every
+// answer allows that (CORS), including reading the WWW-Authenticate sign-in pointer.
+const CORS = {
+  'Access-Control-Allow-Origin': '*',
+  'Access-Control-Allow-Methods': 'GET, POST, DELETE, OPTIONS',
+  'Access-Control-Allow-Headers': 'Authorization, Content-Type, Accept, Mcp-Session-Id, Mcp-Protocol-Version, Last-Event-ID',
+  'Access-Control-Expose-Headers': 'WWW-Authenticate, Mcp-Session-Id',
+  'Access-Control-Max-Age': '86400',
+};
+
 export async function handle(req: Request, env: Env): Promise<Response> {
   const json = (body: unknown, status = 200, headers: Record<string, string> = {}) =>
-    new Response(JSON.stringify(body), { status, headers: { 'Content-Type': 'application/json', ...headers } });
+    new Response(JSON.stringify(body), { status, headers: { 'Content-Type': 'application/json', ...CORS, ...headers } });
   const unauthorized = (message: string) => json({ error: 'unauthorized', message }, 401, {
     'WWW-Authenticate': `Bearer resource_metadata="${metadataUrl(env)}", scope="email"`,
   });
-
-  if (new URL(req.url).pathname.endsWith('/.well-known/oauth-protected-resource')) {
-    return json(protectedResourceMetadata(env), 200, { 'Access-Control-Allow-Origin': '*', 'Cache-Control': 'max-age=3600' });
-  }
-  if (req.method !== 'POST') return new Response('Planner MCP server: send MCP requests with POST.', { status: 405, headers: { Allow: 'POST' } });
-
+  const path = new URL(req.url).pathname;
   const token = (req.headers.get('Authorization') || '').replace(/^Bearer\s+/i, '');
-  if (!token) return unauthorized('Connect with your Planner sign-in token.');
+  // One line per request in Supabase's function logs (no tokens, no content): helps when an AI
+  // app can't connect. Dashboard → Edge Functions → mcp → Logs.
+  console.log(JSON.stringify({ method: req.method, path, signedIn: !!token, client: req.headers.get('User-Agent') }));
+
+  if (req.method === 'OPTIONS') return new Response(null, { status: 204, headers: CORS });   // a browser asking first
+  if (path.endsWith('/.well-known/oauth-protected-resource')) {
+    return json(protectedResourceMetadata(env), 200, { 'Cache-Control': 'max-age=3600' });
+  }
+  // Not signed in: always "401 + where to sign in", whatever the method, so any app that checks
+  // first (some send a GET before anything else) learns this server uses standard OAuth.
+  if (!token) return unauthorized('Sign in to Planner to connect.');
   let user: User;
   try { user = await getUser(env, token); } catch (err) { return unauthorized((err as Error).message); }
+  // Signed in: we only answer POSTs (no server-sent event stream, no sessions to delete).
+  if (req.method !== 'POST') return new Response('Planner MCP server: send MCP requests with POST.', { status: 405, headers: { Allow: 'POST, OPTIONS', ...CORS } });
 
   let body: any;
   try { body = await req.json(); } catch { return json(fail(null, -32700, 'Not valid JSON'), 400); }
@@ -724,6 +741,6 @@ export async function handle(req: Request, env: Env): Promise<Response> {
     if (err instanceof AuthError) return unauthorized(err.message);
     throw err;
   }
-  if (!answers.length) return new Response(null, { status: 202 });
+  if (!answers.length) return new Response(null, { status: 202, headers: CORS });
   return json(Array.isArray(body) ? answers : answers[0]);
 }

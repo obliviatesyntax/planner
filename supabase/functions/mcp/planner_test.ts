@@ -64,6 +64,20 @@ Deno.test('no or bad token: 401 asking to sign in', async () => {
     'Bearer resource_metadata="https://example.supabase.co/functions/v1/mcp/.well-known/oauth-protected-resource", scope="email"');
 });
 
+Deno.test('any unsigned request points to sign-in; browsers may ask first (CORS)', async () => {
+  for (const method of ['GET', 'HEAD', 'DELETE']) {
+    const res = await handle(new Request('https://x/mcp', { method }), env);
+    assertEquals(res.status, 401, method);
+    assert(res.headers.get('WWW-Authenticate')?.includes('resource_metadata='), method);
+    assertEquals(res.headers.get('Access-Control-Expose-Headers'), 'WWW-Authenticate, Mcp-Session-Id');
+  }
+  const pre = await handle(new Request('https://x/mcp', { method: 'OPTIONS' }), env);
+  assertEquals(pre.status, 204);
+  assertStringIncludes(pre.headers.get('Access-Control-Allow-Headers')!, 'Authorization');
+  const signedInGet = await handle(new Request('https://x/mcp', { headers: { Authorization: 'Bearer good' } }), env);
+  assertEquals(signedInGet.status, 405);
+});
+
 Deno.test('protected resource metadata names Supabase Auth as the sign-in server', async () => {
   const res = await handle(new Request('https://x/mcp/.well-known/oauth-protected-resource'), env);
   assertEquals(res.status, 200);
