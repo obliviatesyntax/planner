@@ -26,6 +26,7 @@
       <nav class="lp-links">
         <a href="#why">Why Planner</a>
         <a href="#features">Features</a>
+        <a href="#ai">AI apps</a>
         <a href="#how">How it works</a>
         <a href="#pricing">Pricing</a>
         <a href="#faq">FAQ</a>
@@ -56,6 +57,11 @@
           <li>No credit card</li>
           <li>Syncs across devices</li>
         </ul>
+        <a href="#ai" class="lp-ai-badge">
+          <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3l1.9 5.1L19 10l-5.1 1.9L12 17l-1.9-5.1L5 10l5.1-1.9z"/><path d="M19 15l.8 2.2L22 18l-2.2.8L19 21l-.8-2.2L16 18l2.2-.8z"/></svg>
+          <span><b>Works with Claude, ChatGPT &amp; Gemini.</b> Just ask it to plan your day.</span>
+          <i>→</i>
+        </a>
       </div>
 
       <div class="lp-auth" id="auth">
@@ -120,6 +126,13 @@
          3) drags "Renew passport" from @triage onto today's calendar at 2 PM
          4) ticks "Reply to Sam" off: pop, burst, it flies into Done today -------------------- -->
     <section class="lp-preview-wrap" aria-label="What Planner looks like">
+      <!-- Which step of Capture → Commit → Complete the animation is showing (js/landing.js → pvStep) -->
+      <div class="lp-steps" id="pv-steps" aria-hidden="true">
+        <div class="lp-step" data-step="capture"><b>1</b>Capture</div><i>→</i>
+        <div class="lp-step" data-step="commit"><b>2</b>Commit</div><i>→</i>
+        <div class="lp-step" data-step="complete"><b>3</b>Complete</div>
+      </div>
+      <p class="lp-step-caption" id="pv-caption" aria-live="off">&nbsp;</p>
       <div class="lp-window" id="pv">
         <div class="lp-window-bar"><span></span><span></span><span></span><em>planner</em></div>
         <div class="lp-app">
@@ -229,6 +242,33 @@
             <li class="ok">Drag between them when you're ready</li>
           </ul>
         </article>
+      </div>
+    </section>
+
+    <!-- ---- use Planner from AI apps (the window itself is #connect-dialog) ------------- -->
+    <section class="lp-section lp-ai-section" id="ai">
+      <div class="lp-ai-wrap">
+        <div class="lp-ai-text">
+          <span class="lp-eyebrow">Works with your AI</span>
+          <h2>Plan by just asking.</h2>
+          <p>Connect Planner to <b>Claude</b>, <b>ChatGPT</b> or <b>Gemini</b> and talk to your real plan. Ask what's on,
+             dump a brain-full of tasks into a list, reshuffle your week, or tick things off, all in plain words.</p>
+          <ul class="lp-checks lp-checks-col">
+            <li>Reads and updates your actual lists and calendar</li>
+            <li>Signs in as you; nobody else sees your tasks</li>
+            <li>Always asks before it changes anything</li>
+          </ul>
+          <div class="lp-ai-apps"><span>Claude</span><span>ChatGPT</span><span>Gemini</span></div>
+          <button type="button" class="primary lp-big" data-connect>How to connect →</button>
+        </div>
+        <div class="lp-ai" aria-hidden="true">
+          <div class="lp-ai-msg you">What's on my plate today?</div>
+          <div class="lp-ai-tool"><span>Planner</span> get_plan</div>
+          <div class="lp-ai-msg bot">Design review at 10, gym at 6, and two to-dos: <b>Reply to Sam</b> and <b>Finish launch doc</b> (P1). Two things are overdue from yesterday.</div>
+          <div class="lp-ai-msg you">Move the overdue ones to tomorrow morning</div>
+          <div class="lp-ai-tool"><span>Planner</span> move_task × 2</div>
+          <div class="lp-ai-msg bot">Done. <b>Call the insurer</b> is at 9:00 AM and <b>Book flights</b> at 9:30 AM tomorrow. @overdue is empty now.</div>
+        </div>
       </div>
     </section>
 
@@ -421,22 +461,6 @@
           <p>Drag each to a day or a list. When it's empty, this list disappears.</p>
         </div>
       </div>
-    </section>
-
-    <!-- ---- use Planner from AI apps (the window itself is #connect-dialog) ------------- -->
-    <section class="lp-section" id="ai">
-      <div class="lp-section-head">
-        <span class="lp-eyebrow">Works with your AI</span>
-        <h2>Plan by just asking.</h2>
-        <p>Connect Planner to <b>Claude</b>, <b>ChatGPT</b> or <b>Gemini</b> and talk to your real plan: see what's on,
-           add tasks, move them around, tick them off. It signs in as you, and asks before it changes anything.</p>
-      </div>
-      <div class="lp-ai" aria-hidden="true">
-        <div class="lp-ai-msg you">Move everything in @overdue to tomorrow morning</div>
-        <div class="lp-ai-tool"><span>Planner</span> move_task × 2</div>
-        <div class="lp-ai-msg bot">Done. <b>Call the insurer</b> is at 9:00 AM and <b>Book flights</b> at 9:30 AM tomorrow. @overdue is empty now.</div>
-      </div>
-      <p class="lp-ai-cta"><button type="button" class="lp-btn-ghost lp-big" data-connect>How to connect →</button></p>
     </section>
 
     <!-- ---- pricing ----------------------------------------------------------- -->

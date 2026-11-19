@@ -137,7 +137,7 @@ const Landing = (() => {
   const card = (text, extra = '') => `<div class="m-card p0 ${extra}"><i></i>${text}</div>`;
 
   // ---- the app preview at the top ------------------------------------------------
-  // Four beats, looping:
+  // Four beats, looping, with the step bar above (Capture → Commit → Complete) saying which is which:
   //   1. type "Add Q3 numbers @salesDeck" (the live preview shows ☰ @salesDeck) → it lands there
   //   2. type "Call mom at 9PM" (the preview shows 📅 today, 9 PM) → it lands on today's calendar
   //   3. drag "Renew passport" from @triage onto today's calendar at 2 PM
@@ -156,6 +156,16 @@ const Landing = (() => {
   const PV_TEXT = 'Add Q3 numbers @salesDeck';
   const PV_TEXT_2 = 'Call mom at 9PM';
   const plain = (text, extra = '') => `<div class="m-card p0 ${extra}"><i></i>${text}</div>`;
+
+  // Lights up one step in the bar above the preview and says what's happening.
+  const pvCaption = document.getElementById('pv-caption');
+  function pvStep(step, caption) {
+    document.querySelectorAll('#pv-steps .lp-step').forEach(el => el.classList.toggle('on', el.dataset.step === step));
+    pvCaption.classList.remove('show');
+    void pvCaption.offsetWidth;   // restart the fade-in
+    pvCaption.innerHTML = caption;
+    pvCaption.classList.add('show');
+  }
 
   function pvReset() {
     pvInput.textContent = '';
@@ -216,27 +226,32 @@ const Landing = (() => {
       if (reduceMotion) {   // a still picture: the text typed, its preview showing
         pvInput.textContent = PV_TEXT;
         pvShowPopup(PV_TEXT);
+        pvStep('capture', 'Type a task: it goes straight into a list, no date needed.');
         return;
       }
       await sleep(900);
 
       // 1. Type into quick add; the preview shows it's headed for @salesDeck. Enter → it lands there.
+      pvStep('capture', '<b>Capture</b> into a list: type it with <b>@salesDeck</b>, no date needed.');
       await a.moveCursor((({ x, y }) => ({ x: x + 40, y: y + 10 }))(a.at(pvInput)), 500);
       await pvType(PV_TEXT, 14);   // a beat after "Add Q3 numbers"
       pvWork.insertAdjacentHTML('beforeend', plain('Add Q3 numbers', 'lp-pop'));
       await sleep(1100);
 
       // 2. Type a task with a time; the preview shows today at 9 PM. Enter → it's on the calendar.
+      pvStep('capture', '<b>Capture</b> with a time, and it goes straight onto the calendar.');
       await pvType(PV_TEXT_2, 8);   // a beat after "Call mom"
       pvCal.insertAdjacentHTML('beforeend',
         '<div class="m-event p0 lp-pop lp-new" style="top:70%;height:12%"><i></i>Call mom<small>9:00–9:30 PM</small></div>');
       await sleep(1100);
 
+      pvStep('commit', '<b>Commit</b>: drag a task from a list onto today, at the time you\'ll do it.');
       // 3. Drag "Renew passport" from @triage onto today's calendar at 2 PM.
       await a.carry(pvTriage.querySelector('.m-card'), pvSlot, () => pvCal.insertAdjacentHTML('beforeend',
         '<div class="m-event p0 lp-pop lp-new" style="top:33%;height:12%"><i></i>Renew passport<small>2:00–2:30 PM</small></div>'));
       await sleep(900);
 
+      pvStep('complete', '<b>Complete</b>: tick it off, and it moves to Done today.');
       // 4. Tick "Reply to Sam" off: pop + green flash + burst, then it flies into Done today.
       const sam = document.getElementById('pv-sam');
       const box = sam.querySelector('i');
