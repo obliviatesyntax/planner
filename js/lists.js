@@ -78,7 +78,7 @@ const Lists = (() => {
           <span class="list-name">@overdue</span>
           <span class="count">${all.length}</span>
         </div>
-        <p class="overdue-note">Not done in time. Drag each to a day or a list; this list goes away once it's empty.</p>
+        <p class="overdue-note">Carried over from earlier days. Give each a new day or a list; this list disappears once it's empty.</p>
         <div class="list">${tasks.map(t => Cards.html(t, 'list')).join('')}</div>
       </div>`;
   }
