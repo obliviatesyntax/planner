@@ -1,7 +1,8 @@
 // lists.js — the bottom section: your lists. New tasks without a day land in @triage; make your
 // own with "+ New list" or by typing "@name" in quick add ("Renew passport @weekly" creates
 // @weekly if needed). Drag a list's header to reorder; click it to open the list window, where you
-// rename it or delete it (and its tasks, with Undo). Drag a task up to a day or a time to commit.
+// rename it, give it a label, or delete it (and its tasks, with Undo). Drag a task up to a day or a
+// time to commit; if the list has a label, the task picks it up then.
 //
 // @overdue (built in) comes first, but only while it has tasks: yesterday's unfinished ones.
 // Move each to a day or another list and it disappears. You can't add to it or drop into it.
@@ -25,6 +26,7 @@ const Lists = (() => {
             <div class="list-col" data-drop="list" data-list="${l.id}">
               <div class="list-head ${isTriage ? '' : 'openable'}" ${isTriage ? '' : `draggable="true" data-list-drag="${l.id}" title="Click to rename or delete · drag to reorder"`}>
                 <span class="list-name">@${escapeHtml(l.name)}</span>
+                ${listTagHtml(l)}
                 <span class="count">${tasks.length}</span>
               </div>
               <div class="list">${tasks.map(t => Cards.html(t, 'list')).join('')}</div>
@@ -38,6 +40,12 @@ const Lists = (() => {
         </div>
       </div>`;
     if (creating) root.querySelector('.list-new-input').focus();
+  }
+
+  // The list's label, shown next to its name ("@kitchenReno #p").
+  function listTagHtml(l) {
+    const lab = l.label && Tasks.label(l.label);
+    return lab ? `<span class="tag" style="--c:${lab.color}" title="Tasks moved from this list onto a day get #${escapeHtml(lab.shortcut)}">#${escapeHtml(lab.shortcut)}</span>` : '';
   }
 
   // The @overdue column: no drop target, no "+ Add", no delete, not draggable.
@@ -80,6 +88,15 @@ const Lists = (() => {
         </div>
         <div class="lv-name"><span>@</span><input class="lv-input" maxlength="30" value="${escapeHtml(l.name)}" aria-label="List name"></div>
         <p class="lv-hint">One word, letters and digits; camelCase is fine (e.g. kitchenReno).</p>
+        ${Tasks.allLabels().length ? `
+          <div class="lv-label">
+            <span class="tv-label">Label for this list</span>
+            <div class="tv-labels">
+              ${Tasks.allLabels().map(lab => `
+                <button type="button" class="tv-label-chip ${l.label === lab.id ? 'on' : ''}" data-list-label="${lab.id}" style="--c:${lab.color}">#${escapeHtml(lab.shortcut)} ${escapeHtml(lab.name)}</button>`).join('')}
+            </div>
+            <p class="lv-hint">A task moved from this list onto a day or a time gets this label. One label per list; tap it again to remove.</p>
+          </div>` : ''}
         <div class="tv-foot">
           <button type="button" class="tv-delete">Delete list${n ? ` and its ${n} task${n === 1 ? '' : 's'}` : ''}</button>
           <span class="muted tv-saved">Changes save automatically</span>
@@ -104,6 +121,13 @@ const Lists = (() => {
   dialog.addEventListener('focusout', e => { if (e.target.matches('.lv-input')) saveName(); });
   dialog.addEventListener('click', e => {
     if (e.target === dialog) return dialog.close();
+    const chip = e.target.closest('[data-list-label]');
+    if (chip) {   // one label per list: pick one, or tap the chosen one again for none
+      const current = Tasks.list(openId).label;
+      Tasks.setListLabel(openId, current === chip.dataset.listLabel ? null : chip.dataset.listLabel);
+      dialog.querySelectorAll('[data-list-label]').forEach(b => b.classList.toggle('on', b.dataset.listLabel === Tasks.list(openId).label));
+      return;
+    }
     if (!e.target.closest('.tv-delete')) return;
     const l = Tasks.list(openId);
     const n = Tasks.listTasks(openId).length;

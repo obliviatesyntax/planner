@@ -23,7 +23,8 @@
 //   planDate only   → that day's to-do list
 //   neither         → its list (bottom section)
 //
-// A list looks like:  { id, name: "weekly", order }   (shown as @weekly; @triage is built in)
+// A list looks like:  { id, name: "weekly", order, label }   (shown as @weekly; @triage is built in)
+//   label: optional label id; a task moved from this list onto a day or time gets that label
 // A label looks like: { id, name: "Personal", shortcut: "p", color: "#2b8a3e", order }
 //
 // UI code never edits data directly — it calls these functions, which save and
@@ -164,14 +165,25 @@ const Tasks = (() => {
     commit();
   }
 
+  // A task leaving a list for a day or a calendar time picks up that list's label (if it has one).
+  function inheritListLabel(task) {
+    if (task.planDate || task.doneOn) return;            // not coming out of a list
+    const from = list(task.list);
+    if (from && from.label && label(from.label) && !task.labels.includes(from.label)) {
+      task.labels = [...task.labels, from.label];
+    }
+  }
+
   function moveToPlan(id, date, beforeId) {
     const task = get(id);
+    inheritListLabel(task);
     Object.assign(task, { planDate: date, startMin: null, doneOn: null });
     place(planList(date), task, beforeId);
     commit();
   }
 
   function moveToCalendar(id, date, startMin) {
+    inheritListLabel(get(id));
     Object.assign(get(id), { planDate: date, startMin, doneOn: null });
     commit();
   }
@@ -212,6 +224,14 @@ const Tasks = (() => {
     lists.push(newList);
     commit();
     return newList;
+  }
+
+  // A list's label (one existing label, or null for none). Tasks get it when moved onto the plan.
+  function setListLabel(id, labelId) {
+    const l = list(id);
+    if (!l || id === OVERDUE_LIST.id) return;
+    l.label = labelId || null;
+    commit();
   }
 
   // Rename a list (not @triage or @overdue). Returns the list, or an error message string.
@@ -300,6 +320,7 @@ const Tasks = (() => {
   function removeLabel(id) {
     labels = labels.filter(l => l.id !== id);
     tasks.forEach(t => { if (t.labels.includes(id)) t.labels = t.labels.filter(x => x !== id); });
+    lists.forEach(l => { if (l.label === id) l.label = null; });   // lists that used it lose it too
     commit();
   }
 
@@ -318,7 +339,7 @@ const Tasks = (() => {
     init, onChange, rollover, get,
     listTasks, planList, calendarList, doneList,
     add, update, cyclePriority, toggleDone, markDone, moveToList, moveToPlan, moveToCalendar, remove, restore,
-    allLists, list, findList, isOverdue, addList, renameList, moveList, removeList, restoreList,
+    allLists, list, findList, isOverdue, addList, renameList, setListLabel, moveList, removeList, restoreList,
     allLabels, label, findLabel, addLabel, removeLabel,
     exportData, replaceAll,
   };

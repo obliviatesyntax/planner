@@ -27,8 +27,10 @@ const Store = (() => {
       }),
     },
     lists: {
-      toRow: l => ({ id: l.id, name: l.name, sort_order: l.order }),
-      fromRow: r => ({ id: r.id, name: r.name, order: r.sort_order }),
+      // label_id is only sent once a list has (or had) a label, so saving still works on a
+      // database that hasn't run migrations/005-list-label.sql yet.
+      toRow: l => ({ id: l.id, name: l.name, sort_order: l.order, ...(l.label !== undefined ? { label_id: l.label } : {}) }),
+      fromRow: r => ({ id: r.id, name: r.name, order: r.sort_order, ...(r.label_id !== undefined ? { label: r.label_id } : {}) }),
     },
     labels: {
       toRow: l => ({ id: l.id, name: l.name, shortcut: l.shortcut, color: l.color, sort_order: l.order }),

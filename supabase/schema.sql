@@ -18,6 +18,7 @@ create table public.lists (
   id          text    not null,                    -- "triage" for the built-in list
   name        text    not null,                    -- "weekly"  → shown as @weekly
   sort_order  integer not null default 0,
+  label_id    text,                                -- optional; tasks moved onto the plan get it
   primary key (user_id, id)
 );
 
