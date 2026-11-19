@@ -739,7 +739,6 @@ html { scroll-behavior: smooth; }
 .lp-seg span { padding: 4px 11px; color: var(--muted); font-weight: 500; }
 .lp-seg span + span { border-left: 1px solid var(--line); }
 .lp-seg span.on { background: var(--text); color: #fff; }
-.lp-pv-slot { position: absolute; left: 6px; right: 6px; top: 33%; height: 12%; }
 .m-card.completing { background: #f0fdf4; border-color: #bbf7d0; color: var(--muted); text-decoration: line-through; text-decoration-color: var(--done); }
 .m-card.completing i { animation: checkPop .42s cubic-bezier(.3,1.6,.5,1); }
 .m-card.just-done { animation: justDone 1.3s ease-out; }
@@ -761,7 +760,7 @@ html { scroll-behavior: smooth; }
 .lp-day-head span { color: var(--muted); }
 .lp-day-head.is-today { background: var(--today); box-shadow: inset 0 2px 0 var(--accent); }
 .lp-day-head.is-today b { color: var(--accent); }
-.lp-todo { padding: 8px; display: flex; flex-direction: column; gap: 5px; min-height: 92px; border-bottom: 1px solid var(--line); }
+.lp-todo { padding: 8px; display: flex; flex-direction: column; gap: 5px; min-height: 112px; border-bottom: 1px solid var(--line); }
 .lp-day:first-child .lp-todo, .lp-day:first-child .lp-cal { background: var(--today); }
 .lp-cal {
   position: relative; height: 250px;

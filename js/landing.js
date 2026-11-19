@@ -140,7 +140,7 @@ const Landing = (() => {
   // Four beats, looping, with the step bar above (Capture → Commit → Complete) saying which is which:
   //   1. type "Add Q3 numbers @salesDeck" (the live preview shows ☰ @salesDeck) → it lands there
   //   2. type "Call mom at 9PM" (the preview shows 📅 today, 9 PM) → it lands on today's calendar
-  //   3. drag "Renew passport" from @triage onto today's calendar at 2 PM
+  //   3. drag "Renew passport" from @triage onto today's to-do list
   //   4. tick "Reply to Sam" off: checkbox pop, green flash, burst, it flies into Done today
 
   const pv = document.getElementById('pv');
@@ -148,7 +148,6 @@ const Landing = (() => {
   const pvPopup = document.getElementById('pv-popup');
   const pvTodo = document.getElementById('pv-todo');
   const pvCal = document.getElementById('pv-cal');
-  const pvSlot = document.getElementById('pv-slot');
   const pvTriage = document.getElementById('pv-triage');
   const pvWork = document.getElementById('pv-work');
   const pvDone = document.getElementById('pv-done');
@@ -242,13 +241,14 @@ const Landing = (() => {
       pvStep('capture', '<b>Capture</b> with a time, and it goes straight onto the calendar.');
       await pvType(PV_TEXT_2, 8);   // a beat after "Call mom"
       pvCal.insertAdjacentHTML('beforeend',
-        '<div class="m-event p0 lp-pop lp-new" style="top:70%;height:12%"><i></i>Call mom<small>9:00–9:30 PM</small></div>');
+        '<div class="m-event p0 lp-pop lp-new" style="top:76%;height:17%"><i></i>Call mom<small>9:00–9:30 PM</small></div>');
       await sleep(1100);
 
-      pvStep('commit', '<b>Commit</b>: drag a task from a list onto today, at the time you\'ll do it.');
-      // 3. Drag "Renew passport" from @triage onto today's calendar at 2 PM.
-      await a.carry(pvTriage.querySelector('.m-card'), pvSlot, () => pvCal.insertAdjacentHTML('beforeend',
-        '<div class="m-event p0 lp-pop lp-new" style="top:33%;height:12%"><i></i>Renew passport<small>2:00–2:30 PM</small></div>'));
+      pvStep('commit', '<b>Commit</b>: when you\'re ready, drag a task from a list onto today.');
+      // 3. Drag "Renew passport" from @triage onto the end of today's to-do list.
+      pvTodo.insertAdjacentHTML('beforeend', plain('Renew passport', 'lp-landing'));
+      const spot = pvTodo.lastElementChild;
+      await a.carry(pvTriage.querySelector('.m-card'), spot, () => { spot.classList.remove('lp-landing'); spot.classList.add('lp-pop'); });
       await sleep(900);
 
       pvStep('complete', '<b>Complete</b>: tick it off, and it moves to Done today.');
