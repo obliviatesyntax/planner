@@ -1390,3 +1390,8 @@ body.playground .settings-block:has(#set-first-name), body.playground .settings-
   .account .icon-only { width: 32px; height: 32px; }
   .plan-side { top: 56px; }   /* sticks just under the slimmer bar */
 }
+/* Computers: "Planner  Fri, Nov 20 · 12:52 AM" on one line (phones hide both) */
+@media (min-width: 701px) {
+  .brand-text { flex-direction: row; align-items: baseline; gap: 10px; white-space: nowrap; }
+  #today-label { font-size: 13px; }
+}

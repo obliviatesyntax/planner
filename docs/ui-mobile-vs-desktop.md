@@ -24,7 +24,7 @@ user-agent sniffing: a narrow desktop window behaves like a phone.
 
 | | Desktop | Phone (≤ 700px) |
 |---|---|---|
-| **Top bar** | Pinned at the **top**, slim (~50px: smaller paddings, logo and buttons). Left: logo, "Planner", live date & time. Centre: quick add (box with **i** inside, mic, Add). Right: first name (email on hover) and a settings gear. | Pinned at the **bottom** for thumb reach. Only the logo and quick add (box with **i**, mic, Add). No name, date or gear (Settings is in the footer). Respects the iPhone home bar. |
+| **Top bar** | Pinned at the **top**, slim (~50px: smaller paddings, logo and buttons). Left: logo, then "Planner" with the live date & time beside it on one line. Centre: quick add (box with **i** inside, mic, Add). Right: first name (email on hover) and a settings gear. | Pinned at the **bottom** for thumb reach. Only the logo and quick add (box with **i**, mic, Add). No name, date or gear (Settings is in the footer). Respects the iPhone home bar. |
 | **"Adding tasks" help (the i)** | Centred 640px window; examples in two columns | Full-width window; each example stacked above its explanation |
 | **Quick-add live preview** | Drops down under the box | Opens **upward**, above the bar |
 | **Toasts / Undo** | Bottom centre of the screen | Just above the bottom bar |
