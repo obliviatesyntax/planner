@@ -21,7 +21,10 @@ const Cards = (() => {
   // (the coloured edge shows priority; the tag appears on hover). See docs/ui-mobile-vs-desktop.md.
   function html(task, where, style = '', size = '') {
     const timed = task.startMin != null;
-    const time = !timed ? ''
+    // In @overdue: the day (and time) it was planned for, e.g. "Mon, Nov 17 · 10:00 AM".
+    const late = where === 'list' && !task.doneOn && task.planDate && task.planDate < todayISO();
+    const time = late ? `${formatDay(task.planDate)}${timed ? ` · ${formatTime(task.startMin)}` : ''}`
+      : !timed ? ''
       : where === 'calendar' ? (Calendar.isCompressed() ? '' : formatTimeRange(task.startMin, task.startMin + task.duration))
       : formatTime(task.startMin);
     const p = task.priority || 0;   // 0 = no priority set

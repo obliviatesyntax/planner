@@ -18,8 +18,8 @@
 //   (moveToList, moveToPlan, moveToCalendar, inheritListLabel), done / not done (toggleDone,
 //   markDone), lists (addList, renameList, setListLabel, removeList) and labels (addLabel,
 //   suggestShortcut, removeLabel).
-// One difference: the app moves unfinished tasks from past days to @overdue when it opens;
-// here we don't write for that, we just show them as overdue.
+// @overdue is a view in both: unfinished tasks planned for a past day show there, but keep their
+// day and time in the database until moved.
 // A Planner tab that's already open doesn't see changes made here until it's reloaded.
 //
 // Signing in (OAuth): Supabase Auth is the sign-in server (Authentication → OAuth Server in the
@@ -342,7 +342,7 @@ class View {
   }
   where(t: Task) {
     if (t.done_on) return `done on ${dayName(t.done_on, this.today)}`;
-    if (this.isLate(t)) return `@overdue (was planned for ${dayName(t.plan_date!, this.today)})`;
+    if (this.isLate(t)) return `@overdue (planned for ${dayName(t.plan_date!, this.today)}${t.start_min != null ? ` at ${clock(t.start_min, this.hour12)}` : ''}; it keeps that day until moved)`;
     if (t.plan_date && t.start_min != null) return `on the calendar ${dayName(t.plan_date, this.today)} at ${clock(t.start_min, this.hour12)}`;
     if (t.plan_date) return `on the to-do list for ${dayName(t.plan_date, this.today)}`;
     return `in @${this.listName(t.list_id)}`;
@@ -638,8 +638,7 @@ async function uncompleteTask(c: Ctx, args: any) {
   const notDone = tasks.find(t => !t.done_on);
   need(!notDone, `"${notDone?.title}" isn't done.`);
   return each(tasks, async t => {
-    const changes: Partial<Task> = { done_on: null };
-    if (t.plan_date && t.plan_date < c.v.today) Object.assign(changes, { plan_date: null, start_min: null, list_id: 'overdue' });
+    const changes: Partial<Task> = { done_on: null };   // a past day's task then shows in @overdue (it keeps its day)
     await c.db.update('tasks', t.id, changes);
     Object.assign(t, changes);
     return done(c, t, 'Not done any more: ');

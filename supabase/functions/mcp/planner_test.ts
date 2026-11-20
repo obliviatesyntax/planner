@@ -128,7 +128,7 @@ Deno.test('get_lists: overdue first, list labels, labels at the end', async () =
 Deno.test('search_tasks and get_task', async () => {
   assertStringIncludes(await call('search_tasks', { query: 'passport' }), 'Renew passport');
   assertStringIncludes(await call('search_tasks', { query: 'passport' }), 'Reply to Sam');   // matched its description
-  assertStringIncludes(await call('search_tasks', { query: 'flights' }), '@overdue (was planned for Yesterday');
+  assertStringIncludes(await call('search_tasks', { query: 'flights' }), '@overdue (planned for Yesterday');
   assert(!(await call('search_tasks', { query: 'run' })).includes('Morning run'));
   assertStringIncludes(await call('search_tasks', { query: 'run', include_done: true }), 'done on Today');
   assertStringIncludes(await call('get_task', { id: 't2' }), 'about the passport form');
@@ -175,7 +175,8 @@ Deno.test('complete_task / uncomplete_task, and back to @overdue from a past day
   await call('complete_task', { id: 't4', date: shift(-1) });   // yesterday's task, done yesterday
   assertEquals(row('tasks', 't4').done_on, shift(-1));
   await call('uncomplete_task', { id: 't4' });
-  assertEquals([row('tasks', 't4').plan_date, row('tasks', 't4').list_id], [null, 'overdue']);
+  assertEquals([row('tasks', 't4').plan_date, row('tasks', 't4').done_on], [shift(-1), null]);   // keeps its day…
+  assertStringIncludes(await call('get_lists', { list: 'overdue' }), 'Book flights');           // …and shows in @overdue
   assertStringIncludes(await callError('complete_task', { id: 't5', date: shift(2) }), 'future');
 });
 

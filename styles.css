@@ -1223,3 +1223,6 @@ body.playground .settings-block:has(#set-first-name), body.playground .settings-
   #lists .section-head > .muted { display: none; }
   #lists .section-head { flex-wrap: nowrap; }
 }
+
+/* task window: an overdue task says which day it was planned for */
+.tv-late { grid-column: 2; margin: -4px 0 0; font-size: 12.5px; color: var(--p1); }

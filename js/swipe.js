@@ -65,7 +65,8 @@ const Swipe = (() => {
     if (task.doneOn) return;
     const before = { planDate: task.planDate, startMin: task.startMin, list: task.list };
     const today = todayISO();
-    const to = task.planDate ? addDays(task.planDate > today ? task.planDate : today, 1) : today;
+    // planned (today or later): the next day; in a list or overdue: today
+    const to = task.planDate && task.planDate >= today ? addDays(task.planDate, 1) : today;
     Tasks.moveToPlan(id, to);
     App.toast(`“${task.title}” → ${to === today ? 'today' : formatDay(to)}`, 'Undo', () => Tasks.update(id, before));
   }

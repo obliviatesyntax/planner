@@ -55,19 +55,16 @@ const Tasks = (() => {
     listeners.forEach(fn => fn());
   }
 
-  // Unfinished tasks committed to a past day (to-do list or calendar) move on: to @overdue
-  // (default), or to today's to-do list if the "end of the day" setting says so.
+  // Unfinished tasks committed to a past day. By default nothing happens to them: they simply
+  // show in @overdue (see listTasks). Only with the "end of the day" setting set to "the next
+  // day's to-do list" are they really moved, onto today's to-do list.
   // Runs at start-up and every minute (for midnight). Returns how many moved.
   function rollover() {
+    if (Settings.get('rolloverTo') !== 'nextDay') return 0;
     const today = todayISO();
-    const toToday = Settings.get('rolloverTo') === 'nextDay';
     const late = tasks.filter(t => !t.doneOn && t.planDate && t.planDate < today);
-    late.forEach(t => {
-      Object.assign(t, toToday
-        ? { planDate: today, startMin: null, order: 1e6 + t.order }
-        : { planDate: null, startMin: null, list: OVERDUE_LIST.id, order: 1e6 + t.order });
-    });
-    if (late.length) { renumber(toToday ? planList(today) : listTasks(OVERDUE_LIST.id)); commit(); }
+    late.forEach(t => Object.assign(t, { planDate: today, startMin: null, order: 1e6 + t.order }));
+    if (late.length) { renumber(planList(today)); commit(); }
     return late.length;
   }
 
@@ -77,7 +74,16 @@ const Tasks = (() => {
 
   const byOrder = (a, b) => a.order - b.order;
 
+  // @overdue is a view, not a place: unfinished tasks planned for a day before today. They keep
+  // their day and time in the database (nothing is moved); they just show in @overdue until you
+  // move them, tick them off or delete them. (Tasks saved in an "overdue" list by older versions
+  // of the app show there too.)
+  const isLate = t => !t.doneOn && t.planDate && t.planDate < todayISO();
   function listTasks(listId) {
+    if (listId === OVERDUE_LIST.id) {
+      return tasks.filter(t => isLate(t) || (!t.doneOn && !t.planDate && t.list === OVERDUE_LIST.id))
+        .sort((a, b) => (a.planDate || '').localeCompare(b.planDate || '') || (a.startMin ?? 1e4) - (b.startMin ?? 1e4) || a.order - b.order);
+    }
     return tasks.filter(t => !t.doneOn && !t.planDate && t.list === listId).sort(byOrder);
   }
   function planList(date) {
@@ -136,13 +142,12 @@ const Tasks = (() => {
     commit();
   }
 
-  // Tick box: done today / not done. Un-done tasks go back where they were, or to @triage
-  // if that was a past day.
+  // Tick box: done today / not done. Un-done tasks go back where they were (if that was a past
+  // day, they show in @overdue).
   function toggleDone(id) {
     const task = get(id);
     if (task.doneOn) {
       task.doneOn = null;
-      if (task.planDate && task.planDate < todayISO()) Object.assign(task, { planDate: null, startMin: null, list: OVERDUE_LIST.id });
     } else {
       task.doneOn = todayISO();
     }
