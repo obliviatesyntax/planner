@@ -1,7 +1,8 @@
 # UI/UX: phone vs desktop
 
 How Planner behaves differently on phones and on computers, why, and where each rule lives
-in the code. Keep this up to date when you change a breakpoint or add a device-specific rule.
+in the code. **Keep this up to date:** every time a phone vs desktop difference is added or changed (a breakpoint,
+a spacing rule, something hidden on one), add or update its row here in the same change.
 
 ## Breakpoints at a glance
 
@@ -13,7 +14,10 @@ user-agent sniffing: a narrow desktop window behaves like a phone.
 | ≤ 600px | small phone | Task window becomes a bottom sheet | `styles.css` (`@media (max-width: 600px)`) |
 | ≤ 700px | **phone** | Quick-add bar moves to the bottom; brand, date, name and gear hidden; phone default view; no Week view; calendar "compressed" from 2 days up; phone setting used | `styles.css` (`max-width: 700px`), `js/planner.js` (`phoneQuery`), `js/settings.js` (`deviceKey`) |
 | ≤ 900px | narrow | Plan stacks (Done today below the days); 1-day view stacks to-do above the calendar; tighter page padding | `styles.css` (`max-width: 900px`) |
+| ≤ 360px | smallest phones | Plan header buttons get narrower so the header still fits on one line | `styles.css` (`max-width: 360px`) |
+| ≥ 901px | desktop | Plan header ends at the calendar's right edge (not above Done today) | `styles.css` (`min-width: 901px`) |
 | touch input (any width) | touch | Swipe gestures on tasks | `js/swipe.js` (`pointerType === 'touch'`) |
+| no hover (`hover: none`) | touch screen | Hover-only buttons hidden | `styles.css` (`@media (hover: none)`) |
 | ≤ 960px / ≤ 640px | landing | Landing page reflows (see the end of this doc) | `styles.css` (landing section) |
 
 ## The app, side by side
@@ -23,7 +27,13 @@ user-agent sniffing: a narrow desktop window behaves like a phone.
 | **Top bar** | Pinned at the **top**. Left: logo, "Planner", live date & time. Centre: quick add (box with **i** inside, mic, Add). Right: first name (email on hover) and a settings gear. | Pinned at the **bottom** for thumb reach. Only the logo and quick add (box with **i**, mic, Add). No name, date or gear (Settings is in the footer). Respects the iPhone home bar. |
 | **Quick-add live preview** | Drops down under the box | Opens **upward**, above the bar |
 | **Toasts / Undo** | Bottom centre of the screen | Just above the bottom bar |
-| **Settings & Sign out** | Gear (top right) + footer buttons | Footer buttons only |
+| **Settings & Sign out** | Gear (top right) + footer buttons; Sign out also in Settings → Account | Footer buttons; Sign out also in Settings → Account |
+| **Page edges & spacing** | 24px page edges; 14px between sections; 16px between Plan and Lists | 10px page edges; 10px between sections; 12px above Lists; tighter list cards and to-do cells (min 64px vs 96px) |
+| **Plan header** | "Plan", ‹ Today ›, and the view picker at the **calendar's** right edge (no date range: each day's heading shows its date) | Same, on **one line** (narrower buttons on ≤ 360px phones) |
+| **Labels row** (top) | Only when at least one label exists; first label is made in Settings → Labels | Same |
+| **Calendar "▲ earlier / ▼ later" pills** | Float over the calendar's top / bottom edge (no row of their own, so nothing jumps); **today's column only** | Same |
+| **Past days in 2-day / week views** | No hours; the done list runs the full height of the column | Same |
+| **Loading** | "Loading…" spinner (fades in after 0.4s) until a screen is ready | Same |
 | **Default plan view** | **2 days** (setting: "On a computer, open in") | **1 day** (setting: "On a phone, open in") |
 | **Views offered** | 1 day · 2 days · Week · List | 1 day · 2 days · List (**no Week**: seven columns don't fit) |
 | **1-day view** | To-do list on the left, tall calendar on the right | To-do list above the calendar |
@@ -32,8 +42,9 @@ user-agent sniffing: a narrow desktop window behaves like a phone.
 | **Hover buttons** (task P # 🗑, label 🗑, list 🗑) | Appear on mouse hover | **Hidden on any touch screen** (`@media (hover: none)`), since a tap would fake a hover. Tap a task or list to open its window; labels are managed in **Settings → Labels** |
 | **Opening a task** | Click a task: centred window | Tap a task: **bottom sheet** (≤ 600px) |
 | **Task window labels** | Field names shown (Priority, Labels, Day, Time, List) | Priority and Labels rows have no names (self-explanatory); Day/Time/List use small icons; hint text and "Changes save automatically" hidden |
-| **Moving tasks** | Drag and drop anywhere (a **drop bar** with Today · Tomorrow · Triage · Delete appears at the bottom, centred); or the task window's Move block | Drag (same **drop bar**, full width, above the bottom bar), **swipe**, or the task window's Move block |
-| **Swipe gestures** | — | Swipe **right** = done (or not done); swipe **left** = next day (planned task) or today (list task); Undo toast |
+| **Moving tasks** | Drag and drop anywhere (a **drop bar** with Today · Tomorrow · Triage · Delete appears at the bottom, centred; it leaves out wherever the task already is); or the task window's Move block | Drag (same **drop bar**, full width, above the bottom bar), **swipe**, or the task window's Move block |
+| **Swipe gestures** | — | Swipe **right** = done (or not done); swipe **left** = next day (planned task) or today (list or @overdue task); Undo toast |
+| **Lists layout** | Fixed columns (5–6), lists dealt in order left to right then down; "+ New list" in the header | 1 column, same order |
 | **Lists header** | "Lists", a hint ("Not planned yet. Drag a task up…"), "+ New list" at the right | Just "Lists" and "+ New list" at the right (no hint) |
 | **Text boxes** | 14px | 16px, so iPhones don't zoom in when you tap them |
 | **Voice input (mic)** | Chrome, Edge, Safari | Same: depends on the browser, not the device; hidden where unsupported (e.g. Firefox) |
