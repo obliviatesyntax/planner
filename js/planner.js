@@ -376,8 +376,7 @@ const Planner = (() => {
         <div class="day-nav">
           ${days ? '<button type="button" data-nav="-1" title="Earlier">‹</button>' : ''}
           <button type="button" data-nav="0">Today</button>
-          ${days ? `<button type="button" data-nav="1" title="Later">›</button>
-          <span class="muted">${days.length > 1 ? `${formatDay(days[0])} – ${formatDay(days[days.length - 1])}` : formatDay(days[0])}</span>` : ''}
+          ${days ? '<button type="button" data-nav="1" title="Later">›</button>' : ''}
         </div>
         <div class="seg">
           ${PLAN_VIEWS.filter(v => !(isPhone() && v.id === 'week')).map(v => `<button type="button" data-view="${v.id}" class="${v.id === view ? 'active' : ''}">${v.label}</button>`).join('')}

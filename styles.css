@@ -258,7 +258,6 @@ main { padding: 0 24px; max-width: 1480px; margin: 0 auto; }
 .section-head h2 { margin: 0; font-size: 15px; font-weight: 700; letter-spacing: -.01em; }
 .day-nav { display: flex; align-items: center; gap: 4px; }
 .day-nav button { padding: 3px 10px; }
-.day-nav .muted { margin-left: 6px; }
 .seg { display: flex; overflow: hidden; margin-left: auto; }
 .seg button { border: 0; background: none; padding: 5px 12px; color: var(--muted); font-weight: 500; }
 .seg button + button { border-left: 1px solid var(--line); }
@@ -1264,3 +1263,17 @@ body.playground .settings-block:has(#set-first-name), body.playground .settings-
 .set-label-del:hover { color: var(--p1); background: var(--p1-soft); }
 .set-label-new { padding: 6px 8px; border: 1px dashed #c9ced8; border-radius: var(--radius-sm); background: transparent; }
 @media (max-width: 700px) { .set-label-name, .set-label-sc, .set-label-new { font-size: 16px; } }
+
+/* Phones: the Plan header on one line, with the view picker at the right. (No date range in the
+   header on any screen: each day's heading shows its date.) */
+@media (max-width: 700px) {
+  #planner .section-head { flex-wrap: nowrap; gap: 8px; }
+  #planner .seg { margin-left: auto; flex: none; }
+  #planner .seg button { padding: 5px 10px; }
+  #planner .day-nav button { padding: 3px 9px; }
+}
+@media (max-width: 360px) {   /* the smallest phones */
+  #planner .section-head { gap: 6px; }
+  #planner .seg button { padding: 5px 7px; }
+  #planner .day-nav button { padding: 3px 6px; }
+}
