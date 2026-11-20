@@ -269,7 +269,8 @@ const Planner = (() => {
     const tasks = all.filter(Labels.matches);
     return `
       <aside class="overdue-panel" data-list="${OVERDUE_LIST.id}">
-        <h3>Overdue <span class="count">${all.length}</span></h3>
+        <h3>Overdue <span class="count">${all.length}</span>
+          <button type="button" class="overdue-all" data-overdue-all title="Put every task shown here on today's to-do list">Move all to today</button></h3>
         <p class="overdue-note">Carried over from earlier days. Give each a new day or a list; this disappears once it's empty.</p>
         <div class="list">${tasks.map(t => Cards.html(t, 'list')).join('')}</div>
       </aside>`;
@@ -414,6 +415,16 @@ const Planner = (() => {
       scroller.addEventListener('touchmove', () => { userScrolled = true; }, { passive: true });
     }
   }
+
+  // Overdue → "Move all to today": every task shown there (respecting the label filter) goes on
+  // today's to-do list, without a time. One Undo puts them all back.
+  root.addEventListener('click', e => {
+    if (!e.target.closest('[data-overdue-all]')) return;
+    const ids = Tasks.listTasks(OVERDUE_LIST.id).filter(Labels.matches).map(t => t.id);
+    if (!ids.length) return;
+    const before = Tasks.moveAllToPlan(ids, todayISO());
+    App.toast(`Moved ${ids.length} task${ids.length === 1 ? '' : 's'} to today`, 'Undo', () => Tasks.restoreFields(before));
+  });
 
   root.addEventListener('click', e => {
     const nav = e.target.closest('[data-nav]');

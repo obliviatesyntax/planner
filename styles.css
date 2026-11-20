@@ -410,7 +410,12 @@ main { padding: 0 24px; max-width: 1480px; margin: 0 auto; }
   padding: 12px 14px; display: flex; flex-direction: column; gap: 6px;
   background: #fffbfb; border: 1px solid #fecaca; border-radius: var(--radius); box-shadow: var(--shadow);
 }
-.overdue-panel h3 { margin: 0; font-size: 13px; font-weight: 700; color: var(--p1); }
+.overdue-panel h3 { margin: 0; font-size: 13px; font-weight: 700; color: var(--p1); display: flex; align-items: center; gap: 6px; }
+.overdue-all {
+  margin-left: auto; border: 1px solid #fecaca; background: #fff; color: var(--p1); font-size: 12px; font-weight: 600;
+  padding: 2px 10px; border-radius: 99px; white-space: nowrap;
+}
+.overdue-all:hover { background: var(--p1-soft); }
 .overdue-panel .count { background: var(--p1-soft); color: var(--p1); }
 .overdue-note { margin: 0; font-size: 12px; color: var(--muted); line-height: 1.4; }
 @media (max-width: 900px) { .plan-side { position: static; } }

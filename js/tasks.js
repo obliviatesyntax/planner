@@ -187,6 +187,21 @@ const Tasks = (() => {
     commit();
   }
 
+  // Several tasks onto a day's to-do list at once (e.g. "Move all to today" in Overdue), in their
+  // current order, after what's already there; one save. Returns what they were, for Undo.
+  function moveAllToPlan(ids, date) {
+    const before = ids.map(id => { const t = get(id); return { id, planDate: t.planDate, startMin: t.startMin, list: t.list, order: t.order, doneOn: t.doneOn }; });
+    ids.forEach((id, i) => Object.assign(get(id), { planDate: date, startMin: null, doneOn: null, order: 1e6 + i }));
+    renumber(planList(date));
+    commit();
+    return before;
+  }
+  // Put back what moveAllToPlan returned (one save).
+  function restoreFields(snapshot) {
+    snapshot.forEach(({ id, ...fields }) => { const t = get(id); if (t) Object.assign(t, fields); });
+    commit();
+  }
+
   function moveToCalendar(id, date, startMin) {
     inheritListLabel(get(id));
     Object.assign(get(id), { planDate: date, startMin, doneOn: null });
@@ -365,7 +380,7 @@ const Tasks = (() => {
   return {
     init, onChange, rollover, get,
     listTasks, planList, calendarList, doneList,
-    add, update, cyclePriority, toggleDone, markDone, moveToList, moveToPlan, moveToCalendar, remove, restore,
+    add, update, cyclePriority, toggleDone, markDone, moveToList, moveToPlan, moveAllToPlan, restoreFields, moveToCalendar, remove, restore,
     allLists, list, findList, isOverdue, addList, renameList, setListLabel, moveList, removeList, restoreList,
     allLabels, label, findLabel, addLabel, updateLabel, removeLabel,
     exportData, replaceAll,
