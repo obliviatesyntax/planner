@@ -1,6 +1,7 @@
 /* styles.css — all the look & feel. Colours and sizes are variables at the top. */
 
 :root {
+  --done-w: 300px;   /* width of the Done today column on computers (header lines up with it) */
   --past: #f8f8fa;   /* background of past days: what got done, no hours */
   --bg: #f6f7f9;
   --panel: #ffffff;
@@ -274,7 +275,7 @@ main { padding: 0 24px; max-width: 1480px; margin: 0 auto; }
 
 /* ---- plan: layout ------------------------------------------------------ */
 
-.plan-layout { display: grid; grid-template-columns: minmax(0, 1fr) 260px; gap: 14px; align-items: start; }
+.plan-layout { display: grid; grid-template-columns: minmax(0, 1fr) var(--done-w); gap: 14px; align-items: start; }
 .plan-days, .plan-listview, .done-today {
   background: var(--panel); border: 1px solid var(--line); border-radius: var(--radius); box-shadow: var(--shadow);
 }
@@ -1291,7 +1292,10 @@ body.playground .settings-block:has(#set-first-name), body.playground .settings-
 @media (prefers-reduced-motion: reduce) { .loading-spinner { animation-duration: 2.4s; } }
 
 /* Computers: the Plan header (‹ Today › and the view picker) spans the calendar only, so the
-   picker sits at the calendar's right edge, not above "Done today" (260px column + 14px gap). */
+   picker sits at the calendar's right edge, not above "Done today" (its column + the 14px gap). */
 @media (min-width: 901px) {
-  #planner .section-head { margin-right: 274px; }
+  #planner .section-head { margin-right: calc(var(--done-w) + 14px); }
+  /* Done today is exactly as tall as the plan next to it and scrolls inside when it's longer, so a
+     long done list never pushes Lists down. (contain: size = its own content doesn't size it.) */
+  .done-today { contain: size; align-self: stretch; overflow-y: auto; position: static; min-height: 260px; }   /* but never squeezed below 260px */
 }

@@ -17,7 +17,7 @@ const Lists = (() => {
   // then round again under them (2 columns: 1 3 5 in the first, 2 4 6 in the second). So the
   // order always reads left to right, then down, a drop lands exactly where you drop it, and
   // each column stacks tightly (no holes under short lists). Re-dealt when the width changes.
-  const MIN_COL = 220, GAP = 10;
+  const MIN_COL = 260, GAP = 10;   // wide enough that most task names fit on one line
   let columns = 0;
   function columnCount() {
     const pad = getComputedStyle(root);

@@ -37,14 +37,14 @@ user-agent sniffing: a narrow desktop window behaves like a phone.
 | **Default plan view** | **2 days** (setting: "On a computer, open in") | **1 day** (setting: "On a phone, open in") |
 | **Views offered** | 1 day · 2 days · Week · List | 1 day · 2 days · List (**no Week**: seven columns don't fit) |
 | **1-day view** | To-do list on the left, tall calendar on the right | To-do list above the calendar |
-| **Done today panel** | Right of the plan, sticky | Below the plan |
+| **Done today panel** | Right of the plan, **300px** wide (`--done-w`); exactly as tall as the plan (at least 260px) and scrolls inside, so it never pushes Lists down | Below the plan, full height |
 | **Calendar blocks** | Relaxed in 1 day and 2 days (short time + P tag); compressed in Week | Relaxed in 1 day; compressed in 2 days (see below) |
 | **Hover buttons** (task P # 🗑, label 🗑, list 🗑) | Appear on mouse hover | **Hidden on any touch screen** (`@media (hover: none)`), since a tap would fake a hover. Tap a task or list to open its window; labels are managed in **Settings → Labels** |
 | **Opening a task** | Click a task: centred window | Tap a task: **bottom sheet** (≤ 600px) |
 | **Task window labels** | Field names shown (Priority, Labels, Day, Time, List) | Priority and Labels rows have no names (self-explanatory); Day/Time/List use small icons; hint text and "Changes save automatically" hidden |
 | **Moving tasks** | Drag and drop anywhere (a **drop bar** with Today · Tomorrow · Triage · Delete appears at the bottom, centred; it leaves out wherever the task already is); or the task window's Move block | Drag (same **drop bar**, full width, above the bottom bar), **swipe**, or the task window's Move block |
 | **Swipe gestures** | — | Swipe **right** = done (or not done); swipe **left** = next day (planned task) or today (list or @overdue task); Undo toast |
-| **Lists layout** | Fixed columns (5–6), lists dealt in order left to right then down; "+ New list" in the header | 1 column, same order |
+| **Lists layout** | Fixed columns, each at least 260px (3 at 1024px, 4 at 1280px, 5 from ~1400px), lists dealt in order left to right then down; "+ New list" in the header | 1 column, same order |
 | **Lists header** | "Lists", a hint ("Not planned yet. Drag a task up…"), "+ New list" at the right | Just "Lists" and "+ New list" at the right (no hint) |
 | **Text boxes** | 14px | 16px, so iPhones don't zoom in when you tap them |
 | **Voice input (mic)** | Chrome, Edge, Safari | Same: depends on the browser, not the device; hidden where unsupported (e.g. Firefox) |
