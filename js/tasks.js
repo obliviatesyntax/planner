@@ -226,17 +226,16 @@ const Tasks = (() => {
   function allLists() {
     return [...lists].sort((a, b) => (b.id === TRIAGE_LIST.id) - (a.id === TRIAGE_LIST.id) || a.order - b.order);
   }
+  // OVERDUE_LIST is only an id now (tasks older versions moved into it show under Overdue); the
+  // name "overdue" is free, so a list you call @overdue is an ordinary list with its own id.
   function list(id) { return id === OVERDUE_LIST.id ? OVERDUE_LIST : lists.find(l => l.id === id); }
   function findList(name) {
-    if (name.toLowerCase() === OVERDUE_LIST.name) return OVERDUE_LIST;
     return lists.find(l => l.name.toLowerCase() === name.toLowerCase());
   }
-  const isOverdue = name => name.replace(/^@/, '').trim().toLowerCase() === OVERDUE_LIST.name;
 
   // Returns the list (existing or new), or an error message string.
   function addList(name) {
     name = name.replace(/^@/, '').trim();
-    if (isOverdue(name)) return '"overdue" is reserved: unfinished tasks from past days show under Overdue. Pick another name.';
     if (!LIST_NAME.test(name)) return 'A list name is one word: letters and digits, like @weekly or @upcomingE.';
     const existing = findList(name);
     if (existing) return existing;
@@ -254,11 +253,11 @@ const Tasks = (() => {
     commit();
   }
 
-  // Rename a list (not @triage or @overdue). Returns the list, or an error message string.
+  // Rename a list (not @triage). Returns the list, or an error message string.
   function renameList(id, name) {
     name = name.replace(/^@/, '').trim();
     if (id === TRIAGE_LIST.id || id === OVERDUE_LIST.id) return 'Built-in lists can\'t be renamed.';
-    if (isOverdue(name) || name.toLowerCase() === TRIAGE_LIST.name) return `@${name} is a built-in list name. Pick another.`;
+    if (name.toLowerCase() === TRIAGE_LIST.name) return `@${name} is a built-in list name. Pick another.`;
     if (!LIST_NAME.test(name)) return 'A list name is one word: letters and digits, like @weekly or @upcomingE.';
     const clash = findList(name);
     if (clash && clash.id !== id) return `There's already a list called @${clash.name}.`;
@@ -381,7 +380,7 @@ const Tasks = (() => {
     init, onChange, rollover, get,
     listTasks, planList, calendarList, doneList,
     add, update, cyclePriority, toggleDone, markDone, moveToList, moveToPlan, moveAllToPlan, restoreFields, moveToCalendar, remove, restore,
-    allLists, list, findList, isOverdue, addList, renameList, setListLabel, moveList, removeList, restoreList,
+    allLists, list, findList, addList, renameList, setListLabel, moveList, removeList, restoreList,
     allLabels, label, findLabel, addLabel, updateLabel, removeLabel,
     exportData, replaceAll,
   };

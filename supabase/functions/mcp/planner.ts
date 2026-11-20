@@ -43,7 +43,7 @@ Dates are in the user's time zone; get_plan with no date means today. Tools that
 id: get it from get_plan, get_lists or search_tasks first. Lists and labels can be named without @ or #.
 Start with get_plan: it has the date and time, the plan and every list, so most questions need nothing else.
 To add several tasks use add_task with tasks: [...]; to move, complete or delete several, pass all their ids
-in ONE call (ids: [...], or from_list to move a whole list): the user then confirms once instead of once per task.
+in ONE call (ids: [...], from_list to move a whole list, or overdue: true for everything overdue): the user then confirms once instead of once per task.
 Dates can be words (tomorrow, friday, next monday). Task lines include a short note; get_task has the full text.`;
 
 // ---- the tools -----------------------------------------------------------------------
@@ -151,7 +151,7 @@ const WRITE_TOOLS = [
   {
     name: 'move_task', title: 'Move tasks',
     description: "Move one task (id) or several (ids) to a list, to a day's to-do list (date), or to a day's calendar (date + start_time; several tasks are placed one after another from that time). Moving a done task makes it not done. A task leaving a list that has a label gets that label. Prefer one call with ids over many calls.",
-    inputSchema: { type: 'object', properties: { id: str('The task id.'), ids: { type: 'array', items: { type: 'string' }, description: 'Several task ids at once (one confirmation for all of them).' }, from_list: str('Instead of ids: every task waiting in this list, or "overdue" for all overdue tasks.'), ...WHERE } },
+    inputSchema: { type: 'object', properties: { id: str('The task id.'), ids: { type: 'array', items: { type: 'string' }, description: 'Several task ids at once (one confirmation for all of them).' }, from_list: str('Instead of ids: every task waiting in this list.'), overdue: { type: 'boolean', description: 'Instead of ids: every overdue task (unfinished, planned for a past day).' }, ...WHERE } },
     annotations: { title: 'Move tasks', ...CHANGE, idempotentHint: true },
   },
   {
@@ -458,8 +458,12 @@ function findTask(v: View, id: unknown): Task {
   need(t, `No task with id ${id}. Use search_tasks or get_lists to find the id.`);
   return t!;
 }
+// A list by name. Your own lists win; "overdue" means the Overdue view only when you have no list
+// with that name (move_task also takes overdue: true, which is never ambiguous).
 function findList(v: View, name: unknown): List | { id: 'overdue' | 'triage'; name: string } | undefined {
   const n = String(name ?? '').replace(/^@/, '').trim().toLowerCase();
+  const own = v.d.lists.find(l => l.id !== 'triage' && l.name.toLowerCase() === n);
+  if (own) return own;
   if (n === 'overdue') return { id: 'overdue', name: 'overdue' };
   if (n === 'triage') return v.d.lists.find(l => l.id === 'triage') || { id: 'triage', name: 'triage' };
   return v.d.lists.find(l => l.name.toLowerCase() === n);
@@ -506,9 +510,8 @@ const settings = (v: View) => v.d.user.user_metadata?.settings || {};
 // Finds an existing list or creates one, like typing @name in quick add.
 async function listFor(c: Ctx, name: unknown): Promise<{ id: string; name: string; created?: boolean }> {
   const n = String(name ?? '').replace(/^@/, '').trim();
-  need(n.toLowerCase() !== 'overdue', '"overdue" isn\'t a list (overdue tasks are just unfinished tasks from past days). Pick another list.');
-  const found = findList(c.v, n);
-  if (found) return found;
+  const found = c.v.d.lists.find(l => l.name.toLowerCase() === n.toLowerCase()) || findList(c.v, n);
+  if (found && found.id !== 'overdue') return found;   // (a new list may be called "overdue": it's free)
   need(LIST_NAME.test(n), `"${n}" can't be a list name: one word, letters and digits, like weekly or kitchenReno.`);
   const list = { id: newId(), name: n, sort_order: c.v.d.lists.length };
   await c.db.insert('lists', list);
@@ -578,6 +581,11 @@ async function updateTask(c: Ctx, args: any) {
 // The tasks a change is about: "ids" (several, one confirmation in the AI app) or "id". All are
 // checked before anything changes, so a typo in one id doesn't leave the rest half done.
 function targets(c: Ctx, args: any): Task[] {
+  if (args.overdue === true) {   // every overdue task (unfinished, planned for a past day)
+    const late = c.v.waiting('overdue');
+    need(late.length, 'Nothing is overdue.');
+    return late;
+  }
   if (args.from_list) {   // every task waiting in a list, or "overdue" for all overdue tasks
     const list = findList(c.v, args.from_list);
     need(list, `No list called @${String(args.from_list).replace(/^@/, '')}. Lists: ${listNames(c.v)}.`);
@@ -675,7 +683,7 @@ function ownList(c: Ctx, name: unknown, verb: string): List {
 async function renameList(c: Ctx, args: any) {
   const l = ownList(c, args.list, 'renamed');
   const name = String(args.new_name ?? '').replace(/^@/, '').trim();
-  need(!['triage', 'overdue'].includes(name.toLowerCase()), `"${name}" is reserved. Pick another.`);
+  need(name.toLowerCase() !== 'triage', '@triage is a built-in list name. Pick another.');
   need(LIST_NAME.test(name), `"${name}" can't be a list name: one word, letters and digits.`);
   const clash = findList(c.v, name);
   need(!clash || clash.id === l.id, `There's already a list called @${clash?.name}.`);

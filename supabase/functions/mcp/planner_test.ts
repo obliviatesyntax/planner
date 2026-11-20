@@ -149,7 +149,7 @@ Deno.test('add_task: @triage by default, a day, a calendar time, a new list', as
   assertStringIncludes(await call('add_task', { title: 'Sand it', list: 'birdhouse' }), '(new list @birdhouse)');
   assert(DB.lists.some(l => l.name === 'birdhouse'));
 
-  assertStringIncludes(await callError('add_task', { title: 'x', list: 'overdue' }), "isn't a list");
+  assertStringIncludes(await call('add_task', { title: 'x', list: 'overdue' }), '(new list @overdue)');   // the name is free
   assertStringIncludes(await callError('add_task', { title: 'x', labels: ['nope'] }), 'No label "nope"');
   assertStringIncludes(await callError('add_task', { title: 'x', date: '2026-13-45' }), "isn't a date");
   assertStringIncludes(await callError('add_task', { title: 'x', date: today, start_time: '25:00' }), "isn't a time");
@@ -258,12 +258,15 @@ Deno.test('add several tasks at once; top-level fields are defaults', async () =
   assertEquals(DB.tasks.length, before);
 });
 
-Deno.test('move a whole list (from_list), e.g. all of @overdue to tomorrow', async () => {
+Deno.test('move everything overdue (overdue: true) to tomorrow', async () => {
   fresh();
-  const text = await call('move_task', { from_list: 'overdue', date: 'tomorrow' });
+  const text = await call('move_task', { overdue: true, date: 'tomorrow' });
   assertStringIncludes(text, 'Book flights');
   assertEquals(row('tasks', 't4').plan_date, shift(1));
-  assertStringIncludes(await callError('move_task', { from_list: 'overdue', date: 'tomorrow' }), 'Nothing is overdue');
+  assertStringIncludes(await callError('move_task', { overdue: true, date: 'tomorrow' }), 'Nothing is overdue');
+  // a list you call @overdue is just a list, and wins over the view by name
+  await call('add_task', { title: 'Read the overdue book', list: 'overdue' });
+  assertStringIncludes(await call('get_lists', { list: 'overdue' }), 'Read the overdue book');
 });
 
 Deno.test('search by filters only: priority, label, list, added_on', async () => {
