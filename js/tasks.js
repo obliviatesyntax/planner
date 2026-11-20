@@ -6,7 +6,7 @@
 //     title:     "Renew passport",
 //     priority:  null | 1 | 2 | 3       null = not set
 //     labels:    ["k2j3", ...]          ids of labels; can be empty
-//     list:      "triage" | "overdue" | "k9x2…"   id of the list it sits in while not planned
+//     list:      "triage" | "k9x2…"   id of the list it sits in while not planned
 //     planDate:  null | "2026-11-17"    null = in its list; a date = committed to that day
 //     startMin:  null | 570             null = in that day's to-do list; a number = on the
 //                                       calendar at that many minutes after midnight (570 = 9:30)
@@ -74,16 +74,15 @@ const Tasks = (() => {
 
   const byOrder = (a, b) => a.order - b.order;
 
-  // @overdue is a view, not a place: unfinished tasks planned for a day before today. They keep
-  // their day and time in the database (nothing is moved); they just show in @overdue until you
-  // move them, tick them off or delete them. (Tasks saved in an "overdue" list by older versions
-  // of the app show there too.)
+  // Overdue is a view, not a list: unfinished tasks planned for a day before today. They keep
+  // their day and time in the database (nothing is moved); they just show under Overdue until
+  // you move them, tick them off or delete them. Oldest first.
   const isLate = t => !t.doneOn && t.planDate && t.planDate < todayISO();
+  function overdueTasks() {
+    return tasks.filter(isLate)
+      .sort((a, b) => a.planDate.localeCompare(b.planDate) || (a.startMin ?? 1e4) - (b.startMin ?? 1e4) || a.order - b.order);
+  }
   function listTasks(listId) {
-    if (listId === OVERDUE_LIST.id) {
-      return tasks.filter(t => isLate(t) || (!t.doneOn && !t.planDate && t.list === OVERDUE_LIST.id))
-        .sort((a, b) => (a.planDate || '').localeCompare(b.planDate || '') || (a.startMin ?? 1e4) - (b.startMin ?? 1e4) || a.order - b.order);
-    }
     return tasks.filter(t => !t.doneOn && !t.planDate && t.list === listId).sort(byOrder);
   }
   function planList(date) {
@@ -226,9 +225,7 @@ const Tasks = (() => {
   function allLists() {
     return [...lists].sort((a, b) => (b.id === TRIAGE_LIST.id) - (a.id === TRIAGE_LIST.id) || a.order - b.order);
   }
-  // OVERDUE_LIST is only an id now (tasks older versions moved into it show under Overdue); the
-  // name "overdue" is free, so a list you call @overdue is an ordinary list with its own id.
-  function list(id) { return id === OVERDUE_LIST.id ? OVERDUE_LIST : lists.find(l => l.id === id); }
+  function list(id) { return lists.find(l => l.id === id); }
   function findList(name) {
     return lists.find(l => l.name.toLowerCase() === name.toLowerCase());
   }
@@ -248,7 +245,7 @@ const Tasks = (() => {
   // A list's label (one existing label, or null for none). Tasks get it when moved onto the plan.
   function setListLabel(id, labelId) {
     const l = list(id);
-    if (!l || id === OVERDUE_LIST.id) return;
+    if (!l) return;
     l.label = labelId || null;
     commit();
   }
@@ -256,7 +253,7 @@ const Tasks = (() => {
   // Rename a list (not @triage). Returns the list, or an error message string.
   function renameList(id, name) {
     name = name.replace(/^@/, '').trim();
-    if (id === TRIAGE_LIST.id || id === OVERDUE_LIST.id) return 'Built-in lists can\'t be renamed.';
+    if (id === TRIAGE_LIST.id) return '@triage is built in and can\'t be renamed.';
     if (name.toLowerCase() === TRIAGE_LIST.name) return `@${name} is a built-in list name. Pick another.`;
     if (!LIST_NAME.test(name)) return 'A list name is one word: letters and digits, like @weekly or @upcomingE.';
     const clash = findList(name);
@@ -268,8 +265,7 @@ const Tasks = (() => {
 
   // Drag-to-reorder: put list `id` just before `beforeId` (or last). @triage stays first.
   function moveList(id, beforeId) {
-    if (id === TRIAGE_LIST.id || id === OVERDUE_LIST.id || id === beforeId) return;
-    if (beforeId === OVERDUE_LIST.id) beforeId = null;
+    if (id === TRIAGE_LIST.id || id === beforeId) return;
     const others = allLists().filter(l => l.id !== TRIAGE_LIST.id && l.id !== id);
     let index = beforeId ? others.findIndex(l => l.id === beforeId) : -1;
     if (index < 0) index = others.length;
@@ -280,7 +276,7 @@ const Tasks = (() => {
 
   // Deletes the list AND its (not yet planned) tasks. Returns what was removed, for Undo.
   function removeList(id) {
-    if (id === TRIAGE_LIST.id || id === OVERDUE_LIST.id) return null;
+    if (id === TRIAGE_LIST.id) return null;
     const removedList = list(id);
     const removedTasks = listTasks(id);
     lists = lists.filter(l => l.id !== id);
@@ -378,7 +374,7 @@ const Tasks = (() => {
 
   return {
     init, onChange, rollover, get,
-    listTasks, planList, calendarList, doneList,
+    listTasks, overdueTasks, planList, calendarList, doneList,
     add, update, cyclePriority, toggleDone, markDone, moveToList, moveToPlan, moveAllToPlan, restoreFields, moveToCalendar, remove, restore,
     allLists, list, findList, addList, renameList, setListLabel, moveList, removeList, restoreList,
     allLabels, label, findLabel, addLabel, updateLabel, removeLabel,

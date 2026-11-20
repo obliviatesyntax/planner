@@ -115,7 +115,6 @@ const TaskView = (() => {
           <div class="tv-when">
             <select class="tv-list ${inList ? 'on' : ''}">
               ${inList ? '' : `<option value="" selected>Choose a list…</option>`}
-              ${inList === OVERDUE_LIST.id ? '<option value="overdue" selected>Overdue</option>' : ''}
               ${lists.map(l => `<option value="${l.id}" ${l.id === inList ? 'selected' : ''}>@${escapeHtml(l.name)}</option>`).join('')}
             </select>
           </div>

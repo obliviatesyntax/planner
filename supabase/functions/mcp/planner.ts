@@ -320,7 +320,6 @@ class View {
   // Not done, planned on a day before today: overdue (shown in the Overdue section; they keep their day).
   isLate = (t: Task) => !t.done_on && !!t.plan_date && t.plan_date < this.today;
   listName(id: string) {
-    if (id === 'overdue') return 'overdue';
     if (id === 'triage') return 'triage';
     return this.d.lists.find(l => l.id === id)?.name ?? 'triage';   // unknown list: the app shows it in @triage
   }
@@ -348,11 +347,15 @@ class View {
     if (t.plan_date) return `on the to-do list for ${dayName(t.plan_date, this.today)}`;
     return `in @${this.listName(t.list_id)}`;
   }
+  // Overdue tasks (a view, not a list), oldest first.
+  overdue() {
+    return this.d.tasks.filter(this.isLate)
+      .sort((a, b) => a.plan_date!.localeCompare(b.plan_date!) || (a.start_min ?? 1e4) - (b.start_min ?? 1e4) || a.sort_order - b.sort_order);
+  }
   waiting(listId: string) {
     const byOrder = (a: Task, b: Task) => a.sort_order - b.sort_order;
     const tasks = this.d.tasks;
-    if (listId === 'overdue') return tasks.filter(t => !t.done_on && ((!t.plan_date && t.list_id === 'overdue') || this.isLate(t))).sort(byOrder);
-    const known = (id: string) => id === 'triage' || id === 'overdue' || this.d.lists.some(l => l.id === id);
+    const known = (id: string) => id === 'triage' || this.d.lists.some(l => l.id === id);
     return tasks.filter(t => !t.done_on && !t.plan_date && (t.list_id === listId || (listId === 'triage' && !known(t.list_id)))).sort(byOrder);
   }
 }
@@ -385,19 +388,24 @@ function getLists(v: View, args: any): string {
 }
 function listsBody(v: View, list: string): string {
   const wanted = list.replace(/^@/, '').trim().toLowerCase();
-  const lists = [
-    { id: 'overdue', name: 'overdue', label_id: null },
-    { id: 'triage', name: 'triage', label_id: null },
+  const own = [
+    { id: 'triage', name: 'triage', label_id: null as string | null | undefined },
     ...[...v.d.lists].filter(l => l.id !== 'triage').sort((a, b) => a.sort_order - b.sort_order),
-  ].filter(l => !wanted || l.name.toLowerCase() === wanted);
-  if (wanted && !lists.length) return `There's no list called @${wanted}. Lists: ${listNames(v)}.`;
+  ];
+  const lists = own.filter(l => !wanted || l.name.toLowerCase() === wanted);
+  // Overdue isn't a list, but it's shown first (and when asked for "overdue" with no such list).
+  const showOverdue = !wanted || (wanted === 'overdue' && !lists.length);
+  if (wanted && !lists.length && !showOverdue) return `There's no list called @${wanted}. Lists: ${listNames(v)}.`;
   const out: string[] = [];
+  const late = showOverdue ? v.overdue() : [];
+  if (late.length || (showOverdue && wanted)) {
+    out.push('## Overdue (unfinished tasks from past days; not a list: each keeps its day until moved)');
+    out.push(...(late.length ? late.map(t => v.line(t)) : ['- (nothing overdue)']), '');
+  }
   for (const l of lists) {
     const tasks = v.waiting(l.id);
-    if (l.id === 'overdue' && !tasks.length && !wanted) continue;   // the app hides Overdue when empty
     const label = l.label_id && v.d.labels.find(x => x.id === l.label_id);
-    out.push(l.id === 'overdue' ? '## Overdue (unfinished tasks from past days; not a list: each keeps its day until moved)'
-      : `## @${l.name}${label ? ` (label #${label.shortcut}: its tasks count as ${label.name})` : ''}`);
+    out.push(`## @${l.name}${label ? ` (label #${label.shortcut}: its tasks count as ${label.name})` : ''}`);
     out.push(...(tasks.length ? tasks.map(t => v.line(t)) : ['- (empty)']), '');
   }
   const labels = [...v.d.labels].sort((a, b) => a.sort_order - b.sort_order);
@@ -417,7 +425,7 @@ function searchTasks(v: View, args: any): string {
     && (!q || t.title.toLowerCase().includes(q) || (t.notes || '').toLowerCase().includes(q))
     && (priority === null || (t.priority || 0) === priority)
     && (!label || (t.labels || []).includes(label.id))
-    && (!list || (list.id === 'overdue' ? v.waiting('overdue').includes(t) : (!t.plan_date && !t.done_on && t.list_id === list.id)))
+    && (!list || (!t.plan_date && !t.done_on && t.list_id === list.id))
     && (!addedOn || v.added(t) === addedOn));
   const what = [q && `"${args.query}"`, priority !== null && `P${priority}`, label && `#${label.shortcut}`, list && `in @${list.name}`, addedOn && `added ${addedOn}`].filter(Boolean).join(', ');
   if (!found.length) return `${v.nowLine()}\nNo ${args?.include_done ? '' : 'open '}tasks match ${what}.`;
@@ -458,13 +466,9 @@ function findTask(v: View, id: unknown): Task {
   need(t, `No task with id ${id}. Use search_tasks or get_lists to find the id.`);
   return t!;
 }
-// A list by name. Your own lists win; "overdue" means the Overdue view only when you have no list
-// with that name (move_task also takes overdue: true, which is never ambiguous).
-function findList(v: View, name: unknown): List | { id: 'overdue' | 'triage'; name: string } | undefined {
+// A list by name (Overdue isn't a list: move_task takes overdue: true for that).
+function findList(v: View, name: unknown): List | { id: 'triage'; name: string } | undefined {
   const n = String(name ?? '').replace(/^@/, '').trim().toLowerCase();
-  const own = v.d.lists.find(l => l.id !== 'triage' && l.name.toLowerCase() === n);
-  if (own) return own;
-  if (n === 'overdue') return { id: 'overdue', name: 'overdue' };
   if (n === 'triage') return v.d.lists.find(l => l.id === 'triage') || { id: 'triage', name: 'triage' };
   return v.d.lists.find(l => l.name.toLowerCase() === n);
 }
@@ -510,8 +514,8 @@ const settings = (v: View) => v.d.user.user_metadata?.settings || {};
 // Finds an existing list or creates one, like typing @name in quick add.
 async function listFor(c: Ctx, name: unknown): Promise<{ id: string; name: string; created?: boolean }> {
   const n = String(name ?? '').replace(/^@/, '').trim();
-  const found = c.v.d.lists.find(l => l.name.toLowerCase() === n.toLowerCase()) || findList(c.v, n);
-  if (found && found.id !== 'overdue') return found;   // (a new list may be called "overdue": it's free)
+  const found = findList(c.v, n);
+  if (found) return found;
   need(LIST_NAME.test(n), `"${n}" can't be a list name: one word, letters and digits, like weekly or kitchenReno.`);
   const list = { id: newId(), name: n, sort_order: c.v.d.lists.length };
   await c.db.insert('lists', list);
@@ -582,15 +586,15 @@ async function updateTask(c: Ctx, args: any) {
 // checked before anything changes, so a typo in one id doesn't leave the rest half done.
 function targets(c: Ctx, args: any): Task[] {
   if (args.overdue === true) {   // every overdue task (unfinished, planned for a past day)
-    const late = c.v.waiting('overdue');
+    const late = c.v.overdue();
     need(late.length, 'Nothing is overdue.');
     return late;
   }
-  if (args.from_list) {   // every task waiting in a list, or "overdue" for all overdue tasks
+  if (args.from_list) {   // every task waiting in a list
     const list = findList(c.v, args.from_list);
     need(list, `No list called @${String(args.from_list).replace(/^@/, '')}. Lists: ${listNames(c.v)}.`);
     const waiting = c.v.waiting(list!.id);
-    need(waiting.length, list!.id === 'overdue' ? 'Nothing is overdue.' : `@${list!.name} is empty.`);
+    need(waiting.length, `@${list!.name} is empty.`);
     return waiting;
   }
   const ids: unknown[] = Array.isArray(args.ids) && args.ids.length ? args.ids : args.id !== undefined ? [args.id] : [];
@@ -675,7 +679,6 @@ async function createList(c: Ctx, args: any) {
 function ownList(c: Ctx, name: unknown, verb: string): List {
   const l = findList(c.v, name);
   need(l, `No list called @${String(name).replace(/^@/, '')}. Lists: ${listNames(c.v)}.`);
-  need(l!.id !== 'overdue', "Overdue isn't a list.");
   need(l!.id !== 'triage', `@triage is built in and can't be ${verb}.`);
   return l as List;
 }
@@ -695,7 +698,7 @@ async function renameList(c: Ctx, args: any) {
 
 async function setListLabel(c: Ctx, args: any) {
   const l = findList(c.v, args.list);
-  need(l && l.id !== 'overdue', `No list called @${String(args.list).replace(/^@/, '')} (Overdue isn't a list). Lists: ${listNames(c.v)}.`);
+  need(l, `No list called @${String(args.list).replace(/^@/, '')}. Lists: ${listNames(c.v)}.`);
   const label = String(args.label ?? '').trim() ? findLabel(c.v, args.label) : null;
   if (!c.v.d.lists.some(x => x.id === l!.id)) await c.db.insert('lists', { id: l!.id, name: l!.name, sort_order: -1 });   // @triage row, if missing
   await c.db.update('lists', l!.id, { label_id: label ? label.id : null });

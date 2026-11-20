@@ -112,7 +112,7 @@ const Dnd = (() => {
   // The list column under the mouse, and whether the dragged list goes before it or after it.
   function listTarget(e) {
     const col = e.target.closest('.list-col');
-    if (!col || col.dataset.list === OVERDUE_LIST.id) return null;   // @overdue stays put
+    if (!col) return null;
     const r = col.getBoundingClientRect();
     const after = e.clientX > r.left + r.width / 2 || col.dataset.list === TRIAGE_LIST.id;   // nothing goes before @triage
     return { col, after };

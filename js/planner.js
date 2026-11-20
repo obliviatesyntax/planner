@@ -264,11 +264,11 @@ const Planner = (() => {
   // Shown only while there are some, above Done today (on phones: right after the plan). Not a
   // drop target; drag each task to a day or a list.
   function overdueHtml() {
-    const all = Tasks.listTasks(OVERDUE_LIST.id);
+    const all = Tasks.overdueTasks();
     if (!all.length) return '';
     const tasks = all.filter(Labels.matches);
     return `
-      <aside class="overdue-panel" data-list="${OVERDUE_LIST.id}">
+      <aside class="overdue-panel">
         <h3>Overdue <span class="count">${all.length}</span>
           <button type="button" class="overdue-all" data-overdue-all title="Put every task shown here on today's to-do list">Move all to today</button></h3>
         <p class="overdue-note">Carried over from earlier days. Give each a new day or a list; this disappears once it's empty.</p>
@@ -420,7 +420,7 @@ const Planner = (() => {
   // today's to-do list, without a time. One Undo puts them all back.
   root.addEventListener('click', e => {
     if (!e.target.closest('[data-overdue-all]')) return;
-    const ids = Tasks.listTasks(OVERDUE_LIST.id).filter(Labels.matches).map(t => t.id);
+    const ids = Tasks.overdueTasks().filter(Labels.matches).map(t => t.id);
     if (!ids.length) return;
     const before = Tasks.moveAllToPlan(ids, todayISO());
     App.toast(`Moved ${ids.length} task${ids.length === 1 ? '' : 's'} to today`, 'Undo', () => Tasks.restoreFields(before));
