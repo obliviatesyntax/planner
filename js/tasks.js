@@ -221,7 +221,7 @@ const Tasks = (() => {
   // Returns the list (existing or new), or an error message string.
   function addList(name) {
     name = name.replace(/^@/, '').trim();
-    if (isOverdue(name)) return '@overdue is a built-in list: it collects unfinished tasks from past days. Pick another name.';
+    if (isOverdue(name)) return '"overdue" is reserved: unfinished tasks from past days show under Overdue. Pick another name.';
     if (!LIST_NAME.test(name)) return 'A list name is one word: letters and digits, like @weekly or @upcomingE.';
     const existing = findList(name);
     if (existing) return existing;

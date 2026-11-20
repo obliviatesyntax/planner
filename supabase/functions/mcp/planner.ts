@@ -18,7 +18,7 @@
 //   (moveToList, moveToPlan, moveToCalendar, inheritListLabel), done / not done (toggleDone,
 //   markDone), lists (addList, renameList, setListLabel, removeList) and labels (addLabel,
 //   suggestShortcut, removeLabel).
-// @overdue is a view in both: unfinished tasks planned for a past day show there, but keep their
+// "Overdue" is a view in both, not a list: unfinished tasks planned for a past day show there, but keep their
 // day and time in the database until moved.
 // A Planner tab that's already open doesn't see changes made here until it's reloaded.
 //
@@ -35,9 +35,10 @@ export type Env = { supabaseUrl: string; apiKey: string };
 const PROTOCOL_VERSIONS = ['2025-11-25', '2025-06-18', '2025-03-26', '2024-11-05'];
 const SERVER_INFO = { name: 'planner', title: 'Planner', version: '0.4.0' };
 const INSTRUCTIONS = `Planner is the user's daily planner. Tasks either wait in lists (@triage is the inbox,
-@overdue holds unfinished tasks from past days, other lists are projects like @salesDeck) or are planned
+other lists are projects like @salesDeck) or are planned
 on a day: on that day's calendar (with a time) or its to-do list (no time). Done tasks are logged on the
-day they were done. Priorities: P1 must do, P2 should do, P3 nice to have. Labels look like #w (Work).
+day they were done. Unfinished tasks planned for a past day are "overdue": they keep that day and time
+and show in an Overdue section (not a list) until moved, completed or deleted. Priorities: P1 must do, P2 should do, P3 nice to have. Labels look like #w (Work).
 Dates are in the user's time zone; get_plan with no date means today. Tools that change a task need its
 id: get it from get_plan, get_lists or search_tasks first. Lists and labels can be named without @ or #.
 Start with get_plan: it has the date and time, the plan and every list, so most questions need nothing else.
@@ -52,13 +53,13 @@ const READ_TOOLS = [
   {
     name: 'get_plan',
     title: 'Get the plan',
-    description: "Start here for most questions. The current date and time, the plan for one or more days (each day's calendar, to-do list and what was done), and by default everything waiting in lists (@overdue, @triage, projects) and the labels. Every task line has its id, time, priority, labels, the day it was added and a short note.",
+    description: "Start here for most questions. The current date and time, the plan for one or more days (each day's calendar, to-do list and what was done), and by default overdue tasks, everything waiting in lists (@triage, projects) and the labels. Every task line has its id, time, priority, labels, the day it was added and a short note.",
     inputSchema: {
       type: 'object',
       properties: {
         date: { type: 'string', description: 'First day: YYYY-MM-DD, or today, tomorrow, yesterday, a weekday ("friday", "next monday", "last friday"), "in 3 days". Default today.' },
         days: { type: 'integer', minimum: 1, maximum: 14, description: 'How many days from that date. Default 1.' },
-        include_lists: { type: 'boolean', description: 'Also list everything waiting in lists (@overdue, @triage, projects). Default true.' },
+        include_lists: { type: 'boolean', description: 'Also list overdue tasks and everything waiting in lists (@triage, projects). Default true.' },
       },
     },
     annotations: { title: 'Get the plan', ...READ_ONLY },
@@ -66,7 +67,7 @@ const READ_TOOLS = [
   {
     name: 'get_lists',
     title: 'Get lists',
-    description: 'Tasks waiting in lists, not yet planned on a day: @overdue (unfinished from past days), @triage (inbox) and project lists. Also returns the labels that exist.',
+    description: 'Tasks not yet planned on a day: overdue tasks (unfinished from past days; not a list), @triage (inbox) and project lists. Also returns the labels that exist.',
     inputSchema: {
       type: 'object',
       properties: {
@@ -150,7 +151,7 @@ const WRITE_TOOLS = [
   {
     name: 'move_task', title: 'Move tasks',
     description: "Move one task (id) or several (ids) to a list, to a day's to-do list (date), or to a day's calendar (date + start_time; several tasks are placed one after another from that time). Moving a done task makes it not done. A task leaving a list that has a label gets that label. Prefer one call with ids over many calls.",
-    inputSchema: { type: 'object', properties: { id: str('The task id.'), ids: { type: 'array', items: { type: 'string' }, description: 'Several task ids at once (one confirmation for all of them).' }, from_list: str('Instead of ids: every task waiting in this list, e.g. "overdue" to re-plan all of @overdue.'), ...WHERE } },
+    inputSchema: { type: 'object', properties: { id: str('The task id.'), ids: { type: 'array', items: { type: 'string' }, description: 'Several task ids at once (one confirmation for all of them).' }, from_list: str('Instead of ids: every task waiting in this list, or "overdue" for all overdue tasks.'), ...WHERE } },
     annotations: { title: 'Move tasks', ...CHANGE, idempotentHint: true },
   },
   {
@@ -161,7 +162,7 @@ const WRITE_TOOLS = [
   },
   {
     name: 'uncomplete_task', title: 'Mark tasks not done',
-    description: 'Undo "done" for one task (id) or several (ids). Each goes back where it was; if that was a past day, to @overdue.',
+    description: 'Undo "done" for one task (id) or several (ids). Each goes back where it was; if that was a past day, it shows as overdue.',
     inputSchema: { type: 'object', properties: { id: str('The task id.'), ids: { type: 'array', items: { type: 'string' }, description: 'Several task ids at once (one confirmation for all of them).' } } },
     annotations: { title: 'Mark tasks not done', ...CHANGE, idempotentHint: true },
   },
@@ -179,7 +180,7 @@ const WRITE_TOOLS = [
   },
   {
     name: 'rename_list', title: 'Rename a list',
-    description: 'Rename a list. @triage and @overdue are built in and can\'t be renamed.',
+    description: 'Rename a list. @triage is built in and can\'t be renamed.',
     inputSchema: { type: 'object', properties: { list: str('Current name.'), new_name: str('New name.') }, required: ['list', 'new_name'] },
     annotations: { title: 'Rename a list', ...CHANGE, idempotentHint: true },
   },
@@ -191,7 +192,7 @@ const WRITE_TOOLS = [
   },
   {
     name: 'delete_list', title: 'Delete a list',
-    description: 'Delete a list AND the tasks waiting in it. Tasks from it that are already planned or done stay (they move to @triage). @triage and @overdue can\'t be deleted.',
+    description: 'Delete a list AND the tasks waiting in it. Tasks from it that are already planned or done stay (they move to @triage). @triage can\'t be deleted.',
     inputSchema: { type: 'object', properties: { list: str('List name.') }, required: ['list'] },
     annotations: { title: 'Delete a list', ...DELETE },
   },
@@ -316,7 +317,7 @@ class View {
   added(t: Task) {   // the day the task was created, in the user's time zone
     return t.created_at ? todayIn(this.timeZone, new Date(t.created_at)) : null;
   }
-  // Not done, planned on a day before today: the app moves these to @overdue when it opens.
+  // Not done, planned on a day before today: overdue (shown in the Overdue section; they keep their day).
   isLate = (t: Task) => !t.done_on && !!t.plan_date && t.plan_date < this.today;
   listName(id: string) {
     if (id === 'overdue') return 'overdue';
@@ -342,7 +343,7 @@ class View {
   }
   where(t: Task) {
     if (t.done_on) return `done on ${dayName(t.done_on, this.today)}`;
-    if (this.isLate(t)) return `@overdue (planned for ${dayName(t.plan_date!, this.today)}${t.start_min != null ? ` at ${clock(t.start_min, this.hour12)}` : ''}; it keeps that day until moved)`;
+    if (this.isLate(t)) return `overdue (planned for ${dayName(t.plan_date!, this.today)}${t.start_min != null ? ` at ${clock(t.start_min, this.hour12)}` : ''}; it keeps that day until moved)`;
     if (t.plan_date && t.start_min != null) return `on the calendar ${dayName(t.plan_date, this.today)} at ${clock(t.start_min, this.hour12)}`;
     if (t.plan_date) return `on the to-do list for ${dayName(t.plan_date, this.today)}`;
     return `in @${this.listName(t.list_id)}`;
@@ -367,7 +368,7 @@ function getPlan(v: View, args: any): string {
     const todo = open.filter(t => t.start_min == null).sort((a, b) => a.sort_order - b.sort_order);
     const done = v.d.tasks.filter(t => t.done_on === date);
     out.push('', `## ${dayName(date, v.today)} (${date})`);
-    if (date < v.today && (calendar.length || todo.length)) out.push(`(Its ${calendar.length + todo.length} unfinished task(s) are in @overdue now.)`);
+    if (date < v.today && (calendar.length || todo.length)) out.push(`(Its ${calendar.length + todo.length} unfinished task(s) are overdue now.)`);
     else {
       out.push('Calendar:', ...(calendar.length ? calendar.map(t => v.line(t, { time: true })) : ['- (nothing)']));
       out.push('To-do:', ...(todo.length ? todo.map(t => v.line(t)) : ['- (nothing)']));
@@ -389,13 +390,14 @@ function listsBody(v: View, list: string): string {
     { id: 'triage', name: 'triage', label_id: null },
     ...[...v.d.lists].filter(l => l.id !== 'triage').sort((a, b) => a.sort_order - b.sort_order),
   ].filter(l => !wanted || l.name.toLowerCase() === wanted);
-  if (wanted && !lists.length) return `There's no list called @${wanted}. Lists: ${['overdue', 'triage', ...v.d.lists.filter(l => l.id !== 'triage').map(l => l.name)].map(n => `@${n}`).join(', ')}`;
+  if (wanted && !lists.length) return `There's no list called @${wanted}. Lists: ${listNames(v)}.`;
   const out: string[] = [];
   for (const l of lists) {
     const tasks = v.waiting(l.id);
-    if (l.id === 'overdue' && !tasks.length && !wanted) continue;   // the app hides an empty @overdue
+    if (l.id === 'overdue' && !tasks.length && !wanted) continue;   // the app hides Overdue when empty
     const label = l.label_id && v.d.labels.find(x => x.id === l.label_id);
-    out.push(`## @${l.name}${label ? ` (label #${label.shortcut}: its tasks count as ${label.name})` : ''}`);
+    out.push(l.id === 'overdue' ? '## Overdue (unfinished tasks from past days; not a list: each keeps its day until moved)'
+      : `## @${l.name}${label ? ` (label #${label.shortcut}: its tasks count as ${label.name})` : ''}`);
     out.push(...(tasks.length ? tasks.map(t => v.line(t)) : ['- (empty)']), '');
   }
   const labels = [...v.d.labels].sort((a, b) => a.sort_order - b.sort_order);
@@ -504,7 +506,7 @@ const settings = (v: View) => v.d.user.user_metadata?.settings || {};
 // Finds an existing list or creates one, like typing @name in quick add.
 async function listFor(c: Ctx, name: unknown): Promise<{ id: string; name: string; created?: boolean }> {
   const n = String(name ?? '').replace(/^@/, '').trim();
-  need(n.toLowerCase() !== 'overdue', '@overdue is built in: it only collects unfinished tasks from past days. Pick another list.');
+  need(n.toLowerCase() !== 'overdue', '"overdue" isn\'t a list (overdue tasks are just unfinished tasks from past days). Pick another list.');
   const found = findList(c.v, n);
   if (found) return found;
   need(LIST_NAME.test(n), `"${n}" can't be a list name: one word, letters and digits, like weekly or kitchenReno.`);
@@ -576,11 +578,11 @@ async function updateTask(c: Ctx, args: any) {
 // The tasks a change is about: "ids" (several, one confirmation in the AI app) or "id". All are
 // checked before anything changes, so a typo in one id doesn't leave the rest half done.
 function targets(c: Ctx, args: any): Task[] {
-  if (args.from_list) {   // every task waiting in a list, e.g. all of @overdue
+  if (args.from_list) {   // every task waiting in a list, or "overdue" for all overdue tasks
     const list = findList(c.v, args.from_list);
     need(list, `No list called @${String(args.from_list).replace(/^@/, '')}. Lists: ${listNames(c.v)}.`);
     const waiting = c.v.waiting(list!.id);
-    need(waiting.length, `@${list!.name} is empty.`);
+    need(waiting.length, list!.id === 'overdue' ? 'Nothing is overdue.' : `@${list!.name} is empty.`);
     return waiting;
   }
   const ids: unknown[] = Array.isArray(args.ids) && args.ids.length ? args.ids : args.id !== undefined ? [args.id] : [];
@@ -638,7 +640,7 @@ async function uncompleteTask(c: Ctx, args: any) {
   const notDone = tasks.find(t => !t.done_on);
   need(!notDone, `"${notDone?.title}" isn't done.`);
   return each(tasks, async t => {
-    const changes: Partial<Task> = { done_on: null };   // a past day's task then shows in @overdue (it keeps its day)
+    const changes: Partial<Task> = { done_on: null };   // a past day's task then shows as overdue (it keeps its day)
     await c.db.update('tasks', t.id, changes);
     Object.assign(t, changes);
     return done(c, t, 'Not done any more: ');
@@ -665,14 +667,15 @@ async function createList(c: Ctx, args: any) {
 function ownList(c: Ctx, name: unknown, verb: string): List {
   const l = findList(c.v, name);
   need(l, `No list called @${String(name).replace(/^@/, '')}. Lists: ${listNames(c.v)}.`);
-  need(l!.id !== 'triage' && l!.id !== 'overdue', `@${l!.name} is built in and can't be ${verb}.`);
+  need(l!.id !== 'overdue', "Overdue isn't a list.");
+  need(l!.id !== 'triage', `@triage is built in and can't be ${verb}.`);
   return l as List;
 }
 
 async function renameList(c: Ctx, args: any) {
   const l = ownList(c, args.list, 'renamed');
   const name = String(args.new_name ?? '').replace(/^@/, '').trim();
-  need(!['triage', 'overdue'].includes(name.toLowerCase()), `@${name} is a built-in list name. Pick another.`);
+  need(!['triage', 'overdue'].includes(name.toLowerCase()), `"${name}" is reserved. Pick another.`);
   need(LIST_NAME.test(name), `"${name}" can't be a list name: one word, letters and digits.`);
   const clash = findList(c.v, name);
   need(!clash || clash.id === l.id, `There's already a list called @${clash?.name}.`);
@@ -684,7 +687,7 @@ async function renameList(c: Ctx, args: any) {
 
 async function setListLabel(c: Ctx, args: any) {
   const l = findList(c.v, args.list);
-  need(l && l.id !== 'overdue', `No list called @${String(args.list).replace(/^@/, '')} (and @overdue can't have a label). Lists: ${listNames(c.v)}.`);
+  need(l && l.id !== 'overdue', `No list called @${String(args.list).replace(/^@/, '')} (Overdue isn't a list). Lists: ${listNames(c.v)}.`);
   const label = String(args.label ?? '').trim() ? findLabel(c.v, args.label) : null;
   if (!c.v.d.lists.some(x => x.id === l!.id)) await c.db.insert('lists', { id: l!.id, name: l!.name, sort_order: -1 });   // @triage row, if missing
   await c.db.update('lists', l!.id, { label_id: label ? label.id : null });

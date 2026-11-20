@@ -260,7 +260,7 @@ const Planner = (() => {
       </div>`;
   }
 
-  // @overdue: unfinished tasks planned for past days (a view; they keep their day and time).
+  // Overdue: unfinished tasks planned for past days (a view, not a list; they keep their day and time).
   // Shown only while there are some, above Done today (on phones: right after the plan). Not a
   // drop target; drag each task to a day or a list.
   function overdueHtml() {
@@ -269,7 +269,7 @@ const Planner = (() => {
     const tasks = all.filter(Labels.matches);
     return `
       <aside class="overdue-panel" data-list="${OVERDUE_LIST.id}">
-        <h3>@overdue <span class="count">${all.length}</span></h3>
+        <h3>Overdue <span class="count">${all.length}</span></h3>
         <p class="overdue-note">Carried over from earlier days. Give each a new day or a list; this disappears once it's empty.</p>
         <div class="list">${tasks.map(t => Cards.html(t, 'list')).join('')}</div>
       </aside>`;

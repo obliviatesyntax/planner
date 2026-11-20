@@ -84,7 +84,7 @@ const TaskView = (() => {
     const today = todayISO(), tomorrow = addDays(today, 1);
     const date = t.doneOn ? null : t.planDate;           // the day it's planned for (if any)
     const timed = date && t.startMin != null;
-    const late = date && date < today;                    // in @overdue: still has its old day and time
+    const late = date && date < today;                    // overdue: still has its old day and time
     const otherDate = date && !late && date !== today && date !== tomorrow ? date : '';
     const lists = Tasks.allLists();
     const inList = !date && !t.doneOn ? t.list : '';
@@ -97,7 +97,7 @@ const TaskView = (() => {
             <button type="button" data-day="${tomorrow}" class="${date === tomorrow ? 'on' : ''}">Tomorrow</button>
             <input type="date" class="tv-date ${otherDate ? 'on' : ''}" min="${today}" value="${otherDate}" title="Pick a day">
           </div>
-          ${late ? `<p class="tv-late">In @overdue: it was planned for ${formatDay(date)}${timed ? ` at ${formatTime(t.startMin)}` : ''}. Pick a new day or a list.</p>` : ''}
+          ${late ? `<p class="tv-late">Overdue: it was planned for ${formatDay(date)}${timed ? ` at ${formatTime(t.startMin)}` : ''}. Pick a new day or a list.</p>` : ''}
         </div>
         <div class="tv-row">
           <span class="tv-label"><i><svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg></i><b>Time</b></span>
@@ -115,7 +115,7 @@ const TaskView = (() => {
           <div class="tv-when">
             <select class="tv-list ${inList ? 'on' : ''}">
               ${inList ? '' : `<option value="" selected>Choose a list…</option>`}
-              ${inList === OVERDUE_LIST.id ? '<option value="overdue" selected>@overdue</option>' : ''}
+              ${inList === OVERDUE_LIST.id ? '<option value="overdue" selected>Overdue</option>' : ''}
               ${lists.map(l => `<option value="${l.id}" ${l.id === inList ? 'selected' : ''}>@${escapeHtml(l.name)}</option>`).join('')}
             </select>
           </div>

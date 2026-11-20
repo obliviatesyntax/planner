@@ -39,7 +39,7 @@ const App = (() => {
   function previewOf(text) {
     const parsed = parseQuickAdd(text);
     if (parsed.badList) return { error: `@${parsed.badList} isn't a valid list name: one word, letters and digits.` };
-    if (parsed.listName && Tasks.isOverdue(parsed.listName)) return { error: '@overdue is a built-in list; pick another name.' };
+    if (parsed.listName && Tasks.isOverdue(parsed.listName)) return { error: '"overdue" is reserved for overdue tasks; pick another list name.' };
     const when = parsed.listName ? null : When.parse(text);
     const planned = when && when.date;
     const title = planned ? parseQuickAdd(when.title).title : parsed.title;

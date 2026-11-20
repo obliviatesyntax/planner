@@ -33,7 +33,7 @@ const Settings = (() => {
     { group: 'tasks', key: 'defaultDuration', label: 'Length on the calendar', default: 30,
       choices: [15, 30, 45, 60, 90].map(m => [m, `${m} minutes`]) },
     { group: 'day', key: 'rolloverTo', label: 'Unfinished planned tasks go to', default: 'overdue',
-      choices: [['overdue', '@overdue, to re-plan'], ['nextDay', "The next day's to-do list"]] },
+      choices: [['overdue', 'Overdue, to re-plan'], ['nextDay', "The next day's to-do list"]] },
   ];
 
   // Bump when a default changes and existing accounts should get the new default too.
