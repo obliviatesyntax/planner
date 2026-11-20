@@ -1350,3 +1350,43 @@ body.playground .settings-block:has(#set-first-name), body.playground .settings-
 #lists .list-new-btn:hover { background: rgba(255, 255, 255, .6); }
 #lists .list-new-input { width: 100%; box-sizing: border-box; background: #fff; padding: 10px 12px; border-radius: var(--radius); }
 @media (max-width: 700px) { #lists { margin-top: 22px; padding-top: 16px; } }
+
+/* ---- help window ("Adding tasks", the i in the quick-add box; js/help.js) ----------------
+   (Restored: these were lost when quick add moved into the top bar.) */
+#help-dialog {
+  border: 1px solid var(--line); border-radius: 14px; padding: 0; width: min(640px, calc(100vw - 32px));
+  max-height: calc(100vh - 48px); box-shadow: var(--shadow-lg);
+}
+#help-dialog::backdrop { background: rgba(17, 24, 39, .3); }
+.help { padding: 20px 22px 22px; font-size: 14px; line-height: 1.5; }
+.help h3 { margin: 18px 0 6px; font-size: 12px; text-transform: uppercase; letter-spacing: .05em; color: var(--muted); }
+.help p { margin: 6px 0 0; }
+.help-table { width: 100%; border-collapse: collapse; }
+.help-table td { padding: 6px 8px; border-top: 1px solid var(--line-soft); vertical-align: top; }
+.help-table tr:first-child td { border-top: 0; }
+.help-table td:first-child { width: 55%; padding-left: 0; }
+.help-note { font-size: 12.5px; color: var(--muted); }
+.help-list { margin: 0; padding-left: 18px; }
+.help-list li { margin: 4px 0; }
+.help code, .help kbd {
+  font: 12px ui-monospace, SFMono-Regular, Menlo, monospace; background: var(--bg);
+  border: 1px solid var(--line); border-radius: 4px; padding: 0 4px; white-space: nowrap;
+}
+@media (max-width: 600px) {
+  .help { padding: 16px; }
+  .help-table td { display: block; width: auto !important; padding: 2px 0; border-top: 0; }
+  .help-table tr { display: block; padding: 6px 0; border-top: 1px solid var(--line-soft); }
+  .help-table tr:first-child { border-top: 0; }
+}
+
+/* Computers: a slimmer top bar (61 → ~50px). Phones keep the bigger, thumb-sized bottom bar. */
+@media (min-width: 701px) {
+  .topbar { padding-top: 6px; padding-bottom: 6px; }
+  #qa-title { padding-top: 7px; padding-bottom: 7px; }
+  .mic-btn { width: 36px; }
+  .quick-add .primary { padding-top: 6px; padding-bottom: 6px; }
+  .logo { width: 26px; height: 26px; }
+  .brand-name { font-size: 14px; }
+  .account .icon-only { width: 32px; height: 32px; }
+  .plan-side { top: 56px; }   /* sticks just under the slimmer bar */
+}
