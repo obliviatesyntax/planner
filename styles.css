@@ -449,9 +449,14 @@ main { padding: 0 24px; max-width: 1480px; margin: 0 auto; }
 .card.p1 .prio { background: var(--p1-soft); color: var(--p1); }
 .card.p2 .prio { background: var(--p2-soft); color: var(--p2-text); }
 .card.p3 .prio { background: var(--p3-soft); color: var(--p3); }
-/* No priority: the P button keeps its place at the far right but only shows on hover, faintly. */
-.card .prio.prio-empty { visibility: hidden; background: none; color: var(--faint); box-shadow: inset 0 0 0 1px var(--line); }
+/* No priority: a faint P appears on hover, floating at the top right (it takes no width, so
+   titles use the whole card). Done cards don't get it; touch screens hide it (see hover: none). */
+.card .prio.prio-empty {
+  visibility: hidden; position: absolute; top: 6px; right: 7px; z-index: 2;
+  background: rgba(255, 255, 255, .9); color: var(--faint); box-shadow: inset 0 0 0 1px var(--line);
+}
 .card:hover .prio.prio-empty { visibility: visible; }
+.card.done .prio.prio-empty, .card.done:hover .prio.prio-empty { display: none; }
 .card .prio.prio-empty:hover { color: var(--text); box-shadow: inset 0 0 0 1px #c7cbd3; }
 
 /* Hover buttons (# ×): float over the text just left of the priority, on a see-through
