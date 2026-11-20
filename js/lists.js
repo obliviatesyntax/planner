@@ -33,7 +33,6 @@ const Lists = (() => {
     root.innerHTML = `
       <div class="section-head">
         <h2>Lists</h2>
-        <span class="muted">Not planned yet. Drag a task up to a day or a time when you commit to it.</span>
         <div class="list-new">
           ${creating
             ? '<input class="list-new-input" placeholder="@listName, Enter" maxlength="31">'

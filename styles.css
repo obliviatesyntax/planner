@@ -1225,11 +1225,7 @@ body.playground .settings-block:has(#set-first-name), body.playground .settings-
   .lp-stepbar-or { display: none; }
 }
 
-/* Phones: the Lists header is just "Lists" and "+ New list" on the right (no helper text) */
-@media (max-width: 700px) {
-  #lists .section-head > .muted { display: none; }
-  #lists .section-head { flex-wrap: nowrap; }
-}
+
 
 /* task window: an overdue task says which day it was planned for */
 .tv-late { grid-column: 2; margin: -4px 0 0; font-size: 12.5px; color: var(--p1); }
@@ -1325,3 +1321,18 @@ body.playground .settings-block:has(#set-first-name), body.playground .settings-
 .list > .card:hover { background: #eef0fb; border-color: #c7d2fe; }
 .list > .card.done:hover { background: #eceef3; border-color: #d1d5db; }
 .list > .card .prio.prio-empty { top: 4px; }   /* the hover "P" lines up with the tighter padding */
+
+/* Lists: no header row. "Lists" and "+ New list" sit on the top border of the lists box, like a
+   label on a folder tab, so the whole header row is saved (laptops and phones alike). */
+#lists { position: relative; margin-top: 26px; padding-top: 18px; }
+#lists > .section-head {
+  position: absolute; top: -12px; left: 12px; right: 12px; margin: 0; flex-wrap: nowrap; pointer-events: none;
+}
+#lists > .section-head > * { pointer-events: auto; }
+#lists > .section-head h2 {
+  background: #eef0f4; border: 1px solid #e2e5eb; border-radius: 99px; padding: 2px 12px; font-size: 13px;
+}
+#lists .list-new-btn { background: #eef0f4; border-style: solid; border-color: #e2e5eb; border-radius: 99px; padding: 3px 12px; }
+#lists .list-new-btn:hover { background: #fff; }
+#lists .list-new-input { background: #fff; border-radius: 99px; padding: 4px 12px; }
+@media (max-width: 700px) { #lists { margin-top: 22px; padding-top: 16px; } }
