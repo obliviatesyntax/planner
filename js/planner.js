@@ -168,7 +168,7 @@ const Calendar = (() => {
     if (duration) Tasks.update(id, { duration }); else App.renderAll();
   });
 
-  // "▲ 2 earlier" / "▼ 1 later" pills for tasks scrolled out of view. They float over the top and
+  // "▲ 2 earlier" / "▼ 1 later" pills (today only) for tasks scrolled out of view. They float over the top and
   // bottom edge of the calendar (.cal-wrap), so showing or hiding them never moves anything.
   // Click one to scroll there.
   function hintsRowHtml(dates, where) {
@@ -180,7 +180,8 @@ const Calendar = (() => {
     const box = scroller.closest('.plan-days');
     const top = scroller.scrollTop, bottom = top + scroller.clientHeight;
     scroller.querySelectorAll('.cal-day').forEach(day => {
-      const events = [...day.querySelectorAll('.card.event')];
+      // Only today gets pills; other days' tasks outside the window are left alone.
+      const events = day.dataset.date === todayISO() ? [...day.querySelectorAll('.card.event')] : [];
       const above = events.filter(el => el.offsetTop + el.offsetHeight <= top + 4);
       const below = events.filter(el => el.offsetTop >= bottom - 4);
       const fill = (where, list, text, to) => {
