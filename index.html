@@ -30,7 +30,7 @@
         <a href="#features">Features</a>
         <a href="#pricing">Pricing</a>
         <a href="#faq">FAQ</a>
-        <a href="?playground">Playground</a>
+        <a href="?playground">Interactive preview</a>
       </nav>
       <div class="lp-nav-cta">
         <button type="button" class="lp-btn-ghost" data-auth="signin">Sign in</button>
@@ -50,7 +50,7 @@
         </p>
         <div class="lp-hero-cta">
           <button type="button" class="primary lp-big" data-auth="signup">Get started, it's free</button>
-          <a href="?playground" class="lp-btn-ghost lp-big">Try the playground →</a>
+          <a href="?playground" class="lp-btn-ghost lp-big">Try the interactive preview →</a>
         </div>
         <ul class="lp-checks">
           <li>Everything on one screen</li>
@@ -124,13 +124,16 @@
          1) types "Add Q3 numbers @salesDeck" (live preview popup) → it lands in @salesDeck
          2) types "Call mom at 9PM" (preview: today, 9 PM) → it lands on today's calendar
          3) drags "Renew passport" from @triage onto today's to-do list
-         4) ticks "Reply to Sam" off: pop, burst, it flies into Done today -------------------- -->
+         4) ticks "Reply to Sam" off
+         5) asks an AI app to make a @tahoeTrip list with 4 tasks and put one on tomorrow: pop, burst, it flies into Done today -------------------- -->
     <section class="lp-preview-wrap" aria-label="What Planner looks like">
       <!-- Which step of Capture → Commit → Complete the animation is showing (js/landing.js → pvStep) -->
       <div class="lp-stepbar" id="pv-steps" aria-hidden="true">
         <div class="lp-stepbar-item" data-step="capture"><b>1</b>Capture</div><i>→</i>
         <div class="lp-stepbar-item" data-step="commit"><b>2</b>Commit</div><i>→</i>
         <div class="lp-stepbar-item" data-step="complete"><b>3</b>Complete</div>
+        <span class="lp-stepbar-or">or</span>
+        <div class="lp-stepbar-item lp-stepbar-ai" data-step="ai"><b>✨</b>Ask your AI</div>
       </div>
       <p class="lp-step-caption" id="pv-caption" aria-live="off">&nbsp;</p>
       <div class="lp-window" id="pv">
@@ -180,9 +183,14 @@
             <div class="lp-list"><b>@birdhouse</b><div class="m-card p0"><i></i>Buy cedar planks</div><div class="m-card p3"><i></i>Find a 1.5" hole saw <u>P3</u></div></div>
           </div>
         </div>
+        <!-- 5) "Ask your AI": a chat window slides in (js/landing.js → pvLoop) -->
+        <div class="lp-pv-chat" id="pv-chat" hidden>
+          <div class="lp-pv-chat-head"><span>✨</span> Your AI app <em>Claude · ChatGPT · Gemini</em></div>
+          <div class="lp-pv-chat-body" id="pv-chat-body"></div>
+        </div>
         <svg class="lp-hand" id="pv-cursor" viewBox="0 0 24 24" width="26" height="26" aria-hidden="true"><path d="M5 3l14 8-6 1.5L10 19z" fill="#111827" stroke="#fff" stroke-width="1.5" stroke-linejoin="round"/></svg>
       </div>
-      <a href="?playground" class="lp-try">Try it yourself in the playground, no account needed. Nothing is saved →</a>
+      <a href="?playground" class="lp-try">Try it yourself in the interactive preview: no account needed, nothing is saved →</a>
     </section>
 
 
@@ -440,7 +448,7 @@
       <h2>Ready for a calmer day?</h2>
       <p>Set up in under a minute. Free to use.</p>
       <button type="button" class="lp-btn-light lp-big" data-auth="signup">Get started</button>
-      <p class="lp-final-try"><a href="?playground">or try the playground first</a></p>
+      <p class="lp-final-try"><a href="?playground">or try the interactive preview first</a></p>
     </section>
 
     <footer class="lp-footer">
@@ -465,7 +473,7 @@
   <div id="app" hidden>
   <!-- Only in playground mode (index.html?playground, js/playground.js): says nothing is saved -->
   <div class="pg-banner pg-only" role="status">
-    <span class="pg-badge">Playground</span>
+    <span class="pg-badge">Interactive preview</span>
     <span class="pg-text">Try anything: add, drag, tick off, delete. <b>Nothing is saved</b>, and reloading starts over.</span>
     <span class="pg-actions">
       <button type="button" class="pg-reset" data-reset>Start over</button>
@@ -633,6 +641,14 @@
 
       <h3 class="connect-h">2. Then just ask <span class="muted">(click one to copy it)</span></h3>
       <div class="connect-examples">
+        <section class="connect-big">
+          <h4>Big asks, in one message</h4>
+          <button type="button" data-ask>Make a new list @tahoeTrip: book the cabin, rent skis, pack snow chains, buy lift tickets. Put the cabin on tomorrow.</button>
+          <button type="button" data-ask>Here are my notes from today's meeting: … Turn them into tasks in @salesDeck, P1 for anything due this week.</button>
+          <button type="button" data-ask>Make a 10-item packing list for a ski weekend in a new list @packing.</button>
+          <button type="button" data-ask>Look at @overdue and @triage and plan tomorrow for me: the important ones in the morning, an hour each.</button>
+          <button type="button" data-ask>What did I finish this week? Write it up as a short status update.</button>
+        </section>
         <section>
           <h4>See your day</h4>
           <button type="button" data-ask>What's on my plan today?</button>

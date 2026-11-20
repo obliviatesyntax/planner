@@ -693,7 +693,10 @@ html { scroll-behavior: smooth; }
 .lp-brand { display: inline-flex; align-items: center; gap: 9px; font-weight: 800; font-size: 17px; color: var(--text); text-decoration: none; }
 .lp-brand .logo { width: 28px; height: 28px; }
 .lp-links { display: flex; gap: 22px; margin-left: 12px; }
-.lp-links a { color: var(--muted); text-decoration: none; font-weight: 500; }
+.lp-links a { color: var(--muted); text-decoration: none; font-weight: 500; white-space: nowrap; }
+.lp-nav-cta > * { white-space: nowrap; }
+/* Too narrow for every link on one line: show only Sign in / Get started (the page is one scroll anyway) */
+@media (max-width: 1120px) { .lp-links { display: none; } }
 .lp-links a:hover { color: var(--text); }
 .lp-nav-cta { margin-left: auto; display: flex; gap: 8px; align-items: center; }
 .lp-btn-ghost {
@@ -1073,6 +1076,8 @@ body.playground .settings-block:has(#set-first-name), body.playground .settings-
 .connect-app ol { margin-top: 0; margin-bottom: 0; padding-left: 20px; }
 .connect-examples { display: grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); gap: 14px; }
 .connect-examples section { display: flex; flex-direction: column; gap: 6px; align-items: flex-start; }
+.connect-examples .connect-big { grid-column: 1 / -1; padding: 10px 12px; border-radius: 12px; background: linear-gradient(90deg, #eef2ff, #fdf4ff); }
+.connect-examples .connect-big button { background: #fff; }
 .connect-examples h4 { margin: 0; font-size: 12.5px; color: var(--muted); font-weight: 600; }
 .connect-examples button {
   text-align: left; font: inherit; font-size: 13px; line-height: 1.4; padding: 6px 10px; border-radius: 10px;
@@ -1186,3 +1191,29 @@ body.playground .settings-block:has(#set-first-name), body.playground .settings-
 .lp-how-head p { margin: 0; color: #4b5563; line-height: 1.6; font-size: 15.5px; }
 /* the why section: cards, then the comparison table */
 #why .lp-hybrid { margin-bottom: 40px; }
+
+/* landing preview, beat 5: an AI chat window over the app picture */
+.lp-stepbar-or { color: var(--faint); font-size: 13px; font-weight: 600; }
+.lp-stepbar-ai b { background: #fdf4ff; }
+.lp-stepbar-ai.on { color: #9333ea; border-color: #e9d5ff; background: #faf5ff; box-shadow: 0 6px 18px rgba(147, 51, 234, .18); }
+.lp-stepbar-ai.on b { background: linear-gradient(135deg, #4f46e5, #9333ea); color: #fff; }
+#pv { position: relative; }
+.lp-pv-chat {
+  position: absolute; right: 18px; bottom: 18px; width: 340px; z-index: 6; border-radius: 16px; overflow: hidden;
+  background: #fff; border: 1px solid #e9d5ff; box-shadow: 0 24px 60px rgba(49, 46, 129, .25);
+  opacity: 0; transform: translateY(14px) scale(.98); transition: opacity .35s, transform .35s;
+}
+.lp-pv-chat.show { opacity: 1; transform: none; }
+.lp-pv-chat-head { display: flex; align-items: center; gap: 6px; padding: 9px 12px; font-weight: 700; font-size: 13px; background: linear-gradient(90deg, #eef2ff, #fdf4ff); border-bottom: 1px solid #ede9fe; }
+.lp-pv-chat-head em { margin-left: auto; font-style: normal; font-weight: 500; font-size: 11px; color: var(--muted); }
+.lp-pv-chat-body { display: flex; flex-direction: column; gap: 8px; padding: 12px; min-height: 150px; font-size: 13px; line-height: 1.45; }
+.lp-pv-msg { padding: 8px 11px; border-radius: 13px; max-width: 92%; }
+.lp-pv-msg.you { align-self: flex-end; background: var(--accent); color: #fff; border-bottom-right-radius: 4px; min-height: 1.45em; }
+.lp-pv-msg.bot { align-self: flex-start; background: var(--bg); border: 1px solid var(--line); border-bottom-left-radius: 4px; }
+.lp-pv-tool { align-self: flex-start; font-size: 11.5px; color: var(--muted); display: flex; gap: 6px; align-items: center; }
+.lp-pv-tool span { font-weight: 700; color: var(--accent); background: var(--accent-soft); padding: 1px 7px; border-radius: 99px; }
+.lp-app-lists.ai-on .lp-list:last-child { display: none; }   /* the new list takes the first spot */
+@media (max-width: 640px) {
+  .lp-pv-chat { left: 10px; right: 10px; bottom: 10px; width: auto; }
+  .lp-stepbar-or { display: none; }
+}

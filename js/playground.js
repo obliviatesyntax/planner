@@ -1,4 +1,5 @@
-// playground.js — playground mode: index.html?playground (PLAYGROUND in config.js).
+// playground.js — the interactive preview ("playground mode" in the code): index.html?playground
+// (PLAYGROUND in config.js). Users see it called "Interactive preview".
 //
 // The same page and the same code as the real app, with two things swapped out, so nothing
 // needs a copy:
@@ -9,9 +10,9 @@
 
 if (PLAYGROUND) {
   document.body.classList.add('playground');
-  document.title = 'Planner playground';
+  document.title = 'Planner · Interactive preview';
 
-  const guest = { email: 'playground', user_metadata: { first_name: 'Guest' } };
+  const guest = { email: 'interactive preview', user_metadata: { first_name: 'Guest' } };
   Object.assign(Auth, {
     currentUser: async () => guest,
     needsNewPassword: () => false,

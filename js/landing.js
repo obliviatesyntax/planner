@@ -142,6 +142,7 @@ const Landing = (() => {
   //   2. type "Call mom at 9PM" (the preview shows 📅 today, 9 PM) → it lands on today's calendar
   //   3. drag "Renew passport" from @triage onto today's to-do list
   //   4. tick "Reply to Sam" off: checkbox pop, green flash, burst, it flies into Done today
+  //   5. ask an AI app (one message): a new @tahoeTrip list with 4 tasks, one of them on tomorrow
 
   const pv = document.getElementById('pv');
   const pvInput = document.getElementById('pv-input');
@@ -166,7 +167,19 @@ const Landing = (() => {
     pvCaption.classList.add('show');
   }
 
+  const pvChat = document.getElementById('pv-chat');
+  const pvChatBody = document.getElementById('pv-chat-body');
+  const pvLists = document.getElementById('pv-lists');
+  const pvTomorrow = document.getElementById('pv-tomorrow');
+  const AI_ASK = '@Planner make a new list @tahoeTrip: book the cabin, rent skis, pack snow chains, buy lift tickets. Put the cabin on tomorrow.';
+
   function pvReset() {
+    pvChat.hidden = true;
+    pvChat.classList.remove('show');
+    pvChatBody.innerHTML = '';
+    pvLists.classList.remove('ai-on');
+    pvLists.querySelectorAll('.lp-new').forEach(el => el.remove());
+    pvTomorrow.querySelectorAll('.lp-new').forEach(el => el.remove());
     pvInput.textContent = '';
     pvPopup.hidden = true;
     pvTodo.innerHTML = '<div class="m-card p1"><i></i>Finish launch doc <s class="m-tag" style="--c:#5f3dc4">#w</s><u>P1</u></div>'
@@ -272,7 +285,26 @@ const Landing = (() => {
         void pvDoneCount.offsetWidth;   // restart the bump animation
         pvDoneCount.classList.add('bump');
       });
-      await sleep(3200);
+      await sleep(2200);
+
+      // 5. Ask an AI app: one message makes a new list with 4 tasks and plans one for tomorrow.
+      pvStep('ai', '<b>Or just ask your AI</b>: one message in Claude, ChatGPT or Gemini, and it\'s done in Planner.');
+      pvChat.hidden = false;
+      void pvChat.offsetWidth;
+      pvChat.classList.add('show');
+      await sleep(500);
+      pvChatBody.insertAdjacentHTML('beforeend', '<div class="lp-pv-msg you"></div>');
+      const ask = pvChatBody.lastElementChild;
+      for (let n = 1; n <= AI_ASK.length; n++) { ask.textContent = AI_ASK.slice(0, n); await sleep(22); }
+      await sleep(600);
+      pvChatBody.insertAdjacentHTML('beforeend', '<div class="lp-pv-tool lp-pop"><span>Planner</span> add_task × 4 · move_task</div>');
+      await sleep(900);
+      pvLists.classList.add('ai-on');   // make room: the new list takes the first spot
+      pvLists.insertAdjacentHTML('afterbegin', '<div class="lp-list lp-pop lp-new"><b>@tahoeTrip</b>'
+        + plain('Rent skis') + plain('Pack snow chains') + plain('Buy lift tickets') + '</div>');
+      pvTomorrow.insertAdjacentHTML('beforeend', plain('Book the cabin', 'lp-pop lp-new'));
+      pvChatBody.insertAdjacentHTML('beforeend', '<div class="lp-pv-msg bot lp-pop">Done. Made <b>@tahoeTrip</b> with 4 tasks, and put <b>Book the cabin</b> on tomorrow.</div>');
+      await sleep(3800);
     }
     pvRunning = false;
   }
