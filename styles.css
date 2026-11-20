@@ -1295,7 +1295,4 @@ body.playground .settings-block:has(#set-first-name), body.playground .settings-
    picker sits at the calendar's right edge, not above "Done today" (its column + the 14px gap). */
 @media (min-width: 901px) {
   #planner .section-head { margin-right: calc(var(--done-w) + 14px); }
-  /* Done today is exactly as tall as the plan next to it and scrolls inside when it's longer, so a
-     long done list never pushes Lists down. (contain: size = its own content doesn't size it.) */
-  .done-today { contain: size; align-self: stretch; overflow-y: auto; position: static; min-height: 260px; }   /* but never squeezed below 260px */
 }
