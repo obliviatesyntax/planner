@@ -403,10 +403,17 @@ main { padding: 0 24px; max-width: 1480px; margin: 0 auto; }
 .list-col.drop-after::after { right: -7px; }
 .list-head { display: flex; align-items: center; gap: 6px; padding: 2px 4px 4px; font-weight: 600; }
 .list-head[draggable="true"] { cursor: grab; }
-.overdue-col { border-color: #fecaca; background: #fffbfb; }
-.overdue-col .list-name { color: var(--p1); }
-.overdue-col .count { background: var(--p1-soft); color: var(--p1); }
-.overdue-note { margin: 0 4px 2px; font-size: 12px; color: var(--muted); }
+/* Right of the plan (below it on narrow screens): @overdue, when there is any, then Done today */
+.plan-side { display: flex; flex-direction: column; gap: 14px; position: sticky; top: 64px; align-self: start; min-width: 0; }
+.plan-side .done-today { position: static; }
+.overdue-panel {
+  padding: 12px 14px; display: flex; flex-direction: column; gap: 6px;
+  background: #fffbfb; border: 1px solid #fecaca; border-radius: var(--radius); box-shadow: var(--shadow);
+}
+.overdue-panel h3 { margin: 0; font-size: 13px; font-weight: 700; color: var(--p1); }
+.overdue-panel .count { background: var(--p1-soft); color: var(--p1); }
+.overdue-note { margin: 0; font-size: 12px; color: var(--muted); line-height: 1.4; }
+@media (max-width: 900px) { .plan-side { position: static; } }
 .list-del { margin-left: auto; border: 0; background: none; color: var(--faint); line-height: 1; visibility: hidden; display: inline-grid; place-items: center; padding: 2px; }
 .list-del svg { pointer-events: none; display: block; }
 .list-col:hover .list-del { visibility: visible; }

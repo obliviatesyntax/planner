@@ -37,7 +37,8 @@ user-agent sniffing: a narrow desktop window behaves like a phone.
 | **Default plan view** | **2 days** (setting: "On a computer, open in") | **1 day** (setting: "On a phone, open in") |
 | **Views offered** | 1 day · 2 days · Week · List | 1 day · 2 days · List (**no Week**: seven columns don't fit) |
 | **1-day view** | To-do list on the left, tall calendar on the right | To-do list above the calendar |
-| **Done today panel** | Right of the plan, **300px** wide (`--done-w`), sticky, full height (no inner scrolling) | Below the plan, full height |
+| **@overdue** | Its own panel in the right-hand column, **above Done today** (only while it has tasks), never among your lists, so lists don't shift when it appears | Right **after the plan**, before Done today |
+| **Done today panel** | Right of the plan, **300px** wide (`--done-w`), full height (no inner scrolling); the column (@overdue + Done today) is sticky | Below @overdue, full height |
 | **Calendar blocks** | Relaxed in 1 day and 2 days (short time + P tag); compressed in Week | Relaxed in 1 day; compressed in 2 days (see below) |
 | **Hover buttons** (task P # 🗑, label 🗑, list 🗑) | Appear on mouse hover | **Hidden on any touch screen** (`@media (hover: none)`), since a tap would fake a hover. Tap a task or list to open its window; labels are managed in **Settings → Labels** |
 | **Opening a task** | Click a task: centred window | Tap a task: **bottom sheet** (≤ 600px) |

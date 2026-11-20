@@ -260,6 +260,21 @@ const Planner = (() => {
       </div>`;
   }
 
+  // @overdue: unfinished tasks planned for past days (a view; they keep their day and time).
+  // Shown only while there are some, above Done today (on phones: right after the plan). Not a
+  // drop target; drag each task to a day or a list.
+  function overdueHtml() {
+    const all = Tasks.listTasks(OVERDUE_LIST.id);
+    if (!all.length) return '';
+    const tasks = all.filter(Labels.matches);
+    return `
+      <aside class="overdue-panel" data-list="${OVERDUE_LIST.id}">
+        <h3>@overdue <span class="count">${all.length}</span></h3>
+        <p class="overdue-note">Carried over from earlier days. Give each a new day or a list; this disappears once it's empty.</p>
+        <div class="list">${tasks.map(t => Cards.html(t, 'list')).join('')}</div>
+      </aside>`;
+  }
+
   function donePanelHtml() {
     const today = todayISO();
     const done = Tasks.doneList(today).filter(Labels.matches);
@@ -378,7 +393,7 @@ const Planner = (() => {
       </div>
       <div class="plan-layout">
         ${cal ? cal.html : listViewHtml()}
-        ${donePanelHtml()}
+        <div class="plan-side">${overdueHtml()}${donePanelHtml()}</div>
       </div>`;
 
     flowSizes.disconnect();

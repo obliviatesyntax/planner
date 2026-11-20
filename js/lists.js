@@ -6,8 +6,8 @@
 //
 // Lists sit in fixed columns, dealt in order (see render()).
 //
-// @overdue (built in) comes first, but only while it has tasks: yesterday's unfinished ones.
-// Move each to a day or another list and it disappears. You can't add to it or drop into it.
+// @overdue is not drawn here: it sits next to the plan, above Done today (planner.js), so its
+// coming and going never shifts your lists around.
 
 const Lists = (() => {
   const root = document.getElementById('lists');
@@ -27,7 +27,7 @@ const Lists = (() => {
 
   function render() {
     columns = columnCount();
-    const items = [overdueHtml(), ...Tasks.allLists().map(listHtml)].filter(Boolean)
+    const items = Tasks.allLists().map(listHtml)
       .map((html, i) => html.replace('class="list-col', `data-order="${i}" class="list-col`));
     // "+ New list" takes the spot the next list would get (dealt like a list, always last).
     items.push(`
@@ -68,22 +68,6 @@ const Lists = (() => {
   function listTagHtml(l) {
     const lab = l.label && Tasks.label(l.label);
     return lab ? `<span class="tag" style="--c:${lab.color}" title="Tasks moved from this list onto a day get #${escapeHtml(lab.shortcut)}">#${escapeHtml(lab.shortcut)}</span>` : '';
-  }
-
-  // The @overdue column: no drop target, no "+ Add", no delete, not draggable.
-  function overdueHtml() {
-    const all = Tasks.listTasks(OVERDUE_LIST.id);
-    if (!all.length) return '';
-    const tasks = all.filter(Labels.matches);
-    return `
-      <div class="list-col overdue-col" data-list="${OVERDUE_LIST.id}">
-        <div class="list-head">
-          <span class="list-name">@overdue</span>
-          <span class="count">${all.length}</span>
-        </div>
-        <p class="overdue-note">Carried over from earlier days. Give each a new day or a list; this list disappears once it's empty.</p>
-        <div class="list">${tasks.map(t => Cards.html(t, 'list')).join('')}</div>
-      </div>`;
   }
 
   root.addEventListener('click', e => {
