@@ -33,7 +33,7 @@ const Dnd = (() => {
       grabOffset = card.classList.contains('event') ? e.clientY - card.getBoundingClientRect().top : 0;
       e.dataTransfer.setData('text/plain', dragId);
       requestAnimationFrame(() => card.classList.add('dragging'));
-      showDropBar();
+      showDropBar(Tasks.get(dragId));
     } else if (listHead) {
       listDragId = listHead.dataset.listDrag;
       e.dataTransfer.setData('text/plain', listDragId);
@@ -150,13 +150,17 @@ const Dnd = (() => {
   // ---- phone drop bar ----------------------------------------------------------
 
   const dropBar = document.getElementById('drop-bar');
-  function showDropBar() {
-    const today = todayISO();
-    dropBar.innerHTML = `
-      <div class="drop-target" data-drop="plan" data-date="${today}">Today</div>
-      <div class="drop-target" data-drop="plan" data-date="${addDays(today, 1)}">Tomorrow</div>
-      <div class="drop-target" data-drop="list" data-list="${TRIAGE_LIST.id}">Triage</div>
-      <div class="drop-target delete" data-drop="delete">Delete</div>`;
+  // Only places the task isn't already in: no "Today" for a task planned for today, and so on.
+  function showDropBar(task) {
+    const today = todayISO(), tomorrow = addDays(today, 1);
+    const open = task && !task.doneOn;
+    const targets = [
+      !(open && task.planDate === today) && `<div class="drop-target" data-drop="plan" data-date="${today}">Today</div>`,
+      !(open && task.planDate === tomorrow) && `<div class="drop-target" data-drop="plan" data-date="${tomorrow}">Tomorrow</div>`,
+      !(open && !task.planDate && task.list === TRIAGE_LIST.id) && `<div class="drop-target" data-drop="list" data-list="${TRIAGE_LIST.id}">Triage</div>`,
+      '<div class="drop-target delete" data-drop="delete">Delete</div>',
+    ];
+    dropBar.innerHTML = targets.filter(Boolean).join('');
     dropBar.hidden = false;
   }
 

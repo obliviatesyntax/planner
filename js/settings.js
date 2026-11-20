@@ -134,6 +134,7 @@ const Settings = (() => {
           <span class="set-label-hash">#</span><input class="set-label-sc" value="${escapeHtml(l.shortcut)}" maxlength="12" aria-label="Shortcut">
           <button type="button" class="set-label-del" title="Delete this label" aria-label="Delete">${TRASH}</button>
         </div>`).join('')}
+      ${Tasks.allLabels().length ? '' : '<p class="setting-sub">No labels yet. Labels like Work or Personal let you colour-code tasks and show just one kind at a time.</p>'}
       <input class="set-label-new" placeholder="New label, e.g. Personal #p" maxlength="40">
       <p class="setting-sub">Type <b>#shortcut</b> in quick add to give a task that label.</p>`;
   }

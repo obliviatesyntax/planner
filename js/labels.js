@@ -23,6 +23,10 @@ const Labels = (() => {
   function render() {
     const labels = Tasks.allLabels();
     selected = new Set([...selected].filter(id => labels.some(l => l.id === id)));   // forget deleted ones
+    // No labels yet: no row at all (it would only take space at the top). The first label is
+    // made in Settings → Labels; after that the row shows, with its own "+".
+    bar.hidden = !labels.length && !adding;
+    if (bar.hidden) { bar.innerHTML = ''; return; }
 
     bar.innerHTML = `
       <button type="button" class="chip chip-all ${selected.size ? '' : 'active'}" data-all>All</button>
@@ -35,7 +39,7 @@ const Labels = (() => {
       ${adding
         ? `<input class="label-input" placeholder="Name, e.g. Personal #p" maxlength="40">`
         : `<button type="button" class="chip chip-add" title="New label">+</button>`}
-      ${!labels.length && !adding ? '<span class="muted hint">Add labels like Work or Personal to filter tasks</span>' : ''}`;
+`;
 
     if (adding) bar.querySelector('.label-input').focus();
   }

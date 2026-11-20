@@ -192,6 +192,7 @@ main { padding: 0 24px; max-width: 1480px; margin: 0 auto; }
 /* ---- label chips ------------------------------------------------------ */
 
 .labels-bar { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; padding: 10px 0 0; }
+.labels-bar[hidden] { display: none; }   /* no labels yet: no row */
 .chip {
   display: inline-flex; align-items: center; gap: 6px;
   border: 1px solid var(--line); background: var(--panel); padding: 3px 10px; border-radius: 99px;
@@ -515,7 +516,7 @@ main { padding: 0 24px; max-width: 1480px; margin: 0 auto; }
 /* Phones: drop targets that slide up while dragging a task (js/dnd.js) */
 .drop-bar {
   position: fixed; left: 12px; right: 12px; bottom: calc(12px + env(safe-area-inset-bottom)); z-index: 40; display: grid;
-  grid-template-columns: repeat(4, 1fr); gap: 8px; padding: 8px; border-radius: 16px;
+  grid-auto-flow: column; grid-auto-columns: 1fr; gap: 8px; padding: 8px; border-radius: 16px;   /* 3 or 4 targets */
   background: rgba(17, 24, 39, .92); backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px);
   box-shadow: var(--shadow-lg); animation: barUp .18s ease-out;
 }
