@@ -20,7 +20,8 @@ const Lists = (() => {
   const MIN_COL = 220, GAP = 10;
   let columns = 0;
   function columnCount() {
-    const width = root.clientWidth - 32;   // #lists has 16px padding on each side
+    const pad = getComputedStyle(root);
+    const width = root.clientWidth - parseFloat(pad.paddingLeft) - parseFloat(pad.paddingRight);
     return Math.max(1, Math.floor((width + GAP) / (MIN_COL + GAP)));
   }
 

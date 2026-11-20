@@ -166,8 +166,9 @@ const Calendar = (() => {
     if (duration) Tasks.update(id, { duration }); else App.renderAll();
   });
 
-  // A thin row above and below the calendar holds "▲ 2 earlier" / "▼ 1 later" pills for tasks
-  // scrolled out of view (outside the calendar, so they never cover a task). Click to scroll.
+  // "▲ 2 earlier" / "▼ 1 later" pills for tasks scrolled out of view. They float over the top and
+  // bottom edge of the calendar (.cal-wrap), so showing or hiding them never moves anything.
+  // Click one to scroll there.
   function hintsRowHtml(dates, where) {
     return `<div class="plan-grid cal-hints ${where}" style="--days:${dates.length}"><div></div>${
       dates.map(d => `<div class="cal-hint ${d < todayISO() ? 'is-past' : ''}" data-date="${d}"></div>`).join('')}</div>`;
@@ -293,15 +294,14 @@ const Planner = (() => {
           ${days.map(d => isPast(d) ? doneCellHtml(d, `tall ${upcoming.length ? 'flows' : ''}`) : todoCellHtml(d)).join('')}
         </div>
         ${win ? `
-          ${Calendar.hintsRowHtml(days, 'top')}
+          <div class="cal-wrap">${Calendar.hintsRowHtml(days, 'top')}
           <div class="cal-scroll" style="height:${win.span * Calendar.pxPerMinute()}px">
             <div class="plan-grid cal-grid">
               ${Calendar.gutterHtml()}
               ${days.map(d => isPast(d)   // a past day has no hours: its done list just carries on down
                 ? `<div class="cal-past" data-drop="done" data-date="${d}"></div>` : Calendar.dayHtml(d)).join('')}
             </div>
-          </div>
-          ${Calendar.hintsRowHtml(days, 'bottom')}` : ''}
+          </div>${Calendar.hintsRowHtml(days, 'bottom')}</div>` : ''}
       </div>`;
     return { html, win };
   }
@@ -326,14 +326,13 @@ const Planner = (() => {
           ${todoCellHtml(date)}
         </div>
         <div class="od-cal">
-          ${Calendar.hintsRowHtml([date], 'top')}
+          <div class="cal-wrap">${Calendar.hintsRowHtml([date], 'top')}
           <div class="cal-scroll" style="height:${win.span * Calendar.pxPerMinute()}px">
             <div class="plan-grid cal-grid" style="--days:1">
               ${Calendar.gutterHtml()}
               ${Calendar.dayHtml(date)}
             </div>
-          </div>
-          ${Calendar.hintsRowHtml([date], 'bottom')}
+          </div>${Calendar.hintsRowHtml([date], 'bottom')}</div>
         </div>
       </div>`;
     return { html, win };
