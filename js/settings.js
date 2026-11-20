@@ -12,6 +12,7 @@ const Settings = (() => {
   // Blocks in the settings window, top to bottom ("account" is drawn by hand: name, password).
   const GROUPS = [
     { id: 'account', title: 'Account' },
+    { id: 'labels', title: 'Labels' },
     { id: 'plan', title: 'Plan view' },
     { id: 'tasks', title: 'New tasks' },
     { id: 'day', title: 'End of the day' },
@@ -96,7 +97,7 @@ const Settings = (() => {
         ${GROUPS.map(g => `
           <section class="settings-block">
             <h3>${g.title}</h3>
-            ${g.id === 'account' ? accountHtml() : OPTIONS.filter(o => o.group === g.id).map(optionHtml).join('')}
+            ${g.id === 'account' ? accountHtml() : g.id === 'labels' ? `<div id="set-labels">${labelsHtml()}</div>` : OPTIONS.filter(o => o.group === g.id).map(optionHtml).join('')}
           </section>`).join('')}
         <p class="muted settings-note">Saved to your account, so they apply on every device.</p>
       </form>`;
@@ -119,6 +120,59 @@ const Settings = (() => {
         <button type="button" id="set-signout" class="secondary">Sign out</button>
       </div>`;
   }
+
+  // ---- Settings → Labels: rename, change shortcut or colour, delete, add ---------------------
+  // (Works the same on phones, where label chips have no hover buttons. Labels themselves live in
+  // tasks.js: addLabel / updateLabel / removeLabel.)
+  const TRASH = '<svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 6h18"/><path d="M8 6V4h8v2"/><path d="M19 6l-1 14H6L5 6"/><path d="M10 11v6M14 11v6"/></svg>';
+  function labelsHtml() {
+    return `
+      ${Tasks.allLabels().map(l => `
+        <div class="set-label" data-label="${l.id}">
+          <button type="button" class="set-label-color" style="--c:${l.color}" title="Change colour" aria-label="Change colour"></button>
+          <input class="set-label-name" value="${escapeHtml(l.name)}" maxlength="40" aria-label="Label name">
+          <span class="set-label-hash">#</span><input class="set-label-sc" value="${escapeHtml(l.shortcut)}" maxlength="12" aria-label="Shortcut">
+          <button type="button" class="set-label-del" title="Delete this label" aria-label="Delete">${TRASH}</button>
+        </div>`).join('')}
+      <input class="set-label-new" placeholder="New label, e.g. Personal #p" maxlength="40">
+      <p class="setting-sub">Type <b>#shortcut</b> in quick add to give a task that label.</p>`;
+  }
+  function refreshLabels() { const box = dialog.querySelector('#set-labels'); if (box) box.innerHTML = labelsHtml(); }
+
+  function saveLabelField(input) {
+    const row = input.closest('.set-label');
+    const result = Tasks.updateLabel(row.dataset.label, input.matches('.set-label-name') ? { name: input.value } : { shortcut: input.value });
+    if (typeof result === 'string') { App.toast(result); refreshLabels(); }
+  }
+
+  dialog.addEventListener('keydown', e => {
+    if (e.key !== 'Enter' || !e.target.matches('.set-label-name, .set-label-sc, .set-label-new')) return;
+    e.preventDefault();   // Enter would otherwise submit the form and close the window
+    if (e.target.matches('.set-label-new')) {
+      const text = e.target.value;
+      const match = text.match(/#(\w+)/);
+      const result = Tasks.addLabel(text.replace(/#\w+/g, '').trim(), match ? match[1] : '');
+      if (typeof result === 'string') return App.toast(result);
+      refreshLabels();
+      dialog.querySelector('.set-label-new').focus();
+    } else e.target.blur();   // saves on blur (change)
+  });
+  dialog.addEventListener('change', e => {
+    if (e.target.matches('.set-label-name, .set-label-sc')) saveLabelField(e.target);
+  });
+  dialog.addEventListener('click', e => {
+    const row = e.target.closest('.set-label');
+    if (!row) return;
+    const l = Tasks.label(row.dataset.label);
+    if (e.target.closest('.set-label-color')) {   // next colour in the palette
+      Tasks.updateLabel(l.id, { color: LABEL_COLORS[(LABEL_COLORS.indexOf(l.color) + 1) % LABEL_COLORS.length] });
+      return refreshLabels();
+    }
+    if (e.target.closest('.set-label-del') && confirm(`Delete the label "${l.name}"? Tasks keep everything else, they just lose this label.`)) {
+      Tasks.removeLabel(l.id);
+      refreshLabels();
+    }
+  });
 
   function optionHtml(o) {
     return `

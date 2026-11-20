@@ -1240,3 +1240,26 @@ body.playground .settings-block:has(#set-first-name), body.playground .settings-
   .labels-bar { padding-top: 8px; }
   .footer { padding-top: 12px; }
 }
+
+/* Touch screens (no real hover): hide everything that only appears on hover. A phone's first tap
+   fakes a hover, which would reveal buttons under your finger. Everything here is also reachable
+   by tapping the task / list (its window) or in Settings → Labels. */
+@media (hover: none) {
+  .card .card-actions, .card:hover .card-actions { display: none; }
+  .card .prio.prio-empty, .card:hover .prio.prio-empty { visibility: hidden; }
+  .card.compressed:hover .prio { display: none; }
+  .chip:hover .chip-del { display: none; }
+  .list-col:hover .list-del { visibility: hidden; }
+}
+
+/* Settings → Labels */
+.set-label { display: flex; align-items: center; gap: 6px; }
+.set-label-color { width: 18px; height: 18px; flex: none; border-radius: 50%; border: 2px solid #fff; background: var(--c); box-shadow: 0 0 0 1px var(--line); padding: 0; cursor: pointer; }
+.set-label-name { flex: 1; min-width: 0; padding: 6px 8px; border: 1px solid var(--line); border-radius: var(--radius-sm); background: var(--panel); }
+.set-label-hash { color: var(--muted); margin-right: -4px; }
+.set-label-sc { width: 64px; padding: 6px 8px; border: 1px solid var(--line); border-radius: var(--radius-sm); background: var(--panel); }
+.set-label-name:focus, .set-label-sc:focus, .set-label-new:focus { outline: none; border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-soft); }
+.set-label-del { border: 0; background: none; color: var(--faint); padding: 6px; border-radius: 6px; display: grid; place-items: center; }
+.set-label-del:hover { color: var(--p1); background: var(--p1-soft); }
+.set-label-new { padding: 6px 8px; border: 1px dashed #c9ced8; border-radius: var(--radius-sm); background: transparent; }
+@media (max-width: 700px) { .set-label-name, .set-label-sc, .set-label-new { font-size: 16px; } }

@@ -29,7 +29,7 @@ user-agent sniffing: a narrow desktop window behaves like a phone.
 | **1-day view** | To-do list on the left, tall calendar on the right | To-do list above the calendar |
 | **Done today panel** | Right of the plan, sticky | Below the plan |
 | **Calendar blocks** | Relaxed in 1 day and 2 days (short time + P tag); compressed in Week | Relaxed in 1 day; compressed in 2 days (see below) |
-| **Task hover buttons (P # 🗑)** | Appear on mouse hover, floating over the text | No hover on touch; a tap opens the task window instead (use swipes or the window) |
+| **Hover buttons** (task P # 🗑, label 🗑, list 🗑) | Appear on mouse hover | **Hidden on any touch screen** (`@media (hover: none)`), since a tap would fake a hover. Tap a task or list to open its window; labels are managed in **Settings → Labels** |
 | **Opening a task** | Click a task: centred window | Tap a task: **bottom sheet** (≤ 600px) |
 | **Task window labels** | Field names shown (Priority, Labels, Day, Time, List) | Priority and Labels rows have no names (self-explanatory); Day/Time/List use small icons; hint text and "Changes save automatically" hidden |
 | **Moving tasks** | Drag and drop anywhere (a **drop bar** with Today · Tomorrow · Triage · Delete appears at the bottom, centred); or the task window's Move block | Drag (same **drop bar**, full width, above the bottom bar), **swipe**, or the task window's Move block |

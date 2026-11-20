@@ -321,6 +321,28 @@ const Tasks = (() => {
     return letters + i;
   }
 
+  // Rename a label, change its shortcut or colour (Settings → Labels). Everything is checked
+  // first; returns the label, or an error message string.
+  function updateLabel(id, changes) {
+    const l = label(id);
+    if (!l) return 'That label no longer exists.';
+    const next = { ...l };
+    if ('name' in changes) {
+      next.name = String(changes.name).trim();
+      if (!next.name) return 'Give the label a name.';
+      if (labels.some(x => x.id !== id && x.name.toLowerCase() === next.name.toLowerCase())) return `There's already a label called ${next.name}.`;
+    }
+    if ('shortcut' in changes) {
+      next.shortcut = String(changes.shortcut).toLowerCase().replace(/[^a-z0-9]/g, '');
+      if (!next.shortcut) return 'A shortcut needs letters or digits, like p or work.';
+      if (labels.some(x => x.id !== id && x.shortcut === next.shortcut)) return `#${next.shortcut} is already used by another label.`;
+    }
+    if ('color' in changes) next.color = changes.color;
+    Object.assign(l, next);
+    commit();
+    return l;
+  }
+
   // Deleting a label removes it from every task (the tasks themselves stay).
   function removeLabel(id) {
     labels = labels.filter(l => l.id !== id);
@@ -345,7 +367,7 @@ const Tasks = (() => {
     listTasks, planList, calendarList, doneList,
     add, update, cyclePriority, toggleDone, markDone, moveToList, moveToPlan, moveToCalendar, remove, restore,
     allLists, list, findList, isOverdue, addList, renameList, setListLabel, moveList, removeList, restoreList,
-    allLabels, label, findLabel, addLabel, removeLabel,
+    allLabels, label, findLabel, addLabel, updateLabel, removeLabel,
     exportData, replaceAll,
   };
 })();
