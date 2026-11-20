@@ -34,6 +34,7 @@ user-agent sniffing: a narrow desktop window behaves like a phone.
 | **Task window labels** | Field names shown (Priority, Labels, Day, Time, List) | Priority and Labels rows have no names (self-explanatory); Day/Time/List use small icons; hint text and "Changes save automatically" hidden |
 | **Moving tasks** | Drag and drop anywhere (a **drop bar** with Today · Tomorrow · Triage · Delete appears at the bottom, centred); or the task window's Move block | Drag (same **drop bar**, full width, above the bottom bar), **swipe**, or the task window's Move block |
 | **Swipe gestures** | — | Swipe **right** = done (or not done); swipe **left** = next day (planned task) or today (list task); Undo toast |
+| **Lists header** | "Lists", a hint ("Not planned yet. Drag a task up…"), "+ New list" at the right | Just "Lists" and "+ New list" at the right (no hint) |
 | **Text boxes** | 14px | 16px, so iPhones don't zoom in when you tap them |
 | **Voice input (mic)** | Chrome, Edge, Safari | Same: depends on the browser, not the device; hidden where unsupported (e.g. Firefox) |
 

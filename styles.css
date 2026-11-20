@@ -1217,3 +1217,9 @@ body.playground .settings-block:has(#set-first-name), body.playground .settings-
   .lp-pv-chat { left: 10px; right: 10px; bottom: 10px; width: auto; }
   .lp-stepbar-or { display: none; }
 }
+
+/* Phones: the Lists header is just "Lists" and "+ New list" on the right (no helper text) */
+@media (max-width: 700px) {
+  #lists .section-head > .muted { display: none; }
+  #lists .section-head { flex-wrap: nowrap; }
+}
