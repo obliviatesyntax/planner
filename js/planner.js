@@ -62,7 +62,9 @@ const Calendar = (() => {
   // A block is never drawn shorter than one slot (so its text fits on one line). Short tasks
   // therefore take up more room than their length: visibleEnd() is where the block's box ends,
   // so two back-to-back 15-minute tasks are placed side by side instead of on top of each other.
-  const minBlockMinutes = () => Math.ceil(slotPx / pxPerMinute());
+  // (One slot is exactly slotMinutes. Computing it from pixels gave 30.000000000000004 → 31, so
+  // back-to-back 30-minute tasks were wrongly put side by side.)
+  const minBlockMinutes = () => slotMinutes;
   const visibleEnd = t => t.startMin + Math.max(t.duration, minBlockMinutes());
 
   function blockStyle(startMin, duration) {
