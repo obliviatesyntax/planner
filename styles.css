@@ -1303,19 +1303,20 @@ body.playground .settings-block:has(#set-first-name), body.playground .settings-
 }
 
 /* ==========================================================================
-   Grouped rows (try-out; to roll back, revert the commit that added this block):
-   tasks in any list sit edge to edge as one rounded box with thin dividers, instead of
-   separate cards with gaps. Calendar blocks are not in a .list, so they're unaffected.
+   Tight rows: tasks in any list sit close together (3px apart) but each stays its own small
+   card, so they read as separate things you can drag. The coloured priority edge is inset a
+   little at the top and bottom, and hovering a row tints it clearly. Calendar blocks are not in
+   a .list, so they're unaffected. (Earlier try-out: one grouped box with dividers.)
    ========================================================================== */
-.list { gap: 0; }
-.list > .card {
-  border-radius: 0; box-shadow: none;
-  border-top-color: var(--line-soft); border-bottom-color: var(--line-soft);
+.list { gap: 3px; }
+.list > .card { border-left-color: transparent; box-shadow: 0 1px 1px rgba(16, 24, 40, .04); }
+.list > .card::before {
+  content: ""; position: absolute; left: -3px; top: 3px; bottom: 3px; width: 3px; border-radius: 0 2px 2px 0;
+  background: var(--edge, #d1d5db);
 }
-.list > .card + .card { margin-top: -1px; }                    /* rows share one divider line */
-.list > .card:first-child { border-top-color: var(--line); border-top-left-radius: var(--radius-sm); border-top-right-radius: var(--radius-sm); }
-.list > .card:last-child { border-bottom-color: var(--line); border-bottom-left-radius: var(--radius-sm); border-bottom-right-radius: var(--radius-sm); }
-.list:has(> .card) { border-radius: var(--radius-sm); box-shadow: var(--shadow); }   /* one soft shadow for the group */
-.list > .card:hover { z-index: 1; background: #fafbfc; }
-.list > .card.done:hover { background: #f5f5f6; }
-.list > .card.flash, .list > .card.just-done { z-index: 1; }
+.list > .card.p1 { --edge: var(--p1); }
+.list > .card.p2 { --edge: var(--p2); }
+.list > .card.p3 { --edge: var(--p3); }
+.list > .card.done { --edge: #d1d5db; }
+.list > .card:hover { background: #eef0fb; border-color: #c7d2fe; border-left-color: transparent; }
+.list > .card.done:hover { background: #eceef3; border-color: #d1d5db; border-left-color: transparent; }
