@@ -1309,14 +1309,19 @@ body.playground .settings-block:has(#set-first-name), body.playground .settings-
    a .list, so they're unaffected. (Earlier try-out: one grouped box with dividers.)
    ========================================================================== */
 .list { gap: 3px; }
-.list > .card { border-left-color: transparent; box-shadow: 0 1px 1px rgba(16, 24, 40, .04); }
-.list > .card::before {
-  content: ""; position: absolute; left: -3px; top: 3px; bottom: 3px; width: 3px; border-radius: 0 2px 2px 0;
+.list > .card {
+  border-left: 1px solid var(--line); padding: 4px 7px 4px 11px; line-height: 1.35;   /* tighter top/bottom */
+  box-shadow: 0 1px 1px rgba(16, 24, 40, .04);
+}
+.list > .card .check { margin-top: 1px; }
+.list > .card::before {   /* the priority edge, just inside the card's left border */
+  content: ""; position: absolute; left: 2px; top: 4px; bottom: 4px; width: 3px; border-radius: 2px;
   background: var(--edge, #d1d5db);
 }
 .list > .card.p1 { --edge: var(--p1); }
 .list > .card.p2 { --edge: var(--p2); }
 .list > .card.p3 { --edge: var(--p3); }
 .list > .card.done { --edge: #d1d5db; }
-.list > .card:hover { background: #eef0fb; border-color: #c7d2fe; border-left-color: transparent; }
-.list > .card.done:hover { background: #eceef3; border-color: #d1d5db; border-left-color: transparent; }
+.list > .card:hover { background: #eef0fb; border-color: #c7d2fe; }
+.list > .card.done:hover { background: #eceef3; border-color: #d1d5db; }
+.list > .card .prio.prio-empty { top: 4px; }   /* the hover "P" lines up with the tighter padding */
