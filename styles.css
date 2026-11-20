@@ -1301,3 +1301,21 @@ body.playground .settings-block:has(#set-first-name), body.playground .settings-
 @media (min-width: 901px) {
   #planner .section-head { margin-right: calc(var(--done-w) + 14px); }
 }
+
+/* ==========================================================================
+   Grouped rows (try-out; to roll back, revert the commit that added this block):
+   tasks in any list sit edge to edge as one rounded box with thin dividers, instead of
+   separate cards with gaps. Calendar blocks are not in a .list, so they're unaffected.
+   ========================================================================== */
+.list { gap: 0; }
+.list > .card {
+  border-radius: 0; box-shadow: none;
+  border-top-color: var(--line-soft); border-bottom-color: var(--line-soft);
+}
+.list > .card + .card { margin-top: -1px; }                    /* rows share one divider line */
+.list > .card:first-child { border-top-color: var(--line); border-top-left-radius: var(--radius-sm); border-top-right-radius: var(--radius-sm); }
+.list > .card:last-child { border-bottom-color: var(--line); border-bottom-left-radius: var(--radius-sm); border-bottom-right-radius: var(--radius-sm); }
+.list:has(> .card) { border-radius: var(--radius-sm); box-shadow: var(--shadow); }   /* one soft shadow for the group */
+.list > .card:hover { z-index: 1; background: #fafbfc; }
+.list > .card.done:hover { background: #f5f5f6; }
+.list > .card.flash, .list > .card.just-done { z-index: 1; }
