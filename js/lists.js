@@ -45,7 +45,8 @@ const Lists = (() => {
       </div>`;
     if (creating) root.querySelector('.list-new-input').focus();
   }
-  new ResizeObserver(() => { if (columnCount() !== columns) render(); }).observe(root);
+  // Re-deal when the width changes (but not before the first real draw, when there's no data yet).
+  new ResizeObserver(() => { if (columns && columnCount() !== columns) render(); }).observe(root);
 
   function listHtml(l) {
     const tasks = Tasks.listTasks(l.id).filter(Labels.matches);

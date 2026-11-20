@@ -223,19 +223,23 @@ const App = (() => {
 
 // Start (once every script on the page has loaded): sign in if needed, then load this
 // person's data from the database and draw the page.
-window.addEventListener('DOMContentLoaded', async () => {
+// "Loading…" (#loading) shows until one of these screens is ready, then goes.
+async function boot() {
   const user = await Auth.currentUser();
   const authorization = Consent.pending();   // connecting Planner to Claude etc.: see consent.js
   if (authorization) return user ? Consent.show(user, authorization) : Consent.askToSignIn();
   if (!user) return Auth.showSignIn();
   if (Auth.needsNewPassword()) return Auth.showNewPassword(user);   // back from a "Forgot password" email
-  Auth.showApp(user);
   Settings.load(user);
   try {
     await Tasks.init();
   } catch (err) {
     console.error(err);
-    App.toast('Could not load your tasks. Check your connection and reload.');
+    setTimeout(() => App.toast('Could not load your tasks. Check your connection and reload.'));
   }
+  Auth.showApp(user);   // only now, so the page never shows half-empty sections while loading
   App.renderAll();
+}
+window.addEventListener('DOMContentLoaded', () => {
+  boot().catch(err => console.error(err)).finally(() => { document.getElementById('loading').hidden = true; });
 });

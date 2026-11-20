@@ -12,6 +12,12 @@
   <link rel="stylesheet" href="styles.css">
 </head>
 <body>
+  <!-- Shown from the first moment until a screen is ready (js/app.js: boot hides it). It only
+       fades in after a short delay, so a quick load never flashes it. -->
+  <div id="loading" class="loading" role="status" aria-live="polite">
+    <div class="loading-spinner"></div>
+    <span>Loading…</span>
+  </div>
   <!-- ============================================================================
        Landing page + sign-in (shown when nobody is signed in; see js/auth.js, js/landing.js).
        The sign-in card in the hero is the real one: its ids are used by auth.js.
