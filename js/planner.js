@@ -274,7 +274,7 @@ const Planner = (() => {
         <h3>Done today <span class="count ${done.some(t => Cards.isJustDone(t.id)) ? 'bump' : ''}">${done.length}</span></h3>
         <div class="list">${done.map(t => Cards.html(t, 'done', '', 'panel')).join('')}</div>
         <button type="button" class="col-add" data-done="${today}" title="Log something you already did">+ Add</button>
-        <p class="empty">${done.length ? 'Drag more tasks here to mark them done.' : 'Tick a task, or drag it here, to mark it done. Or add one you already did.'}</p>
+        ${done.length ? '' : '<p class="empty">Tick a task, or drag it here, to mark it done. Or add one you already did.</p>'}
       </aside>`;
   }
 
