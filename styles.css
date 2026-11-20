@@ -1319,13 +1319,10 @@ body.playground .settings-block:has(#set-first-name), body.playground .settings-
 .list { gap: 3px; }
 .list > .card {
   border-left: 1px solid var(--line); padding: 4px 7px 4px 11px; line-height: 1.35;   /* tighter top/bottom */
-  box-shadow: 0 1px 1px rgba(16, 24, 40, .04);
+  /* the priority edge: an inside shadow, so it curves along the card's rounded left corners */
+  box-shadow: inset 4px 0 0 var(--edge, #d1d5db), 0 1px 1px rgba(16, 24, 40, .04);
 }
 .list > .card .check { margin-top: 1px; }
-.list > .card::before {   /* the priority edge, just inside the card's left border */
-  content: ""; position: absolute; left: 2px; top: 4px; bottom: 4px; width: 3px; border-radius: 2px;
-  background: var(--edge, #d1d5db);
-}
 .list > .card.p1 { --edge: var(--p1); }
 .list > .card.p2 { --edge: var(--p2); }
 .list > .card.p3 { --edge: var(--p3); }
