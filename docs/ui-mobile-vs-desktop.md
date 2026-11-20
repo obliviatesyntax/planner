@@ -44,8 +44,8 @@ user-agent sniffing: a narrow desktop window behaves like a phone.
 | **Task window labels** | Field names shown (Priority, Labels, Day, Time, List) | Priority and Labels rows have no names (self-explanatory); Day/Time/List use small icons; hint text and "Changes save automatically" hidden |
 | **Moving tasks** | Drag and drop anywhere (a **drop bar** with Today · Tomorrow · Triage · Delete appears at the bottom, centred; it leaves out wherever the task already is); or the task window's Move block | Drag (same **drop bar**, full width, above the bottom bar), **swipe**, or the task window's Move block |
 | **Swipe gestures** | — | Swipe **right** = done (or not done); swipe **left** = next day (planned task) or today (list or @overdue task); Undo toast |
-| **Lists layout** | Fixed columns, each at least 260px (3 at 1024px, 4 at 1280px, 5 from ~1400px), lists dealt in order left to right then down; "+ New list" in the header | 1 column, same order |
-| **Lists header** | No header row: "Lists" and "+ New list" sit as small pills on the lists box's top border (no hint text) | Same |
+| **Lists layout** | Fixed columns, each at least 260px (3 at 1024px, 4 at 1280px, 5 from ~1400px), lists dealt in order left to right then down, then "+ New list" | 1 column, same order |
+| **Lists header** | No header row: "Lists" sits as a small pill on the lists box's top border (no hint text). "+ New list" is a dashed box in the spot the next list will take | Same (one column, so "+ New list" is at the end) |
 | **Text boxes** | 14px | 16px, so iPhones don't zoom in when you tap them |
 | **Voice input (mic)** | Chrome, Edge, Safari | Same: depends on the browser, not the device; hidden where unsupported (e.g. Firefox) |
 

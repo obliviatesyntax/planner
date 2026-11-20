@@ -29,15 +29,17 @@ const Lists = (() => {
     columns = columnCount();
     const items = [overdueHtml(), ...Tasks.allLists().map(listHtml)].filter(Boolean)
       .map((html, i) => html.replace('class="list-col', `data-order="${i}" class="list-col`));
+    // "+ New list" takes the spot the next list would get (dealt like a list, always last).
+    items.push(`
+      <div class="list-new">
+        ${creating
+          ? '<input class="list-new-input" placeholder="@listName, Enter" maxlength="31">'
+          : '<button type="button" class="list-new-btn">+ New list</button>'}
+      </div>`);
     const cols = Array.from({ length: columns }, (_, c) => items.filter((_, i) => i % columns === c).join(''));
     root.innerHTML = `
       <div class="section-head">
         <h2>Lists</h2>
-        <div class="list-new">
-          ${creating
-            ? '<input class="list-new-input" placeholder="@listName, Enter" maxlength="31">'
-            : '<button type="button" class="list-new-btn">+ New list</button>'}
-        </div>
       </div>
       <div class="lists-board" style="--cols:${columns}">
         ${cols.map(html => `<div class="lists-stack">${html}</div>`).join('')}

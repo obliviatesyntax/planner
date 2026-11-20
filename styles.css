@@ -1332,7 +1332,9 @@ body.playground .settings-block:has(#set-first-name), body.playground .settings-
 #lists > .section-head h2 {
   background: #eef0f4; border: 1px solid #e2e5eb; border-radius: 99px; padding: 2px 12px; font-size: 13px;
 }
-#lists .list-new-btn { background: #eef0f4; border-style: solid; border-color: #e2e5eb; border-radius: 99px; padding: 3px 12px; }
-#lists .list-new-btn:hover { background: #fff; }
-#lists .list-new-input { background: #fff; border-radius: 99px; padding: 4px 12px; }
+/* "+ New list": a quiet dashed box in the spot the next list will take */
+#lists .list-new { margin: 0; display: block; }
+#lists .list-new-btn { width: 100%; min-height: 40px; border-radius: var(--radius); background: transparent; }
+#lists .list-new-btn:hover { background: rgba(255, 255, 255, .6); }
+#lists .list-new-input { width: 100%; box-sizing: border-box; background: #fff; padding: 10px 12px; border-radius: var(--radius); }
 @media (max-width: 700px) { #lists { margin-top: 22px; padding-top: 16px; } }
