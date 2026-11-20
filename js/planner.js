@@ -28,25 +28,19 @@ const Calendar = (() => {
   const height = () => (endHour - startHour) * 60 * pxPerMinute();
 
   // Which part of the day to show for these dates: { start, span } in minutes.
-  // With today on screen: from an hour before now, tall enough to reach today's last
-  // upcoming task. Otherwise: from just before the earliest task on the days shown.
-  // minHours: the smallest window (a setting).
+  // From 30 minutes before the earliest task still on the calendar (done tasks leave the calendar,
+  // so finished ones don't count) to 30 minutes after the last one: at least minHours (a setting,
+  // default 4), at most view.maxHours (8). With no tasks on these days: an hour before now if
+  // today is shown, otherwise 8 AM. You can always scroll to any hour.
   function viewWindow(dates, minHours = Settings.get('minHours')) {
-    const today = todayISO();
-    const now = minutesNow();
-    const events = dates.flatMap(d => Tasks.calendarList(d).filter(Labels.matches).map(t => ({ ...t, date: d })));
-    let anchor, relevant;
-    if (dates.includes(today)) {
-      anchor = now - view.beforeNow;
-      relevant = events.filter(t => t.date === today);
-    } else {
-      anchor = events.length ? Math.min(...events.map(t => t.startMin)) - 30 : 8 * 60;
-      relevant = events;
-    }
+    minHours = Math.min(minHours, view.maxHours);
+    const events = dates.flatMap(d => Tasks.calendarList(d).filter(Labels.matches));
+    const anchor = events.length ? Math.min(...events.map(t => t.startMin)) - 30
+      : dates.includes(todayISO()) ? minutesNow() - view.beforeNow : 8 * 60;
     const maxStart = endHour * 60 - minHours * 60;
-    const start = Math.max(startHour * 60, Math.min(maxStart, Math.floor(anchor / 60) * 60));
-    const lastEnd = Math.max(0, ...relevant.filter(t => t.startMin + t.duration > start).map(t => t.startMin + t.duration));
-    const span = Math.min(endHour * 60 - start, Math.max(view.maxHours, minHours) * 60, Math.max(minHours * 60, lastEnd + 30 - start));
+    const start = Math.max(startHour * 60, Math.min(maxStart, Math.floor(anchor / 30) * 30));
+    const lastEnd = Math.max(0, ...events.map(t => t.startMin + t.duration));
+    const span = Math.min(endHour * 60 - start, view.maxHours * 60, Math.max(minHours * 60, lastEnd + 30 - start));
     return { start, span };
   }
 

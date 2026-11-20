@@ -119,8 +119,10 @@ Done today panel (`size = 'panel'`); the styles are `.card.compressed` in `style
 ## Calendar sizing (same on both)
 
 - Slot height: 22px per half hour (`CALENDAR.slotPx` in `js/config.js`).
-- Visible window: from an hour before now to the end of today's last upcoming task, between
-  4 hours (setting, default 4) and 9 hours.
+- Visible window: from 30 minutes before the earliest task still on the calendar (done tasks
+  leave it) to 30 minutes after the last one, between 4 hours (setting, default 4) and 8 hours.
+  With no tasks on the days shown: from an hour before now (today) or 8 AM (other days).
+- To-do cells are exactly as tall as their tasks plus "+ Add" (no minimum height).
 - Blocks are never shorter than one slot; under 30 minutes they use smaller text; 30 minutes
   or less is a single line.
 

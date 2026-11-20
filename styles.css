@@ -291,7 +291,7 @@ main { padding: 0 24px; max-width: 1480px; margin: 0 auto; }
 .row-label { font-size: 11px; color: var(--faint); padding: 10px 6px; text-align: right; text-transform: uppercase; letter-spacing: .04em; }
 
 .plan-cell, .done-cell {
-  padding: 8px; min-height: 96px; display: flex; flex-direction: column; gap: 6px;
+  padding: 8px; min-height: 0;   /* exactly as tall as its tasks and "+ Add" */ display: flex; flex-direction: column; gap: 6px;
   border-left: 1px solid var(--line); border-bottom: 1px solid var(--line);
 }
 .plan-cell.is-today { background: var(--today); }
@@ -1237,7 +1237,7 @@ body.playground .settings-block:has(#set-first-name), body.playground .settings-
   #lists { margin-top: 12px; padding: 8px; border-radius: 12px; }
   .lists-board, .lists-stack { gap: 8px; }
   .list-col { padding: 6px; gap: 4px; }
-  .plan-cell, .done-cell { min-height: 64px; padding: 6px; }
+  .plan-cell, .done-cell { padding: 6px; }
   .done-today { min-height: 0; padding: 10px 12px; }
   .labels-bar { padding-top: 8px; }
   .footer { padding-top: 12px; }

@@ -23,7 +23,7 @@ const Settings = (() => {
     { group: 'plan', key: 'defaultViewPhone', label: 'On a phone, open in', default: 'cal1',
       choices: VIEW_CHOICES.filter(([id]) => id !== 'week') },   // no week view on phones
     { group: 'plan', key: 'minHours', label: 'Calendar shows at least', default: 4,
-      choices: [4, 5, 6, 7, 8, 9].map(h => [h, `${h} hours`]) },
+      choices: [4, 5, 6, 7, 8].map(h => [h, `${h} hours`]) },
     { group: 'plan', key: 'weekStart', label: 'Week starts on', default: 'mon',
       choices: [['mon', 'Monday'], ['sun', 'Sunday']] },
     { group: 'plan', key: 'clock', label: 'Time format', default: '12',
@@ -55,6 +55,7 @@ const Settings = (() => {
     if (saved.defaultView && saved.defaultViewDesktop === undefined) values.defaultViewDesktop = saved.defaultView;
     const version = saved.version || 1;
     if (values.defaultViewPhone === 'week') values.defaultViewPhone = 'cal2';   // week isn't offered on phones
+    if (values.minHours > 8) values.minHours = 8;   // the calendar window is now 4–8 hours
     // Remember this device's time zone on the account, so the Claude connector
     // (supabase/functions/mcp) knows what "today" is for you.
     const timeZone = Intl.DateTimeFormat().resolvedOptions().timeZone;

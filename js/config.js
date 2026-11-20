@@ -31,10 +31,10 @@ const CALENDAR = {
   slotMinutes: 30,       // one grid line every 30 minutes
   slotPx: 22,            // height of one slot in pixels
   snapMinutes: 15,       // dropped/resized blocks snap to 15 minutes
-  // …but the visible window starts an hour before now (rounded down to the hour) and is as
-  // tall as needed to reach the end of today's last upcoming task (+30 min), between
-  // minHours (a setting, default 4) and maxHours. Same for every view, the 1-day view included.
-  view: { beforeNow: 60, maxHours: 9 },
+  // …but the visible window runs from 30 min before the earliest task still on the calendar to
+  // 30 min after the last one, between minHours (a setting, default 4) and maxHours (8). With no
+  // tasks it starts an hour before now (or 8 AM on other days). See viewWindow in planner.js.
+  view: { beforeNow: 60, maxHours: 8 },
 };
 
 // The Plan section's views.
