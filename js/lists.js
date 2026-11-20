@@ -120,7 +120,7 @@ const Lists = (() => {
           </div>` : `
           <div class="lv-label">
             <span class="tv-label">Label for this list</span>
-            <p class="lv-hint">No labels yet. Add one with <b>+</b> at the top.</p>
+            <p class="lv-hint">No labels yet. Create them in <button type="button" class="link-btn" data-open-settings>Settings → Labels</button>.</p>
           </div>`}
         <div class="tv-foot">
           <button type="button" class="tv-delete">Delete list${n ? ` and its ${n} task${n === 1 ? '' : 's'}` : ''}</button>

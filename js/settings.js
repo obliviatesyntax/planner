@@ -210,6 +210,14 @@ const Settings = (() => {
   dialog.addEventListener('click', e => { if (e.target === dialog) dialog.close(); });   // click outside closes
   document.getElementById('settings-btn').addEventListener('click', open);          // gear, top right
   document.getElementById('footer-settings-btn').addEventListener('click', open);   // bottom of the page
+  // "Settings → Labels" links elsewhere (e.g. the list window): close that window, open Settings at Labels.
+  document.addEventListener('click', e => {
+    if (!e.target.closest('[data-open-settings]')) return;
+    e.target.closest('dialog')?.close();
+    open();
+    dialog.querySelector('#set-labels')?.closest('.settings-block').scrollIntoView({ block: 'start' });
+    dialog.querySelector('.set-label-new')?.focus({ preventScroll: true });
+  });
 
   return { load, get };
 })();

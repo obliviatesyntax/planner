@@ -82,7 +82,7 @@ const Labels = (() => {
   });
 
   // ---- label picker: click "#" (or a tag) on a card to add/remove its labels ----
-  // Only tick existing labels here; new labels are made with "+" in the bar at the top.
+  // Only tick existing labels here; new labels are made in Settings → Labels (or "+" in the bar).
   // (The "#" button only shows on cards once at least one label exists.)
 
   const picker = document.createElement('div');

@@ -9,7 +9,7 @@ const Help = (() => {
     const labels = Tasks.allLabels().map(l => `<code>#${escapeHtml(l.shortcut)}</code> ${escapeHtml(l.name)}`);
     const lists = Tasks.allLists().map(l => `<code>@${escapeHtml(l.name)}</code>`);
     document.getElementById('help-yours').innerHTML =
-      `Your labels: ${labels.length ? labels.join(', ') : 'none yet (create them with + at the top)'}.<br>` +
+      `Your labels: ${labels.length ? labels.join(', ') : 'none yet (create them in Settings → Labels)'}.<br>` +
       `Your lists: ${lists.join(' ')}.`;
     dialog.showModal();
   }
