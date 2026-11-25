@@ -153,6 +153,17 @@ const App = (() => {
     if (card) { card.classList.add('flash'); card.scrollIntoView({ block: 'nearest' }); }
   }
 
+  // The logo and "Planner" in the top bar: home. On a project page, back to the Dashboard (the
+  // address loses its #project/…); on the Dashboard, back to the top. Keeps ?playground.
+  document.getElementById('home-link').addEventListener('click', e => {
+    if (e.metaKey || e.ctrlKey || e.shiftKey || e.button) return;   // new tab etc.: let the link work
+    e.preventDefault();
+    if (location.hash) {
+      location.hash = '';   // hashchange → the Dashboard, scrolled to the top (project.js)
+      history.replaceState(null, '', location.pathname + location.search);   // no bare "#"
+    } else window.scrollTo({ top: 0, behavior: 'smooth' });
+  });
+
   // Press "n" anywhere (when not typing) to jump to quick add.
   document.addEventListener('keydown', e => {
     const typing = e.target.matches('input, select, textarea, [contenteditable="true"]');

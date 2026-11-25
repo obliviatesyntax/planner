@@ -56,7 +56,7 @@ button { cursor: pointer; }
   background: rgba(255, 255, 255, .92); backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px);
   border-bottom: 1px solid var(--line); position: sticky; top: 0; z-index: 20;
 }
-.brand { display: flex; align-items: center; gap: 10px; }
+.brand { display: flex; align-items: center; gap: 10px; color: inherit; text-decoration: none; }   /* a link home (app.js) */
 .brand-text { display: flex; flex-direction: column; line-height: 1.2; }
 .brand-name { font-weight: 700; font-size: 15px; letter-spacing: -.01em; }
 .brand .muted { font-size: 12px; font-weight: 500; white-space: nowrap; }
@@ -1044,7 +1044,7 @@ body.playground .settings-block:has(#set-first-name), body.playground .settings-
    OAuth consent: "Allow Claude to use your Planner?" (js/consent.js)
    ========================================================================== */
 .consent { min-height: 100vh; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 20px; padding: 24px 16px; background: var(--bg); box-sizing: border-box; }
-.consent-brand { display: flex; align-items: center; gap: 10px; font-weight: 800; font-size: 20px; }
+.consent-brand { display: flex; align-items: center; gap: 10px; font-weight: 800; font-size: 20px; color: inherit; text-decoration: none; }
 .consent-brand .logo { width: 32px; height: 32px; }
 .consent-card { width: 100%; max-width: 440px; }
 .consent-card h1 { font-size: 22px; line-height: 1.3; margin: 0 0 4px; }

@@ -502,10 +502,10 @@
     </section>
 
     <footer class="lp-footer">
-      <span class="lp-brand">
+      <a href="#top" class="lp-brand">
         <svg class="logo" viewBox="0 0 64 64" aria-hidden="true"><rect width="64" height="64" rx="15" fill="#4f46e5"/><rect x="13" y="17" width="38" height="34" rx="6" fill="none" stroke="#fff" stroke-width="5"/><path d="M13 27h38" stroke="#fff" stroke-width="5"/><path d="M24 39l5 5 10-11" fill="none" stroke="#fff" stroke-width="5" stroke-linecap="round" stroke-linejoin="round"/></svg>
         Planner
-      </span>
+      </a>
       <span class="muted">For people who'd rather do the thing than manage the list.</span>
       <span class="muted">© <span id="lp-year"></span> Planner</span>
     </footer>
@@ -513,10 +513,10 @@
 
   <!-- "Allow Claude to use your Planner?" — the OAuth consent page (js/consent.js) -->
   <div id="consent" class="consent" hidden>
-    <div class="consent-brand">
+    <a href="./" class="consent-brand" title="Planner home">
       <svg class="logo" viewBox="0 0 64 64" aria-hidden="true"><rect width="64" height="64" rx="15" fill="#4f46e5"/><rect x="13" y="17" width="38" height="34" rx="6" fill="none" stroke="#fff" stroke-width="5"/><path d="M13 27h38" stroke="#fff" stroke-width="5"/><path d="M24 39l5 5 10-11" fill="none" stroke="#fff" stroke-width="5" stroke-linecap="round" stroke-linejoin="round"/></svg>
       Planner
-    </div>
+    </a>
     <div class="signin-card consent-card" id="consent-card"></div>
   </div>
 
@@ -534,10 +534,10 @@
   <!-- Pinned top bar.  Left: logo, name, date & time.  Centre: quick add (type, ⓘ tips, mic, Add).
        Right: your name and a settings button.  On phones only the logo and quick add show. -->
   <header class="topbar">
-    <div class="brand">
+    <a href="./" class="brand" id="home-link" title="Dashboard">
       <svg class="logo" viewBox="0 0 64 64" aria-hidden="true"><rect width="64" height="64" rx="15" fill="#4f46e5"/><rect x="13" y="17" width="38" height="34" rx="6" fill="none" stroke="#fff" stroke-width="5"/><path d="M13 27h38" stroke="#fff" stroke-width="5"/><path d="M24 39l5 5 10-11" fill="none" stroke="#fff" stroke-width="5" stroke-linecap="round" stroke-linejoin="round"/></svg>
       <span class="brand-text"><span class="brand-name">Planner</span><span id="today-label" class="muted"></span></span>
-    </div>
+    </a>
 
     <!-- Quick add: type and press Enter. A day/time puts it on the plan, @list or nothing puts it in a list.
          See app.js (form submit) and when.js. -->

@@ -92,5 +92,8 @@ const Consent = (() => {
     };
   }
 
+  // The logo on this page goes home: drop the pending request, or home would show this page again.
+  document.querySelector('.consent-brand').addEventListener('click', forget);
+
   return { pending, askToSignIn, show };
 })();
