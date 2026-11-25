@@ -122,7 +122,7 @@ const TaskView = (() => {
                 : `<option value="" ${project ? '' : 'selected'}>No project</option>`}
               ${projects.map(l => `<option value="${l.id}" ${project && l.id === project.id ? 'selected' : ''}>@${escapeHtml(l.name)}</option>`).join('')}
             </select>
-            ${project ? `<a class="tv-open-project" href="#project/${project.id}" title="Open @${escapeHtml(project.name)}">Open ↗</a>` : ''}
+            ${project ? `<a class="tv-open-project" href="${Project.href(project)}" title="Open @${escapeHtml(project.name)}">Open ↗</a>` : ''}
           </div>
         </div>
       </section>`;

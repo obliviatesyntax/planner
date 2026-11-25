@@ -76,7 +76,7 @@ const Lists = (() => {
   root.addEventListener('click', e => {
     if (e.target.closest('.list-new-btn')) { creating = true; return render(); }
     const head = e.target.closest('.list-head.openable');
-    if (head) location.hash = `project/${head.dataset.listDrag}`;   // the project page (project.js)
+    if (head) location.hash = Project.href(Tasks.list(head.dataset.listDrag));   // the project page (project.js)
   });
 
   root.addEventListener('keydown', e => {

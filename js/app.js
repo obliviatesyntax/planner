@@ -166,7 +166,7 @@ const App = (() => {
     Labels.render();
     Planner.render();
     Lists.render();
-    Project.render();   // the project page, when one is open (#project/<id>)
+    Project.render();   // the project page, when one is open (#project/<name>)
   }
 
   // ---- backup ----------------------------------------------------------

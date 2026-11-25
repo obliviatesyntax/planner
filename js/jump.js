@@ -10,7 +10,7 @@ const Jump = (() => {
   function entries() {
     const projects = Tasks.allLists().filter(l => l.id !== TRIAGE_LIST.id).map(l => {
       const { waiting, planned } = Tasks.projectTasks(l.id);
-      return { hash: `project/${encodeURIComponent(l.id)}`, id: l.id, name: l.name, waiting: waiting.length, planned: planned.length };
+      return { hash: Project.href(l).slice(1), id: l.id, name: l.name, waiting: waiting.length, planned: planned.length };
     });
     return [{ hash: '', id: null, name: 'Dashboard' }, ...projects];
   }

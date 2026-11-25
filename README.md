@@ -12,7 +12,7 @@ A daily planner on one page:
   it's planned** on a day (a triage task doesn't: the inbox isn't a project); it changes project only when
   dragged into another list, set in the task window's Project row, or typed as "… tomorrow @project".
   Each list shows its waiting tasks plus "N planned". Click a list's name for the **project page**
-  (`#project/<id>`, `js/project.js`): its notes (Markdown when it looks like Markdown, with @project
+  (`#project/<name>`, `js/project.js`): its notes (Markdown when it looks like Markdown, with @project
   links and one-way "Add as tasks" for any list, which marks the lines ✓), tasks not planned / planned /
   done (latest 3, "Show all"), and Edit (rename, label: all its tasks count as it, delete).
 - **Settings** (header): default view, where unfinished tasks go at day end (@triage or the next
@@ -106,7 +106,7 @@ Design and internal docs live in a separate private repo: `git@github.com:oblivi
 | `js/landing.js` | The signed-out landing page: buttons that open the sign-in card, the typing demo. (Page text is in `index.html`.) |
 | `js/playground.js` | The interactive preview ("playground mode" in the code), `index.html?playground` (linked from the landing page): the same page and code, with no account and no database. Swaps in a pretend sign-in and an in-memory store seeded with the landing demo's tasks; nothing is saved. Elements with `pg-only` show only in this mode, `pg-hide` ones hide. |
 | `supabase/functions/mcp/` | The MCP server for Claude, ChatGPT and Gemini: `planner.ts` (tools, rules and protocol), `index.ts` (start-up), `planner_test.ts`. Its rules match `js/tasks.js`. |
-| `js/project.js` | A project's page (`#project/<id>`): notes (Markdown via marked + DOMPurify, @project links, list lines → tasks), and its tasks not planned / planned / done. |
+| `js/project.js` | A project's page (`#project/<name>`): notes (Markdown via marked + DOMPurify, @project links, list lines → tasks), and its tasks not planned / planned / done. |
 | `js/consent.js`, `js/connect.js` | "Allow … to use your Planner?" (the sign-in step for AI apps), and the "Connect AI apps" instructions window. |
 | `js/help.js` | The **i** button next to quick add: "Adding tasks" help (examples live in `index.html`). |
 | `js/voice.js` | Mic button: speech to text (browser built-in), spoken "list weekly" → `@weekly` etc. |

@@ -1,4 +1,4 @@
-// project.js — a project's own page: #project/<list id>.
+// project.js — a project's own page: #project/<name>, e.g. #project/kitchenReno.
 //
 // A project is one of your lists (not @triage, which is only an inbox). Its page shows:
 //   • Notes: free text, shown as Markdown when it looks like Markdown (headings, lists, **bold**,
@@ -23,14 +23,27 @@ const Project = (() => {
   let editing = false;     // notes in edit mode?
   let showAllDone = false;
   let shownId = null;
+  let shownName = null;   // its name when last drawn (to follow a rename)
   let editStart = '';      // the notes when editing began, to spot newly written list items
   let offer = null;        // line numbers of new list items to offer as tasks (once), or null
 
-  // The project in the address (#project/<id>), if it exists and is a real project.
+  // A project's address is its name: #project/kitchenReno. Names are one word of letters and
+  // digits and unique (any case), so the name alone finds it. Typed in another case
+  // (#project/KITCHENRENO) it still opens, and the address is corrected to the real spelling.
+  // Renamed while open (here, on another device, or by an AI app): the address follows the new name.
+  // An old link to a renamed or deleted project goes to the Dashboard.
+  function href(l) { return `#project/${l.name}`; }
+
+  // The project in the address, if it exists and is a real project (not @triage).
   function currentId() {
     const m = location.hash.match(/^#project\/(.+)$/);
-    const id = m && decodeURIComponent(m[1]);
-    return id && id !== TRIAGE_LIST.id && Tasks.list(id) ? id : null;
+    if (!m) return null;
+    const name = decodeURIComponent(m[1]);
+    const l = Tasks.findList(name);
+    if (l && l.id !== TRIAGE_LIST.id) return l.id;
+    // Not found, but it's the name of the page on screen: that project was just renamed.
+    const shown = shownId && Tasks.list(shownId);
+    return shown && shownName && name.toLowerCase() === shownName.toLowerCase() ? shownId : null;
   }
 
   window.addEventListener('hashchange', () => { editing = false; showAllDone = false; App.renderAll(); window.scrollTo(0, 0); });
@@ -40,7 +53,9 @@ const Project = (() => {
     if (location.hash.startsWith('#project/') && !id) history.replaceState(null, '', location.pathname + location.search);   // deleted / unknown
     view.hidden = !id;
     dashboard.forEach(el => { el.hidden = Boolean(id); });
-    if (!id) { shownId = null; return; }
+    if (!id) { shownId = shownName = null; return; }
+    if (location.hash !== href(Tasks.list(id))) history.replaceState(null, '', location.pathname + location.search + href(Tasks.list(id)));   // real spelling / new name
+    shownName = Tasks.list(id).name;
     if (shownId !== id) { editing = false; showAllDone = false; offer = null; shownId = id; }
     const l = Tasks.list(id);
     const { waiting, planned, done } = Tasks.projectTasks(id);
@@ -171,7 +186,7 @@ const Project = (() => {
         const target = part.startsWith('@') && Tasks.findList(part.slice(1));
         if (target && target.id !== TRIAGE_LIST.id) {
           const a = document.createElement('a');
-          a.href = `#project/${target.id}`;
+          a.href = href(target);
           a.className = 'pj-link';
           a.textContent = `@${target.name}`;
           frag.appendChild(a);
@@ -232,7 +247,7 @@ const Project = (() => {
     return listLines(now).filter(x => !x.added && plainTitle(x.text) && !old.has(plainTitle(x.text).toLowerCase())).map(x => x.index);
   }
 
-  // Turn note lines into tasks in this project (one-way), and mark the lines with " ✓".
+  // Turn note lines into tasks in this project (one-way), and mark the lines with " → task".
   function linesToTasks(id, indexes) {
     const l = Tasks.list(id);
     const lines = (l.notes || '').split('\n');
@@ -312,5 +327,5 @@ const Project = (() => {
     if (e.target.matches('.pj-notes-input')) saveNotes();
   });
 
-  return { render, currentId };
+  return { render, currentId, href };
 })();
