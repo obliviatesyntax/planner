@@ -89,8 +89,7 @@ it. It lives at `https://eiwoavnrsdnffiztwziq.supabase.co/functions/v1/mcp`.
 
 ## Docs
 
-- [`docs/ui-mobile-vs-desktop.md`](docs/ui-mobile-vs-desktop.md): how the app and landing page differ on phones and
-  computers, the breakpoints, and a checklist for new features.
+Design and internal docs live in a separate private repo: `git@github.com:obliviatesyntax/planner-docs.git`.
 
 ## Code map (read in this order)
 
