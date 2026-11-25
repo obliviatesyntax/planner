@@ -11,7 +11,7 @@
 //                        never changed by any of this; tasks and notes aren't kept in sync.
 //   • Tasks: not planned yet (the list itself: drag into it, "+ Add"), planned on a day (with the
 //     day and time), and done (the 3 most recent; "Show all" for the rest).
-// The header is editable in place: click the name to rename, pick a label chip, 🗑 deletes (Undo).
+// The header is editable in place: click the name to rename, pick a label chip, 🗑 deletes (asks first, then Undo).
 // Quick add on this page puts tasks into this project unless you type another @list.
 // The browser's Back button, or "← Dashboard", returns to the Dashboard (the main page). The ▾ next
 // to the name switches to another project (see jump.js).
@@ -70,7 +70,7 @@ const Project = (() => {
         ${labels.length ? `<div class="pj-labels" title="This project's label: all its tasks count as it">${labels.map(lab => `
           <button type="button" class="pj-label ${l.label === lab.id ? 'on' : ''}" data-label="${lab.id}" style="--c:${lab.color}">#${escapeHtml(lab.shortcut)}</button>`).join('')}</div>` : ''}
         <span class="muted pj-stats">${waiting.length} not planned · ${planned.length} planned · ${done.length} done</span>
-        <button type="button" class="pj-delete" title="Delete this project (and its tasks not planned yet). Undo is offered."><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 6h18"/><path d="M8 6V4h8v2"/><path d="M19 6l-1 14H6L5 6"/><path d="M10 11v6M14 11v6"/></svg></button>
+        <button type="button" class="pj-delete" title="Delete this project (and its tasks not planned yet). Asks first."><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 6h18"/><path d="M8 6V4h8v2"/><path d="M19 6l-1 14H6L5 6"/><path d="M10 11v6M14 11v6"/></svg></button>
       </div>
       <div class="pj-grid">
         <section class="pj-tasks">
@@ -344,8 +344,14 @@ const Project = (() => {
   }
 
   // Delete the project and its tasks not planned yet (planned / done ones stay, with no project).
+  // Asks first (a project can hold a lot), then still offers Undo.
   function deleteProject(id) {
     const name = Tasks.list(id).name;
+    const { waiting, planned, done } = Tasks.projectTasks(id);
+    const n = waiting.length, kept = planned.length + done.length;
+    const question = `Delete @${name}${n ? ` and its ${n} task${n === 1 ? '' : 's'} not planned yet` : ''}?`
+      + (kept ? `\n\nIts ${kept} planned or done task${kept === 1 ? '' : 's'} will stay, without a project.` : '');
+    if (!confirm(question)) return;
     const removed = Tasks.removeList(id);
     location.hash = '';
     App.toast(`Deleted @${name}`, 'Undo', () => Tasks.restoreList(removed));
