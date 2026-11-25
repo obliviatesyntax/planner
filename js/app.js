@@ -233,8 +233,9 @@ async function boot() {
   const user = await Auth.currentUser();
   const authorization = Consent.pending();   // connecting Planner to Claude etc.: see consent.js
   if (authorization) return user ? Consent.show(user, authorization) : Consent.askToSignIn();
-  if (!user) return Auth.showSignIn();
+  if (!user) { setAside(); return Auth.showSignIn(); }
   if (Auth.needsNewPassword()) return Auth.showNewPassword(user);   // back from a "Forgot password" email
+  bringBack();
   Settings.load(user);
   try {
     await Tasks.init();
@@ -245,6 +246,21 @@ async function boot() {
   Auth.showApp(user);   // only now, so the page never shows half-empty sections while loading
   App.renderAll();
 }
+// Opening a project link (#project/kitchenReno) while signed out: the landing page shows at the
+// plain address, and the project opens once you've signed in (in this tab: sign-in reloads the
+// page, or comes back from Google etc.). Remembered in sessionStorage, so only for this tab.
+const AFTER_SIGN_IN = 'planner.afterSignIn';
+function setAside() {
+  if (!location.hash.startsWith('#project/')) return;
+  try { sessionStorage.setItem(AFTER_SIGN_IN, location.hash); } catch (err) { /* private mode etc.: just not remembered */ }
+  history.replaceState(null, '', location.pathname + location.search);
+}
+function bringBack() {
+  let hash = null;
+  try { hash = sessionStorage.getItem(AFTER_SIGN_IN); sessionStorage.removeItem(AFTER_SIGN_IN); } catch (err) { /* nothing remembered */ }
+  if (hash && !location.hash) history.replaceState(null, '', location.pathname + location.search + hash);
+}
+
 window.addEventListener('DOMContentLoaded', () => {
   boot().catch(err => console.error(err)).finally(() => { document.getElementById('loading').hidden = true; });
 });
