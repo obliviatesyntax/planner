@@ -1,5 +1,6 @@
 # Publishes the site to GitHub Pages on every push to main, with the js/ files joined into one
 # (see tools/build.py). Needs Settings → Pages → Source: "GitHub Actions".
+# Follows GitHub's starter workflow (actions/starter-workflows pages/static.yml) plus the build step.
 name: Publish site
 
 on:
@@ -12,22 +13,28 @@ permissions:
   pages: write
   id-token: write
 
+# One publish at a time; a running one is never cancelled halfway.
 concurrency:
   group: pages
-  cancel-in-progress: true
+  cancel-in-progress: false
 
 jobs:
-  publish:
-    runs-on: ubuntu-latest
+  deploy:
     environment:
       name: github-pages
-      url: ${{ steps.deploy.outputs.page_url }}
+      url: ${{ steps.deployment.outputs.page_url }}
+    runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v7
-      - run: python3 tools/build.py
-      - uses: actions/configure-pages@v6
-      - uses: actions/upload-pages-artifact@v5
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Build (join js/ into one file)
+        run: python3 tools/build.py
+      - name: Setup Pages
+        uses: actions/configure-pages@v5
+      - name: Upload artifact
+        uses: actions/upload-pages-artifact@v3
         with:
           path: _site
-      - id: deploy
+      - name: Deploy to GitHub Pages
+        id: deployment
         uses: actions/deploy-pages@v5
