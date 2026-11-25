@@ -13,8 +13,10 @@ A daily planner on one page:
   dragged into another list, set in the task window's Project row, or typed as "… tomorrow @project".
   Each list shows its waiting tasks plus "N planned". Click a list's name for the **project page**
   (`#project/<name>`, `js/project.js`): its notes (Markdown when it looks like Markdown, with @project
-  links and one-way "Add as tasks" for any list, which marks the lines ✓), tasks not planned / planned /
-  done (latest 3, "Show all"), and Edit (rename, label: all its tasks count as it, delete).
+  links; bullet lines that are tasks show where they are, e.g. "Planned tomorrow 6 PM"; others can be
+  added as tasks, one-way, and the notes text is never changed), tasks not planned / planned / done
+  (latest 3, "Show all"), and a header that edits in place (rename, label: all its tasks count as it,
+  delete). The ▾ by the name, or G / ⌘K, switches projects.
 - **Settings** (header): default view, where unfinished tasks go at day end (@triage or the next
   day), week start, 12/24-hour time, minimum calendar height, new task length and priority.
   Saved on the account (Supabase user metadata), so they follow you across devices.
