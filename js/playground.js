@@ -43,7 +43,7 @@ Budget around **$18k**. Contractor visits are on weekdays; see @salesDeck for th
 - Cabinet colour: sage or off-white
 - Tile: [zellige samples](https://example.com/tiles)
 - Book a plumber for the sink move
-- Order the sink ✓
+- Order the sink → task
 
 ## Notes from the showroom
 > Soft-close hinges are worth it.`;

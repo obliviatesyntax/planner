@@ -99,16 +99,6 @@ button { cursor: pointer; }
   border: 1px solid var(--line); border-radius: 14px; padding: 0; width: min(520px, calc(100vw - 24px));
   max-height: calc(100vh - 40px); box-shadow: var(--shadow-lg);
 }
-#list-dialog { border: 1px solid var(--line); border-radius: 14px; padding: 0; width: min(420px, calc(100vw - 24px)); box-shadow: var(--shadow-lg); }
-#list-dialog::backdrop { background: rgba(17, 24, 39, .3); }
-.lv-name { display: flex; align-items: center; gap: 2px; font-size: 19px; font-weight: 700; }
-.lv-name span { color: var(--faint); }
-.lv-input { flex: 1; font: inherit; border: 1px solid var(--line); border-radius: 8px; padding: 6px 8px; }
-.lv-input:focus { outline: none; border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-soft); }
-.lv-hint { margin: -6px 0 0; font-size: 12px; color: var(--muted); }
-.lv-label { display: flex; flex-direction: column; gap: 8px; padding: 12px 14px; background: var(--bg); border-radius: 10px; }
-.lv-label .tv-label { padding-top: 0; }
-.lv-label .lv-hint { margin: 0; }
 .list-head .tag { cursor: inherit; }
 .list-head.openable { cursor: pointer; border-radius: 6px; }
 .list-head.openable:hover { background: var(--bg); }
@@ -1405,7 +1395,29 @@ body.playground .settings-block:has(#set-first-name), body.playground .settings-
 .pj-back { color: var(--muted); text-decoration: none; font-weight: 600; font-size: 13px; padding: 4px 10px 4px 4px; border-radius: 8px; }
 .pj-back:hover { color: var(--text); background: var(--panel); }
 .pj-stats { font-size: 13px; }
-.pj-edit { margin-left: auto; padding: 4px 12px; }
+.pj-title { display: flex; align-items: baseline; margin: 0; font-size: 20px; font-weight: 800; }
+.pj-title span { color: var(--faint); }
+.pj-name {
+  font: inherit; color: var(--text); border: 1px solid transparent; border-radius: 6px; padding: 1px 3px; margin-left: -2px;
+  background: transparent; min-width: 4ch; max-width: 60vw;
+}
+.pj-name:hover { border-color: var(--line); background: var(--panel); }
+.pj-name:focus { outline: none; border-color: var(--accent); background: var(--panel); box-shadow: 0 0 0 3px var(--accent-soft); }
+.pj-labels { display: flex; gap: 4px; flex-wrap: wrap; }
+.pj-label {
+  font-size: 11.5px; font-weight: 600; padding: 1px 8px; border-radius: 99px; border: 1px solid var(--line);
+  background: var(--panel); color: var(--muted);
+}
+.pj-label:hover { border-color: var(--c); color: var(--c); }
+.pj-label.on { background: var(--c); border-color: var(--c); color: #fff; }
+.pj-delete { margin-left: auto; border: 0; background: none; color: var(--faint); padding: 6px; border-radius: 8px; display: grid; place-items: center; }
+.pj-delete:hover { color: var(--p1); background: var(--p1-soft); }
+.pj-offer {
+  display: flex; align-items: center; gap: 8px; flex-wrap: wrap; padding: 8px 10px; border-radius: 10px;
+  background: var(--accent-soft); border: 1px solid #c7d2fe; font-size: 13.5px;
+}
+.pj-offer .primary { padding: 4px 12px; font-size: 13px; }
+.pj-added { margin-left: 6px; font-size: 11px; font-weight: 600; color: var(--muted); background: var(--bg); border: 1px solid var(--line); border-radius: 99px; padding: 0 7px; vertical-align: 1px; white-space: nowrap; }
 .pj-grid { display: grid; grid-template-columns: minmax(300px, 2fr) 3fr; gap: 14px; align-items: start; }
 .pj-tasks { display: flex; flex-direction: column; gap: 14px; min-width: 0; }
 .pj-box { background: var(--panel); border: 1px solid var(--line); border-radius: var(--radius); box-shadow: var(--shadow); padding: 12px 14px; display: flex; flex-direction: column; gap: 8px; min-width: 0; }
@@ -1454,15 +1466,10 @@ body.playground .settings-block:has(#set-first-name), body.playground .settings-
 }
 .pj-notes-view li:hover > .pj-to-task, .pj-notes-view li:hover > p > .pj-to-task, .pj-to-task:focus { opacity: 1; }
 .pj-to-task:hover { background: var(--accent-soft); }
-.pj-to-tasks {
-  display: inline-block; margin: 2px 0 8px 22px; font-size: 12.5px; font-weight: 600; color: var(--accent);
-  background: var(--accent-soft); border: 1px solid #c7d2fe; border-radius: 99px; padding: 2px 12px;
-}
-.pj-to-tasks:hover { background: #e0e7ff; }
-@media (hover: none) { .pj-to-task { opacity: 1; } }   /* touch: always visible */
+@media (hover: none) { .pj-to-task { display: none; } }   /* touch: no hover, so no per-line button (the offer after writing covers it) */
 @media (max-width: 900px) {
   .pj-grid { grid-template-columns: 1fr; }
-  .pj-edit { margin-left: 0; }
+  .pj-delete { margin-left: 0; }
 }
 
 .drop-target.drop-project { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; min-width: 0; }   /* "@kitchenReno" may be long */

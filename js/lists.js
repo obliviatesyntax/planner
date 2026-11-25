@@ -79,79 +79,6 @@ const Lists = (() => {
     if (head) location.hash = `project/${head.dataset.listDrag}`;   // the project page (project.js)
   });
 
-  // ---- the list window: click a list's header to rename or delete it -------------
-  // (@triage and @overdue are built in: they can't be renamed or deleted.)
-
-  const dialog = document.getElementById('list-dialog');
-  let openId = null;
-
-  function openList(id) {
-    openId = id;
-    const l = Tasks.list(id);
-    const n = Tasks.listTasks(id).length;
-    dialog.innerHTML = `
-      <form method="dialog" class="taskview listview">
-        <div class="tv-head">
-          <span class="tv-where">☰ List · ${n} task${n === 1 ? '' : 's'}</span>
-          <button type="submit" class="icon-btn" title="Close">×</button>
-        </div>
-        <div class="lv-name"><span>@</span><input class="lv-input" maxlength="30" value="${escapeHtml(l.name)}" aria-label="List name"></div>
-        <p class="lv-hint">One word, letters and digits; camelCase is fine (e.g. kitchenReno).</p>
-        ${Tasks.allLabels().length ? `
-          <div class="lv-label">
-            <span class="tv-label">Label for this list</span>
-            <div class="tv-labels">
-              ${Tasks.allLabels().map(lab => `
-                <button type="button" class="tv-label-chip ${l.label === lab.id ? 'on' : ''}" data-list-label="${lab.id}" style="--c:${lab.color}">#${escapeHtml(lab.shortcut)} ${escapeHtml(lab.name)}</button>`).join('')}
-            </div>
-            <p class="lv-hint">Tasks planned from this list get this label.</p>
-          </div>` : `
-          <div class="lv-label">
-            <span class="tv-label">Label for this list</span>
-            <p class="lv-hint">No labels yet. Create them in <button type="button" class="link-btn" data-open-settings>Settings → Labels</button>.</p>
-          </div>`}
-        <div class="tv-foot">
-          <button type="button" class="tv-delete">Delete list${n ? ` and its ${n} task${n === 1 ? '' : 's'}` : ''}</button>
-          <span class="muted tv-saved">Changes save automatically</span>
-        </div>
-      </form>`;
-    dialog.showModal();
-  }
-
-  function saveName() {
-    const input = dialog.querySelector('.lv-input');
-    if (!input || !openId) return;
-    const l = Tasks.list(openId);
-    const name = input.value.trim().replace(/^@/, '');
-    if (!l || name === l.name) return;
-    const result = Tasks.renameList(openId, name);
-    if (typeof result === 'string') { App.toast(result); input.value = l.name; }
-  }
-
-  dialog.addEventListener('keydown', e => {
-    if (e.target.matches('.lv-input') && e.key === 'Enter') { e.preventDefault(); saveName(); dialog.close(); }
-  });
-  dialog.addEventListener('focusout', e => { if (e.target.matches('.lv-input')) saveName(); });
-  dialog.addEventListener('click', e => {
-    if (e.target === dialog) return dialog.close();
-    const chip = e.target.closest('[data-list-label]');
-    if (chip) {   // one label per list: pick one, or tap the chosen one again for none
-      const current = Tasks.list(openId).label;
-      Tasks.setListLabel(openId, current === chip.dataset.listLabel ? null : chip.dataset.listLabel);
-      dialog.querySelectorAll('[data-list-label]').forEach(b => b.classList.toggle('on', b.dataset.listLabel === Tasks.list(openId).label));
-      return;
-    }
-    if (!e.target.closest('.tv-delete')) return;
-    const l = Tasks.list(openId);
-    const n = Tasks.listTasks(openId).length;
-    if (n && !confirm(`Delete @${l.name} and its ${n} task${n === 1 ? '' : 's'}?`)) return;
-    const removed = Tasks.removeList(openId);
-    openId = null;
-    dialog.close();
-    App.toast(`Deleted @${l.name}`, 'Undo', () => Tasks.restoreList(removed));
-  });
-  dialog.addEventListener('close', () => { saveName(); openId = null; });
-
   root.addEventListener('keydown', e => {
     if (!e.target.matches('.list-new-input')) return;
     if (e.key === 'Escape') { creating = false; return render(); }
@@ -166,5 +93,5 @@ const Lists = (() => {
     if (e.target.matches('.list-new-input') && !e.target.value.trim()) { creating = false; render(); }
   });
 
-  return { render, openList };   // openList: rename / label / delete (the project page's Edit)
+  return { render };
 })();

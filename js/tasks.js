@@ -318,14 +318,16 @@ const Tasks = (() => {
     const removedTasks = listTasks(id);
     lists = lists.filter(l => l.id !== id);
     tasks = tasks.filter(t => !removedTasks.includes(t));
-    tasks.forEach(t => { if (t.list === id) t.list = null; });   // planned/done ones keep living, with no project
+    const unlinked = tasks.filter(t => t.list === id).map(t => t.id);   // planned/done ones keep living,
+    unlinked.forEach(tid => { get(tid).list = null; });                 // with no project
     commit();
-    return { list: removedList, tasks: removedTasks };
+    return { list: removedList, tasks: removedTasks, unlinked };
   }
 
-  function restoreList({ list: l, tasks: removed }) {
+  function restoreList({ list: l, tasks: removed, unlinked = [] }) {
     lists.push(l);
     tasks.push(...removed);
+    unlinked.forEach(tid => { const t = get(tid); if (t) t.list = l.id; });   // link them back
     commit();
   }
 

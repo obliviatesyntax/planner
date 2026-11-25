@@ -4,11 +4,14 @@
 //   • Notes: free text, shown as Markdown when it looks like Markdown (headings, lists, **bold**,
 //     links, code, quotes, tables…), plain text otherwise. Two special things in notes:
 //       @projectName   → a link to that project's page
-//       any list       → "Add N as tasks" (whole list) and "+ task" (one line), one-way: the task is
-//                        created in this project and the line gets a " ✓" so it isn't added twice.
-//                        Tasks and notes aren't kept in sync afterwards (tasks can move anywhere).
+//       list items     → can become tasks in this project, one-way. Right after you write new list
+//                        items (click Done), the notes offer "Add N as tasks" once; any line also has
+//                        a "+ task" on hover. A line that became a task gets " → task" saved after it
+//                        (shown as "added as task"), so it isn't added twice. Tasks and notes aren't
+//                        kept in sync afterwards (tasks can move anywhere).
 //   • Tasks: not planned yet (the list itself: drag into it, "+ Add"), planned on a day (with the
 //     day and time), and done (the 3 most recent; "Show all" for the rest).
+// The header is editable in place: click the name to rename, pick a label chip, 🗑 deletes (Undo).
 // Quick add on this page puts tasks into this project unless you type another @list.
 // The browser's Back button, or "← Plan", returns to the dashboard.
 
@@ -19,6 +22,8 @@ const Project = (() => {
   let editing = false;     // notes in edit mode?
   let showAllDone = false;
   let shownId = null;
+  let editStart = '';      // the notes when editing began, to spot newly written list items
+  let offer = null;        // line numbers of new list items to offer as tasks (once), or null
 
   // The project in the address (#project/<id>), if it exists and is a real project.
   function currentId() {
@@ -35,20 +40,21 @@ const Project = (() => {
     view.hidden = !id;
     dashboard.forEach(el => { el.hidden = Boolean(id); });
     if (!id) { shownId = null; return; }
-    if (shownId !== id) { editing = false; showAllDone = false; shownId = id; }
+    if (shownId !== id) { editing = false; showAllDone = false; offer = null; shownId = id; }
     const l = Tasks.list(id);
     const { waiting, planned, done } = Tasks.projectTasks(id);
-    const lab = l.label && Tasks.label(l.label);
+    const labels = Tasks.allLabels();
     const visibleDone = showAllDone ? done : done.slice(0, RECENT_DONE);
     const draft = editing ? view.querySelector('.pj-notes-input')?.value : undefined;   // keep unsaved typing
 
     view.innerHTML = `
       <div class="pj-head">
         <a href="#" class="pj-back" title="Back to the plan">← Plan</a>
-        <h2>@${escapeHtml(l.name)}</h2>
-        ${lab ? `<span class="tag" style="--c:${lab.color}">#${escapeHtml(lab.shortcut)}</span>` : ''}
+        <h2 class="pj-title"><span>@</span><input class="pj-name" value="${escapeHtml(l.name)}" size="${Math.max(4, l.name.length)}" maxlength="30" spellcheck="false" aria-label="Project name" title="Click to rename"></h2>
+        ${labels.length ? `<div class="pj-labels" title="This project's label: all its tasks count as it">${labels.map(lab => `
+          <button type="button" class="pj-label ${l.label === lab.id ? 'on' : ''}" data-label="${lab.id}" style="--c:${lab.color}">#${escapeHtml(lab.shortcut)}</button>`).join('')}</div>` : ''}
         <span class="muted pj-stats">${waiting.length} not planned · ${planned.length} planned · ${done.length} done</span>
-        <button type="button" class="secondary pj-edit" title="Rename, give it a label, or delete it">Edit</button>
+        <button type="button" class="pj-delete" title="Delete this project (and its tasks not planned yet). Undo is offered."><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 6h18"/><path d="M8 6V4h8v2"/><path d="M19 6l-1 14H6L5 6"/><path d="M10 11v6M14 11v6"/></svg></button>
       </div>
       <div class="pj-grid">
         <section class="pj-tasks">
@@ -72,6 +78,12 @@ const Project = (() => {
         </section>
         <section class="pj-box pj-notes">
           <h3>Notes ${editing ? '' : '<button type="button" class="link-btn pj-notes-edit">Edit</button>'}</h3>
+          ${!editing && offer && offer.length ? `
+            <div class="pj-offer">
+              <span>You added ${offer.length} list item${offer.length === 1 ? '' : 's'}. Add ${offer.length === 1 ? 'it' : 'them'} to @${escapeHtml(l.name)} as tasks?</span>
+              <button type="button" class="primary pj-offer-yes">Add ${offer.length === 1 ? 'as a task' : `${offer.length} as tasks`}</button>
+              <button type="button" class="link-btn pj-offer-no">Not now</button>
+            </div>` : ''}
           ${editing ? notesEditorHtml(l) : notesViewHtml(l)}
         </section>
       </div>`;
@@ -151,47 +163,53 @@ const Project = (() => {
 
   // The list lines of the notes, in order (skipping code blocks): { index, text, added }.
   const LIST_LINE = /^(\s*)([-*+]|\d+[.)])\s+(\[[ xX]\]\s+)?(.*?)\s*$/;
-  const ADDED = ' ✓';
+  const ADDED = ' → task';                        // saved after a line that became a task
+  const ADDED_END = /\s*(→ task|✓)\s*$/;          // (✓ = how earlier versions marked it)
   function listLines(text) {
     const out = [];
     let fenced = false;
     text.split('\n').forEach((line, index) => {
       if (/^\s*```/.test(line)) { fenced = !fenced; return; }
       const m = !fenced && line.match(LIST_LINE);
-      if (m) out.push({ index, text: m[4], added: m[4].endsWith(ADDED.trim()) });
+      if (m) out.push({ index, text: m[4], added: ADDED_END.test(m[4]) });
     });
     return out;
   }
   // "**Buy** [tiles](https://…) `now`" → "Buy tiles now"
-  const plainTitle = s => s.replace(/\s*✓\s*$/, '').replace(/\[([^\]]*)\]\([^)]*\)/g, '$1').replace(/[*_`~]+/g, '').trim();
+  const plainTitle = s => s.replace(ADDED_END, '').replace(/\[([^\]]*)\]\([^)]*\)/g, '$1').replace(/[*_`~]+/g, '').trim();
 
-  // Each list item gets "+ task"; each top-level list gets "Add N as tasks".
+  // Each list item gets a "+ task" (shown on hover); a line already turned into a task shows
+  // "added as task" instead of its saved " → task".
   function addTaskButtons(box, l) {
     const items = [...box.querySelectorAll('li')];
     const lines = listLines(l.notes || '');
     if (items.length !== lines.length) return;   // couldn't match lines to the drawing: no buttons
     items.forEach((li, i) => {
-      li.dataset.line = lines[i].index;
-      if (lines[i].added || !plainTitle(lines[i].text)) return;
+      const holder = li.querySelector(':scope > p') || li;   // (loose lists wrap text in <p>)
+      if (lines[i].added) {
+        const text = [...holder.childNodes].filter(n => n.nodeType === Node.TEXT_NODE).reverse().find(n => ADDED_END.test(n.nodeValue));
+        if (text) text.nodeValue = text.nodeValue.replace(ADDED_END, '');
+        const tag = document.createElement('span');
+        tag.className = 'pj-added';
+        tag.textContent = 'added as task';
+        holder.insertBefore(tag, text ? text.nextSibling : holder.querySelector(':scope > ul, :scope > ol'));
+        return;
+      }
+      if (!plainTitle(lines[i].text)) return;
       const b = document.createElement('button');
       b.type = 'button';
       b.className = 'pj-to-task';
       b.dataset.lines = lines[i].index;
       b.title = 'Add this line as a task in this project';
       b.textContent = '+ task';
-      (li.querySelector(':scope > p') || li).appendChild(b);   // (loose lists wrap text in <p>)
+      holder.insertBefore(b, holder.querySelector(':scope > ul, :scope > ol'));
     });
-    box.querySelectorAll('ul, ol').forEach(list => {
-      if (list.parentElement.closest('ul, ol')) return;   // nested lists are covered by their top list
-      const open = [...list.querySelectorAll('li')].map(li => lines[items.indexOf(li)]).filter(x => x && !x.added && plainTitle(x.text));
-      if (open.length < 2) return;
-      const b = document.createElement('button');
-      b.type = 'button';
-      b.className = 'pj-to-tasks';
-      b.dataset.lines = open.map(x => x.index).join(',');
-      b.textContent = `+ Add ${open.length} as tasks`;
-      list.after(b);
-    });
+  }
+
+  // List items in `now` that weren't in `before` (by their text): offered as tasks once.
+  function newListItems(before, now) {
+    const old = new Set(listLines(before).map(x => plainTitle(x.text).toLowerCase()));
+    return listLines(now).filter(x => !x.added && plainTitle(x.text) && !old.has(plainTitle(x.text).toLowerCase())).map(x => x.index);
   }
 
   // Turn note lines into tasks in this project (one-way), and mark the lines with " ✓".
@@ -229,16 +247,47 @@ const Project = (() => {
     const id = currentId();
     if (!id) return;
     if (e.target.closest('.pj-back')) { e.preventDefault(); location.hash = ''; return; }
-    if (e.target.closest('.pj-edit')) return Lists.openList(id);
-    if (e.target.closest('.pj-notes-edit, .pj-notes-empty')) { editing = true; return render(); }
-    if (e.target.closest('.pj-notes-done')) { editing = false; saveNotes(); return render(); }
+    if (e.target.closest('.pj-delete')) return deleteProject(id);
+    const chip = e.target.closest('.pj-label');
+    if (chip) return Tasks.setListLabel(id, Tasks.list(id).label === chip.dataset.label ? null : chip.dataset.label);
+    if (e.target.closest('.pj-notes-edit, .pj-notes-empty')) { editing = true; offer = null; editStart = Tasks.list(id).notes || ''; return render(); }
+    if (e.target.closest('.pj-notes-done')) return finishEditing(id);
+    if (e.target.closest('.pj-offer-yes')) { const lines = offer; offer = null; return linesToTasks(id, lines); }
+    if (e.target.closest('.pj-offer-no')) { offer = null; return render(); }
     if (e.target.closest('[data-more]')) { showAllDone = !showAllDone; return render(); }
-    const add = e.target.closest('.pj-to-task, .pj-to-tasks');
+    const add = e.target.closest('.pj-to-task');
     if (add) return linesToTasks(id, add.dataset.lines.split(',').map(Number));
   });
   view.addEventListener('keydown', e => {
-    if (e.target.matches('.pj-notes-input') && e.key === 'Enter' && (e.metaKey || e.ctrlKey)) { editing = false; saveNotes(); render(); }
+    if (e.target.matches('.pj-notes-input') && e.key === 'Enter' && (e.metaKey || e.ctrlKey)) finishEditing(currentId());
+    if (e.target.matches('.pj-name') && e.key === 'Enter') { e.preventDefault(); e.target.blur(); }
+    if (e.target.matches('.pj-name') && e.key === 'Escape') { e.target.value = Tasks.list(currentId()).name; e.target.blur(); }
   });
+  view.addEventListener('input', e => { if (e.target.matches('.pj-name')) e.target.size = Math.max(4, e.target.value.length); });
+  view.addEventListener('change', e => {   // rename (Enter or clicking away)
+    if (!e.target.matches('.pj-name')) return;
+    const id = currentId();
+    const name = e.target.value.trim().replace(/^@/, '');
+    if (!id || name === Tasks.list(id).name) return;
+    const result = Tasks.renameList(id, name);
+    if (typeof result === 'string') { App.toast(result); e.target.value = Tasks.list(id).name; }
+  });
+
+  function finishEditing(id) {
+    saveNotes();
+    editing = false;
+    const added = newListItems(editStart, Tasks.list(id).notes || '');
+    offer = added.length ? added : null;
+    render();
+  }
+
+  // Delete the project and its tasks not planned yet (planned / done ones stay, with no project).
+  function deleteProject(id) {
+    const name = Tasks.list(id).name;
+    const removed = Tasks.removeList(id);
+    location.hash = '';
+    App.toast(`Deleted @${name}`, 'Undo', () => Tasks.restoreList(removed));
+  }
   view.addEventListener('focusout', e => {   // clicking away saves too (but stays in edit mode)
     if (e.target.matches('.pj-notes-input')) saveNotes();
   });
