@@ -12,7 +12,8 @@ const Store = (() => {
   const TABLES = {
     tasks: {
       toRow: t => ({
-        id: t.id, title: t.title, priority: t.priority, labels: t.labels, list_id: t.list,
+        // list_id is NOT NULL in the database: "" there = no project (null here).
+        id: t.id, title: t.title, priority: t.priority, labels: t.labels, list_id: t.list || '',
         plan_date: t.planDate, start_min: t.startMin, duration_min: t.duration,
         sort_order: t.order, created_at: t.createdAt, done_on: t.doneOn,
         // Only sent once a description has been written, so saving still works on a
@@ -20,7 +21,7 @@ const Store = (() => {
         ...(typeof t.notes === 'string' ? { notes: t.notes } : {}),
       }),
       fromRow: r => ({
-        id: r.id, title: r.title, priority: r.priority, labels: r.labels || [], list: r.list_id,
+        id: r.id, title: r.title, priority: r.priority, labels: r.labels || [], list: r.list_id || null,
         planDate: r.plan_date, startMin: r.start_min, duration: r.duration_min,
         order: r.sort_order, createdAt: r.created_at, doneOn: r.done_on,
         ...(r.notes != null ? { notes: r.notes } : {}),
@@ -29,8 +30,9 @@ const Store = (() => {
     lists: {
       // label_id is only sent once a list has (or had) a label, so saving still works on a
       // database that hasn't run migrations/005-list-label.sql yet.
-      toRow: l => ({ id: l.id, name: l.name, sort_order: l.order, ...(l.label !== undefined ? { label_id: l.label } : {}) }),
-      fromRow: r => ({ id: r.id, name: r.name, order: r.sort_order, ...(r.label_id !== undefined ? { label: r.label_id } : {}) }),
+      // notes (project notes) only once written, so saving works before migrations/006-project-notes.sql.
+      toRow: l => ({ id: l.id, name: l.name, sort_order: l.order, ...(l.label !== undefined ? { label_id: l.label } : {}), ...(typeof l.notes === 'string' ? { notes: l.notes } : {}) }),
+      fromRow: r => ({ id: r.id, name: r.name, order: r.sort_order, ...(r.label_id !== undefined ? { label: r.label_id } : {}), ...(r.notes != null ? { notes: r.notes } : {}) }),
     },
     labels: {
       toRow: l => ({ id: l.id, name: l.name, shortcut: l.shortcut, color: l.color, sort_order: l.order }),

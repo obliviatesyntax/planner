@@ -7,9 +7,14 @@ A daily planner on one page:
   drag it onto **Done today**, to complete it. Past days show only what was done (crossed out), so
   going back on the calendar *is* the done log. Unfinished tasks from past days show under **Overdue** (above Done today, only while there are
   some; not a list: they keep their day and time until you re-plan them). A setting can roll them into the next day instead.
-- **Bottom: Lists.** **@triage** (always first) plus your own lists, like **@weekly** or **@upcomingE**.
-  New tasks without a day land in @triage. Drag a list's header to reorder; click it to rename it, give it
-  a label (e.g. @kitchenReno → #p: tasks moved from it onto a day get #p), or delete it (with its tasks, Undo).
+- **Bottom: Lists = projects.** **@triage** (always first; the inbox, not a project) plus your projects, like
+  **@weekly** or **@kitchenReno**. New tasks without a day land in @triage. A task **keeps its project while
+  it's planned** on a day (a triage task doesn't: the inbox isn't a project); it changes project only when
+  dragged into another list, set in the task window's Project row, or typed as "… tomorrow @project".
+  Each list shows its waiting tasks plus "N planned". Click a list's name for the **project page**
+  (`#project/<id>`, `js/project.js`): its notes (Markdown when it looks like Markdown, with @project
+  links and one-way "Add as tasks" for any list, which marks the lines ✓), tasks not planned / planned /
+  done (latest 3, "Show all"), and Edit (rename, label: all its tasks count as it, delete).
 - **Settings** (header): default view, where unfinished tasks go at day end (@triage or the next
   day), week start, 12/24-hour time, minimum calendar height, new task length and priority.
   Saved on the account (Supabase user metadata), so they follow you across devices.
@@ -101,6 +106,7 @@ Design and internal docs live in a separate private repo: `git@github.com:oblivi
 | `js/landing.js` | The signed-out landing page: buttons that open the sign-in card, the typing demo. (Page text is in `index.html`.) |
 | `js/playground.js` | The interactive preview ("playground mode" in the code), `index.html?playground` (linked from the landing page): the same page and code, with no account and no database. Swaps in a pretend sign-in and an in-memory store seeded with the landing demo's tasks; nothing is saved. Elements with `pg-only` show only in this mode, `pg-hide` ones hide. |
 | `supabase/functions/mcp/` | The MCP server for Claude, ChatGPT and Gemini: `planner.ts` (tools, rules and protocol), `index.ts` (start-up), `planner_test.ts`. Its rules match `js/tasks.js`. |
+| `js/project.js` | A project's page (`#project/<id>`): notes (Markdown via marked + DOMPurify, @project links, list lines → tasks), and its tasks not planned / planned / done. |
 | `js/consent.js`, `js/connect.js` | "Allow … to use your Planner?" (the sign-in step for AI apps), and the "Connect AI apps" instructions window. |
 | `js/help.js` | The **i** button next to quick add: "Adding tasks" help (examples live in `index.html`). |
 | `js/voice.js` | Mic button: speech to text (browser built-in), spoken "list weekly" → `@weekly` etc. |

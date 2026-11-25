@@ -21,9 +21,10 @@ const Cards = (() => {
   // (the coloured edge shows priority; the tag appears on hover). See docs/ui-mobile-vs-desktop.md.
   function html(task, where, style = '', size = '') {
     const timed = task.startMin != null;
-    // In @overdue: the day (and time) it was planned for, e.g. "Mon, Nov 17 · 10:00 AM".
+    // Overdue, or a project's planned tasks ('project'): the day (and time), e.g. "Mon, Nov 17 · 10:00 AM".
     const late = where === 'list' && !task.doneOn && task.planDate && task.planDate < todayISO();
-    const time = late ? `${formatDay(task.planDate)}${timed ? ` · ${formatTime(task.startMin)}` : ''}`
+    const dated = late || (where === 'project' && task.planDate);
+    const time = dated ? `${formatDay(task.planDate)}${timed ? ` · ${formatTime(task.startMin)}` : ''}`
       : !timed ? ''
       : where === 'calendar' ? (Calendar.isCompressed() ? '' : formatTimeRange(task.startMin, task.startMin + task.duration))
       : formatTime(task.startMin);
@@ -31,7 +32,7 @@ const Cards = (() => {
     // In a compressed view everything inside the day columns (calendar blocks, to-do cards, a past
     // day's done cards) drops the P tag (shown on hover) and has no hover buttons; click to open.
     // Not the lists below, and not the "Done today" panel.
-    const compressed = Calendar.isCompressed() && where !== 'list' && size !== 'panel';
+    const compressed = Calendar.isCompressed() && where !== 'list' && where !== 'project' && size !== 'panel';
     const canDelete = where !== 'done';   // lists, to-do lists and calendar blocks
     const hasLabels = Tasks.allLabels().length > 0;   // no labels exist yet: no "#" button
     return `

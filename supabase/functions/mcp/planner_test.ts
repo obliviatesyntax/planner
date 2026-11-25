@@ -155,10 +155,14 @@ Deno.test('add_task: @triage by default, a day, a calendar time, a new list', as
   assertStringIncludes(await callError('add_task', { title: 'x', date: today, start_time: '25:00' }), "isn't a time");
 });
 
-Deno.test("move_task: out of a labelled list picks up its label; to a list un-plans", async () => {
+Deno.test("move_task: onto a day keeps the project (triage → none); to a list un-plans", async () => {
   fresh();
-  assertStringIncludes(await call('move_task', { id: 't6', date: today, start_time: '14:00' }), `on the calendar Today`);
-  assertEquals(row('tasks', 't6').labels, ['w']);   // @salesDeck has #w
+  const moved = await call('move_task', { id: 't6', date: today, start_time: '14:00' });
+  assertStringIncludes(moved, `on the calendar Today`);
+  assertStringIncludes(moved, '@salesDeck');                     // the planned task shows its project
+  assertEquals([row('tasks', 't6').list_id, row('tasks', 't6').labels], ['sales', []]);   // kept; no label copied
+  await call('move_task', { id: 't5', date: today });            // from @triage (the inbox)
+  assertEquals(row('tasks', 't5').list_id, '');
   await call('move_task', { id: 't1', list: 'triage' });
   assertEquals([row('tasks', 't1').plan_date, row('tasks', 't1').start_min, row('tasks', 't1').list_id], [null, null, 'triage']);
   assertStringIncludes(await callError('move_task', { id: 't1' }), 'Say where');
@@ -250,8 +254,8 @@ Deno.test('add several tasks at once; top-level fields are defaults', async () =
   assertEquals(text.split('\n').length, 3);
   assertStringIncludes(text, '(new list @kitchenReno)');
   const [a, b, c] = DB.tasks.slice(-3);
-  assertEquals([a.title, a.priority, b.title, b.list_id === a.list_id, c.sort_order], ['Buy tiles', 2, 'Book a plumber', true, 2]);
-  assertEquals([b.plan_date, b.start_min], [null, null]);   // a list wins over a date, as in quick add
+  assertEquals([a.title, a.priority, b.title, b.list_id === a.list_id, c.sort_order], ['Buy tiles', 2, 'Book a plumber', true, 1]);
+  assertEquals([b.plan_date, b.start_min], [shift(1), 600]);   // a date plans it; the list is its project
   // one bad task: nothing is added
   const before = DB.tasks.length;
   assertStringIncludes(await callError('add_task', { tasks: ['ok', { title: 'bad', labels: ['nope'] }] }), 'No label "nope"');
@@ -279,4 +283,26 @@ Deno.test('search by filters only: priority, label, list, added_on', async () =>
   const addedToday = await call('search_tasks', { added_on: 'today' });
   assertStringIncludes(addedToday, 'Renew passport · added today');
   assertStringIncludes(await callError('search_tasks', {}), 'Give text to search for, or a filter');
+});
+
+Deno.test('projects: planned counts, update_task project keeps the day, get_project', async () => {
+  fresh();
+  await call('add_task', { title: 'Pricing call', list: 'salesDeck', date: 'tomorrow', start_time: '11:00' });
+  const planned = DB.tasks.at(-1);
+  assertEquals([planned.plan_date, planned.list_id], [shift(1), 'sales']);
+  assertStringIncludes(await call('get_lists', { list: 'salesDeck' }), '(+ 1 planned on a day');
+  // link a planned task (t2, today's to-do, no project) to a project: it stays on its day
+  await call('update_task', { id: 't2', project: 'salesDeck' });
+  assertEquals([row('tasks', 't2').plan_date, row('tasks', 't2').list_id], [today, 'sales']);
+  await call('update_task', { id: 't2', project: '' });
+  assertEquals(row('tasks', 't2').list_id, '');
+  // an unplanned task moves into the project's list
+  await call('update_task', { id: 't5', project: 'salesDeck' });
+  assertEquals([row('tasks', 't5').plan_date, row('tasks', 't5').list_id], [null, 'sales']);
+  const page = await call('get_project', { project: '@salesDeck' });
+  for (const s of ['# @salesDeck', '## Notes', '## Not planned', 'Renew passport', '## Planned', 'Pricing call', '## Done']) assertStringIncludes(page, s);
+  assertStringIncludes(await callError('get_project', { project: 'triage' }), 'inbox, not a project');
+  // deleting a project: its planned tasks stay, with no project
+  await call('delete_list', { list: 'salesDeck' });
+  assertEquals([row('tasks', planned.id).plan_date, row('tasks', planned.id).list_id], [shift(1), '']);
 });

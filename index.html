@@ -524,6 +524,8 @@
     <!-- Top: what you've committed to (js/planner.js). Bottom: your lists (js/lists.js). -->
     <section id="planner" class="section"></section>
     <section id="lists" class="section"></section>
+    <!-- A project's page, #project/<id> (js/project.js): replaces the plan and lists while open -->
+    <section id="project-view" class="section" hidden></section>
   </main>
 
   <footer class="footer">
@@ -559,10 +561,11 @@
         <tr><td><code>Review doc nov 20 at 14:00 for 1h</code></td><td>Nov 20, 2:00 PM, one hour long</td></tr>
         <tr><td><code>Call mom tomorrow</code></td><td>Tomorrow's to-do list (a day, no time)</td></tr>
         <tr><td><code>Renew passport @weekly</code></td><td>The @weekly list (created if it's new)</td></tr>
+        <tr><td><code>Plumber tomorrow 9am @kitchenReno</code></td><td>Tomorrow at 9:00 AM, in the @kitchenReno project</td></tr>
         <tr><td><code>Buy groceries</code></td><td>@triage (no day, time or list)</td></tr>
       </table>
       <p class="help-note">Days: today, tonight, tomorrow, monday…friday (or mon, tue…), next monday, nov 20.
-        Times: 5pm, 5:30pm, 17:00, noon, 6-7pm. Length: for 45 min, for 1h. An <code>@list</code> wins over a day or time.</p>
+        Times: 5pm, 5:30pm, 17:00, noon, 6-7pm. Length: for 45 min, for 1h. With a day, an <code>@list</code> becomes the task's project (it stays linked while planned).</p>
 
       <h3>Priority and labels</h3>
       <table class="help-table">
@@ -587,7 +590,8 @@
         <li><b>+ Add</b> under a day or a list adds straight there.</li>
         <li><b>Click an empty spot on the calendar</b> to add a task at that time.</li>
         <li><b>Drag</b> tasks between lists, days, times and “Done today”.</li>
-        <li><b>Click a task</b> to open it: rename it, add a description, set priority and labels, or delete it.</li>
+        <li><b>Click a task</b> to open it: rename it, add a description, set priority and labels, change its project, or delete it.</li>
+        <li><b>Click a list's name</b> to open the project: all its tasks (planned too) and notes. Lists in notes can be turned into tasks.</li>
         <li>Unfinished tasks from past days wait under <b>Overdue</b> (above Done today) until you re-plan them.</li>
         <li>Press <kbd>N</kbd> to jump to the box, <kbd>?</kbd> to open this help.</li>
       </ul>
@@ -729,6 +733,10 @@
   <script src="js/dnd.js"></script>
   <script src="js/swipe.js"></script>
   <script src="js/lists.js"></script>
+  <!-- Markdown for project notes (marked), made safe before showing (DOMPurify) -->
+  <script src="https://cdn.jsdelivr.net/npm/marked@12.0.2/marked.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/dompurify@3.1.6/dist/purify.min.js"></script>
+  <script src="js/project.js"></script>
   <script src="js/settings.js"></script>
   <script src="js/consent.js"></script>
   <script src="js/connect.js"></script>

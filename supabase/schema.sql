@@ -18,7 +18,8 @@ create table public.lists (
   id          text    not null,                    -- "triage" for the built-in list
   name        text    not null,                    -- "weekly"  → shown as @weekly
   sort_order  integer not null default 0,
-  label_id    text,                                -- optional; tasks moved onto the plan get it
+  label_id    text,                                -- optional; all the project's tasks count as having it
+  notes       text,                                -- project notes (Markdown or plain text)
   primary key (user_id, id)
 );
 
@@ -38,7 +39,7 @@ create table public.tasks (
   title        text        not null,
   priority     smallint    check (priority is null or priority in (1, 2, 3)),   -- null = not set
   labels       text[]      not null default '{}',  -- label ids
-  list_id      text        not null default 'triage', -- the list it sits in while not planned
+  list_id      text        not null default 'triage', -- its project ('' = none; 'triage' = inbox, only while unplanned)
   plan_date    date,                               -- null = in its list; set = committed to that day
   start_min    integer,                            -- minutes after midnight on the calendar; null = in the day's plan list
   duration_min integer     not null default 30,    -- length of the calendar block

@@ -14,7 +14,7 @@ const Labels = (() => {
   // Once it's on a day it has the label itself (it's added when the task is moved there).
   function matches(task) {
     if (!selected.size) return true;
-    const list = !task.planDate && Tasks.list(task.list);
+    const list = task.list && Tasks.list(task.list);   // its project, planned or not
     return task.labels.some(id => selected.has(id)) || Boolean(list && list.label && selected.has(list.label));
   }
 

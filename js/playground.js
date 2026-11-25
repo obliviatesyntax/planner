@@ -35,6 +35,19 @@ if (PLAYGROUND) {
   });
 }
 
+const KITCHEN_NOTES = `# Kitchen reno
+
+Budget around **$18k**. Contractor visits are on weekdays; see @salesDeck for the Q3 timing.
+
+## Still to decide
+- Cabinet colour: sage or off-white
+- Tile: [zellige samples](https://example.com/tiles)
+- Book a plumber for the sink move
+- Order the sink ✓
+
+## Notes from the showroom
+> Soft-close hinges are worth it.`;
+
 function seed() {
   const today = todayISO(), tomorrow = addDays(today, 1), yesterday = addDays(today, -1);
   // Calendar times near "now", so they're in view (the calendar starts an hour before now).
@@ -47,17 +60,18 @@ function seed() {
   const lists = [
     { ...TRIAGE_LIST, order: -1 },
     { id: 'l-sales', name: 'salesDeck', order: 0, label: 'lbl-w' },
-    { id: 'l-kitchen', name: 'kitchenReno', order: 1 },
+    { id: 'l-kitchen', name: 'kitchenReno', order: 1, notes: KITCHEN_NOTES },
     { id: 'l-bird', name: 'birdhouse', order: 2 },
   ];
   let n = 0;
+  // Not planned: in @triage unless a list is given. Planned: no project unless a list is given.
   const task = (title, fields = {}) => ({
-    id: `pg${n}`, title, priority: null, labels: [], list: TRIAGE_LIST.id, planDate: null,
+    id: `pg${n}`, title, priority: null, labels: [], list: fields.planDate ? null : TRIAGE_LIST.id, planDate: null,
     startMin: null, duration: 30, order: n++, createdAt: new Date().toISOString(), doneOn: null, ...fields,
   });
   const tasks = [
     // today
-    task('Design review', { planDate: today, startMin: nextHour, duration: 60, priority: 2, labels: ['lbl-w'] }),
+    task('Design review', { planDate: today, startMin: nextHour, duration: 60, priority: 2, list: 'l-sales' }),
     task('Gym', { planDate: today, startMin: Math.min(nextHour + 120, 22 * 60), duration: 60, priority: 3, labels: ['lbl-p'] }),
     task('Reply to Sam', { planDate: today, priority: 2 }),
     task('Water the plants', { planDate: today }),
@@ -78,6 +92,8 @@ function seed() {
     task('Collect customer quotes', { list: 'l-sales' }),
     task('Add Q3 numbers', { list: 'l-sales' }),
     task('Get 3 contractor quotes', { list: 'l-kitchen', priority: 1 }),
+    task('Measure the kitchen', { list: 'l-kitchen', planDate: tomorrow }),
+    task('Clear out the cabinets', { list: 'l-kitchen', planDate: yesterday, doneOn: yesterday }),
     task('Pick cabinet colour', { list: 'l-kitchen' }),
     task('Buy cedar planks', { list: 'l-bird' }),
     task('Find a 1.5" hole saw', { list: 'l-bird', priority: 3 }),

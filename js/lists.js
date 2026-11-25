@@ -52,12 +52,15 @@ const Lists = (() => {
   function listHtml(l) {
     const tasks = Tasks.listTasks(l.id).filter(Labels.matches);
     const isTriage = l.id === TRIAGE_LIST.id;
+    // A project also counts its tasks already planned on a day (they're shown on the plan).
+    const planned = isTriage ? 0 : Tasks.projectTasks(l.id).planned.filter(Labels.matches).length;
     return `
       <div class="list-col" data-drop="list" data-list="${l.id}">
-        <div class="list-head ${isTriage ? '' : 'openable'}" ${isTriage ? '' : `draggable="true" data-list-drag="${l.id}" title="Click to rename or delete · drag to reorder"`}>
+        <div class="list-head ${isTriage ? '' : 'openable'}" ${isTriage ? '' : `draggable="true" data-list-drag="${l.id}" title="Click to open the project · drag to reorder"`}>
           <span class="list-name">@${escapeHtml(l.name)}</span>
           ${listTagHtml(l)}
-          <span class="count">${tasks.length}</span>
+          <span class="count" title="${tasks.length} not planned yet">${tasks.length}</span>
+          ${planned ? `<span class="planned-count" title="${planned} planned on a day">${planned} planned</span>` : ''}
         </div>
         <div class="list">${tasks.map(t => Cards.html(t, 'list')).join('')}</div>
         <button type="button" class="col-add" data-list="${l.id}">+ Add</button>
@@ -73,7 +76,7 @@ const Lists = (() => {
   root.addEventListener('click', e => {
     if (e.target.closest('.list-new-btn')) { creating = true; return render(); }
     const head = e.target.closest('.list-head.openable');
-    if (head) openList(head.dataset.listDrag);
+    if (head) location.hash = `project/${head.dataset.listDrag}`;   // the project page (project.js)
   });
 
   // ---- the list window: click a list's header to rename or delete it -------------
@@ -163,5 +166,5 @@ const Lists = (() => {
     if (e.target.matches('.list-new-input') && !e.target.value.trim()) { creating = false; render(); }
   });
 
-  return { render };
+  return { render, openList };   // openList: rename / label / delete (the project page's Edit)
 })();

@@ -6,7 +6,12 @@
 //     title:     "Renew passport",
 //     priority:  null | 1 | 2 | 3       null = not set
 //     labels:    ["k2j3", ...]          ids of labels; can be empty
-//     list:      "triage" | "k9x2…"   id of the list it sits in while not planned
+//     list:      null | "triage" | "k9x2…"
+//                                       Its project (a list). A task keeps its project while it's
+//                                       planned on a day. @triage is only an inbox, not a project:
+//                                       planning a triage task clears it to null. null = no project
+//                                       (e.g. created straight onto a day or the calendar). A task
+//                                       that isn't planned always sits in a list (@triage if none).
 //     planDate:  null | "2026-11-17"    null = in its list; a date = committed to that day
 //     startMin:  null | 570             null = in that day's to-do list; a number = on the
 //                                       calendar at that many minutes after midnight (570 = 9:30)
@@ -22,9 +27,13 @@
 //   planDate + time → that day's calendar
 //   planDate only   → that day's to-do list
 //   neither         → its list (bottom section)
+// The project changes only when a task is dragged into another list, or set in the task window's
+// Project row (which keeps its day), or by "@project" in quick add.
 //
-// A list looks like:  { id, name: "weekly", order, label }   (shown as @weekly; @triage is built in)
-//   label: optional label id; a task moved from this list onto a day or time gets that label
+// A list (= a project) looks like:  { id, name: "weekly", order, label, notes }
+//   (shown as @weekly; @triage is built in and is not a project)
+//   label: optional label id; all the project's tasks count as having it (labels.js matches)
+//   notes: optional text, Markdown when it looks like Markdown (project.js)
 // A label looks like: { id, name: "Personal", shortcut: "p", color: "#2b8a3e", order }
 //
 // UI code never edits data directly — it calls these functions, which save and
@@ -42,7 +51,10 @@ const Tasks = (() => {
     lists = data.lists;
     labels = data.labels;
     if (!lists.some(l => l.id === TRIAGE_LIST.id)) lists.push({ ...TRIAGE_LIST, order: -1 });
-    tasks.forEach(t => { if (!list(t.list)) t.list = TRIAGE_LIST.id; });   // e.g. old buckets
+    tasks.forEach(t => {   // a list that's gone: unplanned tasks to @triage, planned ones to no project
+      if (t.list && !list(t.list)) t.list = t.planDate ? null : TRIAGE_LIST.id;
+      if (!t.list && !t.planDate) t.list = TRIAGE_LIST.id;
+    });
     rollover();
   }
 
@@ -113,11 +125,14 @@ const Tasks = (() => {
   // ---- task actions -----------------------------------------------------------
 
   // New tasks go to a list (default @triage), unless a day (planDate) or a calendar
-  // time (planDate + startMin) is given.
-  function add({ title, priority = Settings.get('defaultPriority'), labels: labelIds = [], list: listId = TRIAGE_LIST.id,
+  // time (planDate + startMin) is given. A planned task keeps a project given as `list`
+  // (e.g. "Dentist tomorrow 5pm @health"); without one (or with @triage) it has no project.
+  function add({ title, priority = Settings.get('defaultPriority'), labels: labelIds = [], list: listId = null,
                  planDate = null, startMin = null, duration = null }) {
     title = (title || '').trim();
     if (!title) return null;
+    if (!planDate) listId = listId || TRIAGE_LIST.id;
+    else if (listId === TRIAGE_LIST.id) listId = null;
     const task = {
       id: newId(), title, priority: priority || null, labels: labelIds, list: listId,
       planDate, startMin: planDate ? startMin : null, duration: duration || Settings.get('defaultDuration'),
@@ -169,18 +184,32 @@ const Tasks = (() => {
     commit();
   }
 
-  // A task leaving a list for a day or a calendar time picks up that list's label (if it has one).
-  function inheritListLabel(task) {
-    if (task.planDate || task.doneOn) return;            // not coming out of a list
-    const from = list(task.list);
-    if (from && from.label && label(from.label) && !task.labels.includes(from.label)) {
-      task.labels = [...task.labels, from.label];
-    }
+  // Planning a task keeps its project, except @triage (an inbox, not a project): that's cleared.
+  function leaveInbox(task) { if (task.list === TRIAGE_LIST.id) task.list = null; }
+
+  // Link a task to a project without moving it: a planned task stays on its day ("" / null = no
+  // project). A task that isn't planned is moved into that list (or @triage for none).
+  function setProject(id, listId) {
+    const task = get(id);
+    listId = listId || null;
+    if (task.planDate || task.doneOn) { task.list = listId === TRIAGE_LIST.id ? null : listId; commit(); return; }
+    moveToList(id, listId || TRIAGE_LIST.id);
+  }
+
+  // Tasks of a project, by state: waiting in the list, planned on a day (not done), and done.
+  function projectTasks(listId) {
+    const mine = tasks.filter(t => t.list === listId);
+    return {
+      waiting: listTasks(listId),
+      planned: mine.filter(t => t.planDate && !t.doneOn)
+        .sort((a, b) => a.planDate.localeCompare(b.planDate) || (a.startMin ?? 1e4) - (b.startMin ?? 1e4) || a.order - b.order),
+      done: mine.filter(t => t.doneOn).sort((a, b) => b.doneOn.localeCompare(a.doneOn)),
+    };
   }
 
   function moveToPlan(id, date, beforeId) {
     const task = get(id);
-    inheritListLabel(task);
+    leaveInbox(task);
     Object.assign(task, { planDate: date, startMin: null, doneOn: null });
     place(planList(date), task, beforeId);
     commit();
@@ -190,7 +219,7 @@ const Tasks = (() => {
   // current order, after what's already there; one save. Returns what they were, for Undo.
   function moveAllToPlan(ids, date) {
     const before = ids.map(id => { const t = get(id); return { id, planDate: t.planDate, startMin: t.startMin, list: t.list, order: t.order, doneOn: t.doneOn }; });
-    ids.forEach((id, i) => Object.assign(get(id), { planDate: date, startMin: null, doneOn: null, order: 1e6 + i }));
+    ids.forEach((id, i) => { leaveInbox(get(id)); Object.assign(get(id), { planDate: date, startMin: null, doneOn: null, order: 1e6 + i }); });
     renumber(planList(date));
     commit();
     return before;
@@ -202,7 +231,7 @@ const Tasks = (() => {
   }
 
   function moveToCalendar(id, date, startMin) {
-    inheritListLabel(get(id));
+    leaveInbox(get(id));
     Object.assign(get(id), { planDate: date, startMin, doneOn: null });
     commit();
   }
@@ -242,7 +271,15 @@ const Tasks = (() => {
     return newList;
   }
 
-  // A list's label (one existing label, or null for none). Tasks get it when moved onto the plan.
+  // A project's notes (free text; Markdown when it looks like Markdown).
+  function setListNotes(id, notes) {
+    const l = list(id);
+    if (!l || id === TRIAGE_LIST.id) return;
+    l.notes = notes;
+    commit();
+  }
+
+  // A list's label (one existing label, or null for none). All the project's tasks count as having it.
   function setListLabel(id, labelId) {
     const l = list(id);
     if (!l) return;
@@ -281,7 +318,7 @@ const Tasks = (() => {
     const removedTasks = listTasks(id);
     lists = lists.filter(l => l.id !== id);
     tasks = tasks.filter(t => !removedTasks.includes(t));
-    tasks.forEach(t => { if (t.list === id) t.list = TRIAGE_LIST.id; });   // planned/done ones keep living
+    tasks.forEach(t => { if (t.list === id) t.list = null; });   // planned/done ones keep living, with no project
     commit();
     return { list: removedList, tasks: removedTasks };
   }
@@ -376,7 +413,7 @@ const Tasks = (() => {
     init, onChange, rollover, get,
     listTasks, overdueTasks, planList, calendarList, doneList,
     add, update, cyclePriority, toggleDone, markDone, moveToList, moveToPlan, moveAllToPlan, restoreFields, moveToCalendar, remove, restore,
-    allLists, list, findList, addList, renameList, setListLabel, moveList, removeList, restoreList,
+    allLists, list, findList, addList, setListNotes, setProject, projectTasks, renameList, setListLabel, moveList, removeList, restoreList,
     allLabels, label, findLabel, addLabel, updateLabel, removeLabel,
     exportData, replaceAll,
   };

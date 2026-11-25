@@ -11,13 +11,15 @@ const App = (() => {
   //   "Call mom tomorrow"                    → tomorrow's to-do list
   //   "Renew passport @weekly"               → the @weekly list (created if it doesn't exist;
   //                                            an @list always wins over a day/time)
-  //   "Renew passport"                       → @triage   (@overdue is built in: can't be typed)
+  //   "Renew passport"                       → @triage
+  //   "Dentist tomorrow 5pm @health"          → tomorrow at 5 PM, linked to the @health project
+  // On a project page, a task with no @list and no day goes into that project.
   form.addEventListener('submit', e => {
     e.preventDefault();
     const text = titleInput.value;
     const parsed = parseQuickAdd(text);
     if (parsed.badList) return toast(`@${parsed.badList} isn't a valid list name: one word, letters and digits.`);
-    const when = parsed.listName ? null : When.parse(text);
+    const when = When.parse(text);
     const task = when && when.date
       ? addFromText(when.title, { planDate: when.date, startMin: when.startMin, duration: when.duration })
       : addFromText(text, {});
@@ -27,7 +29,7 @@ const App = (() => {
     flash(task.id);
     const where = task.planDate
       ? When.describe({ date: task.planDate, startMin: task.startMin, duration: task.startMin != null ? task.duration : null })
-      : `@${Tasks.list(task.list).name}`;
+      : `@${Tasks.list(task.list).name}`;   // (planned with a project: the day is what's shown)
     toast(`Added “${task.title}” to ${where}`, 'Undo', () => Tasks.remove(task.id));
   });
 
@@ -39,15 +41,15 @@ const App = (() => {
   function previewOf(text) {
     const parsed = parseQuickAdd(text);
     if (parsed.badList) return { error: `@${parsed.badList} isn't a valid list name: one word, letters and digits.` };
-    const when = parsed.listName ? null : When.parse(text);
+    const when = When.parse(text);
     const planned = when && when.date;
     const title = planned ? parseQuickAdd(when.title).title : parsed.title;
+    const existing = parsed.listName && Tasks.findList(parsed.listName);
+    const project = parsed.listName ? (existing ? `@${existing.name}` : `@${parsed.listName} (new list)`)
+      : (typeof Project !== 'undefined' && Project.currentId()) ? `@${Tasks.list(Project.currentId()).name}` : null;
     let where;
-    if (planned) where = `📅 ${When.describe(when)}`;
-    else if (parsed.listName) {
-      const existing = Tasks.findList(parsed.listName);
-      where = existing ? `☰ @${existing.name}` : `☰ @${parsed.listName} (new list)`;
-    } else where = `☰ @${TRIAGE_LIST.name}`;
+    if (planned) where = `📅 ${When.describe(when)}${project && !project.startsWith('@triage') ? ` · ☰ ${project}` : ''}`;
+    else where = `☰ ${project || `@${TRIAGE_LIST.name}`}`;
     const labels = (parsed.labels.length ? parsed.labels : Labels.selectedIds()).map(id => Tasks.label(id)).filter(Boolean);
     return { title, where, priority: parsed.priority || Settings.get('defaultPriority') || 0, labels };
   }
@@ -84,13 +86,16 @@ const App = (() => {
     const parsed = parseQuickAdd(text);
     const named = parsed.listName ? Tasks.addList(parsed.listName) : null;   // finds or creates
     if (typeof named === 'string') { toast(named); return null; }              // e.g. a bad list name
-    const listId = named ? named.id : where.list || TRIAGE_LIST.id;
+    // The project: an @list typed, else where.list, else the project page you're on (if any).
+    // A day keeps it (planned and linked); without a day the task goes into that list.
+    const onPage = typeof Project !== 'undefined' ? Project.currentId() : null;
+    const listId = named ? named.id : where.list || onPage || null;
     return Tasks.add({
       title: parsed.title,
       priority: parsed.priority || Settings.get('defaultPriority') || null,
       labels: parsed.labels.length ? parsed.labels : Labels.selectedIds(),
       list: listId,
-      planDate: named ? null : where.planDate || null,
+      planDate: where.planDate || null,
       startMin: where.startMin ?? null,
       duration: where.duration || null,
     });
@@ -161,6 +166,7 @@ const App = (() => {
     Labels.render();
     Planner.render();
     Lists.render();
+    Project.render();   // the project page, when one is open (#project/<id>)
   }
 
   // ---- backup ----------------------------------------------------------
@@ -211,7 +217,7 @@ const App = (() => {
   // @triage (Tasks.rollover redraws the page); otherwise just redraw the plan so the calendar's
   // "now" line moves. Skipped while you're dragging or typing.
   setInterval(() => {
-    const busy = document.querySelector('.dragging, [contenteditable="true"], .col-add-input, .cal-add-input, .label-input, .list-new-input, .label-picker:not([hidden])') || Calendar.isResizing();
+    const busy = document.querySelector('.dragging, [contenteditable="true"], .col-add-input, .cal-add-input, .label-input, .list-new-input, .pj-notes-input, .label-picker:not([hidden])') || Calendar.isResizing();
     document.getElementById('today-label').textContent = `${formatDay(todayISO())} · ${formatTime(minutesNow())}`;
     if (busy || Tasks.rollover()) return;
     renderAll();

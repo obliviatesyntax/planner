@@ -86,8 +86,9 @@ const TaskView = (() => {
     const timed = date && t.startMin != null;
     const late = date && date < today;                    // overdue: still has its old day and time
     const otherDate = date && !late && date !== today && date !== tomorrow ? date : '';
-    const lists = Tasks.allLists();
-    const inList = !date && !t.doneOn ? t.list : '';
+    const projects = Tasks.allLists().filter(l => l.id !== TRIAGE_LIST.id);
+    const unplanned = !date && !t.doneOn;
+    const project = t.list && t.list !== TRIAGE_LIST.id ? Tasks.list(t.list) : null;
     return `
       <section class="tv-move" aria-label="Move this task">
         <div class="tv-row">
@@ -96,6 +97,7 @@ const TaskView = (() => {
             <button type="button" data-day="${today}" class="${date === today ? 'on' : ''}">Today</button>
             <button type="button" data-day="${tomorrow}" class="${date === tomorrow ? 'on' : ''}">Tomorrow</button>
             <input type="date" class="tv-date ${otherDate ? 'on' : ''}" min="${today}" value="${otherDate}" title="Pick a day">
+            ${date ? `<button type="button" class="tv-noday" title="Take it off the plan, back into ${project ? `@${escapeHtml(project.name)}` : '@triage'}">No day</button>` : ''}
           </div>
           ${late ? `<p class="tv-late">Overdue: it was planned for ${formatDay(date)}${timed ? ` at ${formatTime(t.startMin)}` : ''}. Pick a new day or a list.</p>` : ''}
         </div>
@@ -111,12 +113,16 @@ const TaskView = (() => {
           </div>
         </div>
         <div class="tv-row">
-          <span class="tv-label"><i><svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 6h12M9 12h12M9 18h12"/><circle cx="4" cy="6" r="1"/><circle cx="4" cy="12" r="1"/><circle cx="4" cy="18" r="1"/></svg></i><b>List</b></span>
+          <span class="tv-label"><i><svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 6h12M9 12h12M9 18h12"/><circle cx="4" cy="6" r="1"/><circle cx="4" cy="12" r="1"/><circle cx="4" cy="18" r="1"/></svg></i><b>Project</b></span>
           <div class="tv-when">
-            <select class="tv-list ${inList ? 'on' : ''}">
-              ${inList ? '' : `<option value="" selected>Choose a list…</option>`}
-              ${lists.map(l => `<option value="${l.id}" ${l.id === inList ? 'selected' : ''}>@${escapeHtml(l.name)}</option>`).join('')}
+            <!-- Planned: re-links it, keeping its day. Not planned: moves it into that list. -->
+            <select class="tv-project ${project ? 'on' : ''}" title="${unplanned ? 'Move it to another list' : 'Link it to a project (it stays on its day)'}">
+              ${unplanned
+                ? `<option value="${TRIAGE_LIST.id}" ${t.list === TRIAGE_LIST.id ? 'selected' : ''}>@triage (inbox)</option>`
+                : `<option value="" ${project ? '' : 'selected'}>No project</option>`}
+              ${projects.map(l => `<option value="${l.id}" ${project && l.id === project.id ? 'selected' : ''}>@${escapeHtml(l.name)}</option>`).join('')}
             </select>
+            ${project ? `<a class="tv-open-project" href="#project/${project.id}" title="Open @${escapeHtml(project.name)}">Open ↗</a>` : ''}
           </div>
         </div>
       </section>`;
@@ -146,7 +152,7 @@ const TaskView = (() => {
       afterMove();
     }
     if (e.target.matches('.tv-dur')) { Tasks.update(id, { duration: Number(e.target.value) }); afterMove(); }
-    if (e.target.matches('.tv-list') && e.target.value) { Tasks.moveToList(id, e.target.value, null); afterMove(); }
+    if (e.target.matches('.tv-project')) { Tasks.setProject(id, e.target.value); afterMove(); }
   });
 
   // The name box grows with the text.
@@ -191,6 +197,11 @@ const TaskView = (() => {
     const day = e.target.closest('[data-day]');
     if (day) { moveToDay(day.dataset.day); return afterMove(); }
     if (e.target.closest('.tv-notime')) { Tasks.moveToPlan(id, Tasks.get(id).planDate, null); return afterMove(); }
+    if (e.target.closest('.tv-noday')) {   // off the plan: back into its project's list, or @triage
+      Tasks.moveToList(id, Tasks.get(id).list || TRIAGE_LIST.id, null);
+      return afterMove();
+    }
+    if (e.target.closest('.tv-open-project')) dialog.close();   // the link opens the project page
     const prio = e.target.closest('[data-prio]');
     if (prio) {   // tap a priority to set it; tap the chosen one again to clear it
       const n = Number(prio.dataset.prio);
