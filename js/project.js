@@ -7,7 +7,7 @@
 //       list items     → can become tasks in this project, one-way. Right after you write new list
 //                        items (click Done), the notes offer "Add N as tasks" once; any line also has
 //                        a "+ task" on hover. A line whose title matches one of this project's tasks
-//                        shows "added as task" instead, so it isn't added twice. The notes text is
+//                        shows where that task is instead ("Planned tomorrow 6 PM", "Done"…), so it isn't added twice. The notes text is
 //                        never changed by any of this; tasks and notes aren't kept in sync.
 //   • Tasks: not planned yet (the list itself: drag into it, "+ Add"), planned on a day (with the
 //     day and time), and done (the 3 most recent; "Show all" for the rest).
@@ -202,13 +202,14 @@ const Project = (() => {
   // So deleting that task, renaming it, or moving it to another project brings "+ task" back.
   const LIST_LINE = /^(\s*)([-*+]|\d+[.)])\s+(\[[ xX]\]\s+)?(.*?)\s*$/;
   function listLines(text, id) {
-    const titles = id ? projectTitles(id) : new Set();
+    const titles = id ? projectTitles(id) : new Map();
     const out = [];
     let fenced = false;
     text.split('\n').forEach((line, index) => {
       if (/^\s*```/.test(line)) { fenced = !fenced; return; }
       const m = !fenced && line.match(LIST_LINE);
-      if (m) out.push({ index, text: m[4], added: titles.has(sameTitle(taskTitle(m[4]))) });
+      const task = m && titles.get(sameTitle(taskTitle(m[4])));
+      if (m) out.push({ index, text: m[4], added: Boolean(task), task });
     });
     return out;
   }
@@ -217,9 +218,24 @@ const Project = (() => {
   // The title a line gets as a task (quick-add shortcuts like p1 or #label come out, as when adding).
   const taskTitle = s => App.parseQuickAdd(plainTitle(s)).title;
   const sameTitle = s => s.toLowerCase().replace(/\s+/g, ' ').trim();
+  // This project's tasks by title. With several of the same title, the one shown is the next
+  // planned, else one not planned yet, else the latest done.
   function projectTitles(id) {
-    const { waiting, planned, done } = Tasks.projectTasks(id);
-    return new Set([...waiting, ...planned, ...done].map(t => sameTitle(t.title)));
+    const { waiting, planned, done } = Tasks.projectTasks(id);   // planned: soonest first; done: latest first
+    const byTitle = new Map();
+    [...planned, ...waiting, ...done].forEach(t => { if (!byTitle.has(sameTitle(t.title))) byTitle.set(sameTitle(t.title), t); });
+    return byTitle;
+  }
+
+  // The tag on a notes line that is a task: where that task is now.
+  //   Captured as task · Planned today · Planned tomorrow 6 PM · Planned Thu, Nov 27 · Overdue · Done
+  function statusOf(t) {
+    if (t.doneOn) return { text: 'Done', kind: 'done', title: `Done ${formatDay(t.doneOn)}` };
+    if (!t.planDate) return { text: 'Captured as task', kind: 'waiting', title: 'In this project, not planned yet' };
+    const time = t.startMin != null ? ` ${formatTime(t.startMin).replace(':00', '')}` : '';   // 6 PM, 6:30 PM
+    if (t.planDate < todayISO()) return { text: 'Overdue', kind: 'overdue', title: `Was planned for ${formatDay(t.planDate)}${time}` };
+    const day = t.planDate === todayISO() ? 'today' : t.planDate === addDays(todayISO(), 1) ? 'tomorrow' : formatDay(t.planDate);
+    return { text: `Planned ${day}${time}`, kind: 'planned', title: 'On your plan' };
   }
 
   // Each list item gets a "+ task" (shown on hover); a line that already is one of this
@@ -230,10 +246,14 @@ const Project = (() => {
     if (items.length !== lines.length) return;   // couldn't match lines to the drawing: no buttons
     items.forEach((li, i) => {
       const holder = li.querySelector(':scope > p') || li;   // (loose lists wrap text in <p>)
-      if (lines[i].added) {
-        const tag = document.createElement('span');
-        tag.className = 'pj-added';
-        tag.textContent = 'added as task';
+      if (lines[i].task) {   // a button: click to open the task
+        const s = statusOf(lines[i].task);
+        const tag = document.createElement('button');
+        tag.type = 'button';
+        tag.className = `pj-added pj-added-${s.kind}`;
+        tag.dataset.task = lines[i].task.id;
+        tag.title = `${s.title}. Click to open the task.`;
+        tag.textContent = s.text;
         holder.insertBefore(tag, holder.querySelector(':scope > ul, :scope > ol'));
         return;
       }
@@ -295,6 +315,8 @@ const Project = (() => {
     if (e.target.closest('.pj-offer-yes')) { const lines = offer; offer = null; return linesToTasks(id, lines); }
     if (e.target.closest('.pj-offer-no')) { offer = null; return render(); }
     if (e.target.closest('[data-more]')) { showAllDone = !showAllDone; return render(); }
+    const tag = e.target.closest('.pj-added[data-task]');
+    if (tag) return TaskView.open(tag.dataset.task);
     const add = e.target.closest('.pj-to-task');
     if (add) return linesToTasks(id, add.dataset.lines.split(',').map(Number));
   });

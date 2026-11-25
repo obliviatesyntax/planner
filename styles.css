@@ -1547,3 +1547,10 @@ body.playground .settings-block:has(#set-first-name), body.playground .settings-
   .lp-pj { padding: 12px; }
   .lp-pj-grid { grid-template-columns: 1fr; }
 }
+
+/* Project notes: a line that is a task shows where that task is (project.js statusOf) */
+button.pj-added { font-family: inherit; cursor: pointer; line-height: 1.6; }
+button.pj-added:hover { border-color: currentColor; }
+.pj-added-planned { color: var(--accent); background: var(--accent-soft); border-color: transparent; }
+.pj-added-overdue { color: var(--p1); background: var(--p1-soft); border-color: transparent; }
+.pj-added-done { color: var(--done); background: var(--bg); }

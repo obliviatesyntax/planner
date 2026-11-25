@@ -45,6 +45,11 @@ Budget around **$18k**. Contractor visits are on weekdays; see @salesDeck for th
 - Book a plumber for the sink move
 - Order the sink
 
+## First steps
+- Clear out the cabinets
+- Measure the kitchen
+- Get 3 contractor quotes
+
 ## Notes from the showroom
 > Soft-close hinges are worth it.`;
 
@@ -92,7 +97,7 @@ function seed() {
     task('Collect customer quotes', { list: 'l-sales' }),
     task('Add Q3 numbers', { list: 'l-sales' }),
     task('Get 3 contractor quotes', { list: 'l-kitchen', priority: 1 }),
-    task('Measure the kitchen', { list: 'l-kitchen', planDate: tomorrow }),
+    task('Measure the kitchen', { list: 'l-kitchen', planDate: tomorrow, startMin: 18 * 60, duration: 60 }),
     task('Clear out the cabinets', { list: 'l-kitchen', planDate: yesterday, doneOn: yesterday }),
     task('Pick cabinet colour', { list: 'l-kitchen' }),
     task('Order the sink', { list: 'l-kitchen' }),   // (so that notes line shows "added as task")
