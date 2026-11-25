@@ -1357,7 +1357,7 @@ body.playground .settings-block:has(#set-first-name), body.playground .settings-
 .help-note { font-size: 12.5px; color: var(--muted); }
 .help-list { margin: 0; padding-left: 18px; }
 .help-list li { margin: 4px 0; }
-.help code, .help kbd {
+.help code, .help kbd, .jump-foot kbd {
   font: 12px ui-monospace, SFMono-Regular, Menlo, monospace; background: var(--bg);
   border: 1px solid var(--line); border-radius: 4px; padding: 0 4px; white-space: nowrap;
 }
@@ -1473,3 +1473,77 @@ body.playground .settings-block:has(#set-first-name), body.playground .settings-
 }
 
 .drop-target.drop-project { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; min-width: 0; }   /* "@kitchenReno" may be long */
+
+/* ==========================================================================
+   Switcher (▾ on a project page) and keyboard jump (G / ⌘K) — js/jump.js
+   ========================================================================== */
+.pj-switch {
+  align-self: center; border: 0; background: none; color: var(--muted); font-size: 14px; line-height: 1;
+  padding: 6px 7px; margin-left: 2px; border-radius: 8px;
+}
+.pj-switch:hover, .pj-switch[aria-expanded] { color: var(--text); background: var(--panel); }
+.jump-menu {
+  position: absolute; z-index: 60; min-width: 240px; max-width: calc(100vw - 16px); padding: 5px;
+  background: var(--panel); border: 1px solid var(--line); border-radius: 12px; box-shadow: 0 10px 30px rgba(15, 23, 42, .14);
+}
+.jump-menu[hidden] { display: none; }
+.jump-row {
+  display: flex; align-items: center; gap: 8px; padding: 7px 9px; border-radius: 8px;
+  color: var(--text); text-decoration: none; font-size: 14px; font-weight: 600;
+}
+.jump-menu .jump-row:hover, .jump-row.active { background: var(--accent-soft); }
+.jump-row.current { color: var(--accent); }
+.jump-name { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.jump-at, .jump-home { color: var(--faint); margin-right: 1px; }
+.jump-home { margin-right: 6px; }
+.jump-row:first-child { margin-bottom: 3px; }
+.jump-counts { font-size: 12px; font-weight: 500; color: var(--muted); font-variant-numeric: tabular-nums; }
+.jump-here { font-size: 11px; font-weight: 600; color: var(--accent); }
+.jump-foot { font-size: 11.5px; color: var(--faint); padding: 6px 9px 3px; border-top: 1px solid var(--line); margin-top: 3px; }
+.jump-foot kbd { font-size: 10.5px; }
+.jump-dialog {
+  width: min(440px, calc(100vw - 32px)); margin-top: 14vh; padding: 6px; border: 1px solid var(--line);
+  border-radius: 14px; background: var(--panel); color: var(--text); box-shadow: 0 20px 50px rgba(15, 23, 42, .22);
+}
+.jump-dialog::backdrop { background: rgba(15, 23, 42, .25); }
+.jump-input {
+  width: 100%; box-sizing: border-box; font: inherit; font-size: 16px; padding: 10px 12px; margin-bottom: 4px;
+  border: 0; border-bottom: 1px solid var(--line); background: transparent; color: var(--text); outline: none;
+}
+.jump-none { margin: 10px 12px; color: var(--muted); font-size: 14px; }
+
+/* landing: Projects section (a mini project page) */
+.lp-pj-wrap { grid-template-columns: 1.1fr 1fr; }
+#projects + .lp-ai-section { padding-top: 40px; }
+.lp-pj {
+  width: 100%; box-sizing: border-box; padding: 18px; border-radius: 20px; font-size: 14px;
+  background: linear-gradient(180deg, #f5f3ff, #fff); border: 1px solid #e0e7ff;
+}
+.lp-pj-head { display: flex; align-items: baseline; gap: 12px; flex-wrap: wrap; margin-bottom: 12px; }
+.lp-pj-head b { font-size: 18px; }
+.lp-pj-head i { font-style: normal; color: var(--faint); font-weight: 600; }
+.lp-pj-head span { color: var(--muted); font-size: 12.5px; }
+.lp-pj-grid { display: grid; grid-template-columns: 1.25fr 1fr; gap: 12px; }
+.lp-pj-notes, .lp-pj-tasks { background: var(--panel); border: 1px solid var(--line); border-radius: 14px; padding: 12px; }
+.lp-pj small { display: block; font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: .05em; color: var(--faint); margin: 0 0 6px; }
+.lp-pj-tasks small:not(:first-child) { margin-top: 10px; }
+.lp-pj-notes h4 { margin: 0 0 4px; font-size: 15px; }
+.lp-pj-notes p { margin: 0 0 6px; color: #374151; line-height: 1.5; }
+.lp-pj-notes u { color: var(--accent); text-decoration: none; font-weight: 600; }
+.lp-pj-notes ul { margin: 0 0 10px; padding-left: 18px; line-height: 1.7; }
+.lp-pj-notes em { font-style: normal; font-size: 10.5px; font-weight: 600; color: var(--muted); border: 1px solid var(--line); border-radius: 99px; padding: 0 6px; margin-left: 4px; white-space: nowrap; }
+.lp-pj-offer { display: flex; align-items: center; justify-content: space-between; gap: 8px; padding: 6px 8px; border-radius: 10px; background: var(--accent-soft); border: 1px solid #c7d2fe; font-size: 12.5px; }
+.lp-pj-offer span { background: var(--accent); color: #fff; font-weight: 600; border-radius: 8px; padding: 3px 9px; white-space: nowrap; }
+.lp-pj-card { display: flex; justify-content: space-between; gap: 6px; padding: 6px 8px; margin-bottom: 3px; border-radius: 8px; background: var(--bg); box-shadow: inset 3px 0 0 var(--line); font-size: 13px; }
+.lp-pj-when i { font-style: normal; color: var(--accent); font-size: 12px; white-space: nowrap; }
+.lp-pj-done { color: var(--muted); text-decoration: line-through; }
+.lp-pj-steps { margin: 18px 0 0; padding-left: 20px; display: grid; gap: 10px; color: #374151; font-size: 15px; line-height: 1.5; }
+.lp-pj-steps code, .lp-pj-steps kbd { font: 13px ui-monospace, SFMono-Regular, Menlo, monospace; background: var(--bg); border: 1px solid var(--line); border-radius: 4px; padding: 0 4px; }
+@media (max-width: 960px) {
+  .lp-pj-wrap { grid-template-columns: 1fr; }
+  .lp-pj-wrap .lp-ai-text { order: -1; }   /* phone/tablet: the words first, then the picture */
+}
+@media (max-width: 640px) {
+  .lp-pj { padding: 12px; }
+  .lp-pj-grid { grid-template-columns: 1fr; }
+}

@@ -13,7 +13,8 @@
 //     day and time), and done (the 3 most recent; "Show all" for the rest).
 // The header is editable in place: click the name to rename, pick a label chip, 🗑 deletes (Undo).
 // Quick add on this page puts tasks into this project unless you type another @list.
-// The browser's Back button, or "← Plan", returns to the dashboard.
+// The browser's Back button, or "← Dashboard", returns to the Dashboard (the main page). The ▾ next
+// to the name switches to another project (see jump.js).
 
 const Project = (() => {
   const view = document.getElementById('project-view');
@@ -49,8 +50,8 @@ const Project = (() => {
 
     view.innerHTML = `
       <div class="pj-head">
-        <a href="#" class="pj-back" title="Back to the plan">← Plan</a>
-        <h2 class="pj-title"><span>@</span><input class="pj-name" value="${escapeHtml(l.name)}" size="${Math.max(4, l.name.length)}" maxlength="30" spellcheck="false" aria-label="Project name" title="Click to rename"></h2>
+        <a href="#" class="pj-back" title="Back to the Dashboard">← Dashboard</a>
+        <h2 class="pj-title"><span>@</span><input class="pj-name" value="${escapeHtml(l.name)}" size="${Math.max(4, l.name.length)}" maxlength="30" spellcheck="false" aria-label="Project name" title="Click to rename"><button type="button" class="pj-switch" title="Go to another project or the Dashboard" aria-label="Switch project" aria-haspopup="menu">▾</button></h2>
         ${labels.length ? `<div class="pj-labels" title="This project's label: all its tasks count as it">${labels.map(lab => `
           <button type="button" class="pj-label ${l.label === lab.id ? 'on' : ''}" data-label="${lab.id}" style="--c:${lab.color}">#${escapeHtml(lab.shortcut)}</button>`).join('')}</div>` : ''}
         <span class="muted pj-stats">${waiting.length} not planned · ${planned.length} planned · ${done.length} done</span>

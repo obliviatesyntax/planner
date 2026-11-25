@@ -32,6 +32,7 @@
       <nav class="lp-links">
         <a href="#why">Why Planner</a>
         <a href="#how">How it works</a>
+        <a href="#projects">Projects</a>
         <a href="#ai">AI apps</a>
         <a href="#features">Features</a>
         <a href="#pricing">Pricing</a>
@@ -342,6 +343,49 @@
     </section>
 
     <!-- ---- use Planner from AI apps (the window itself is #connect-dialog) ------------- -->
+    <!-- ---- projects: a page per list, with notes that turn into tasks ---------------------- -->
+    <section class="lp-section lp-ai-section" id="projects">
+      <div class="lp-ai-wrap lp-pj-wrap">
+        <div class="lp-pj" aria-hidden="true">
+          <div class="lp-pj-head"><b><i>@</i>kitchenReno <i>▾</i></b><span>3 not planned · 1 planned · 2 done</span></div>
+          <div class="lp-pj-grid">
+            <div class="lp-pj-notes">
+              <small>Notes</small>
+              <h4>Plan</h4>
+              <p>Budget <b>$12k</b>. Same contractor as <u>@bathroom</u>.</p>
+              <ul>
+                <li>Measure the walls <em>added as task</em></li>
+                <li>Pick tiles</li>
+                <li>Get 3 quotes for the sink</li>
+              </ul>
+              <div class="lp-pj-offer">2 new list items <span>Add as tasks</span></div>
+            </div>
+            <div class="lp-pj-tasks">
+              <small>Not planned</small>
+              <span class="lp-pj-card">Pick tiles</span>
+              <span class="lp-pj-card">Get 3 quotes</span>
+              <small>Planned</small>
+              <span class="lp-pj-card lp-pj-when">Measure the walls <i>Thu 10:00</i></span>
+              <small>Done</small>
+              <span class="lp-pj-card lp-pj-done">Set a budget</span>
+            </div>
+          </div>
+        </div>
+        <div class="lp-ai-text">
+          <span class="lp-eyebrow">Projects</span>
+          <h2>Every list is a project, with its own notes.</h2>
+          <p>Keep the thinking and the doing together. A project page holds your notes (budget, links, ideas)
+             next to all its tasks: the ones waiting, the ones on your calendar, and the ones done.</p>
+          <ol class="lp-pj-steps">
+            <li><b>Open it.</b> Click a list's name on the Dashboard, or type <code>@kitchenReno</code> in the box to make one.</li>
+            <li><b>Write notes.</b> Plain text or Markdown: headings, bullet lists, links. <code>@project</code> links to another project.</li>
+            <li><b>Turn notes into tasks.</b> Write a few bullets and Planner offers to add them as tasks, ready to drag onto a day.</li>
+            <li><b>Jump around.</b> The <b>▾</b> by a project's name switches projects; on a computer press <kbd>G</kbd> and type.</li>
+          </ol>
+        </div>
+      </div>
+    </section>
+
     <section class="lp-section lp-ai-section" id="ai">
       <div class="lp-ai-wrap">
         <div class="lp-ai-text">
@@ -593,7 +637,8 @@
         <li><b>Click a task</b> to open it: rename it, add a description, set priority and labels, change its project, or delete it.</li>
         <li><b>Click a list's name</b> to open the project: all its tasks (planned too) and notes. Lists in notes can be turned into tasks.</li>
         <li>Unfinished tasks from past days wait under <b>Overdue</b> (above Done today) until you re-plan them.</li>
-        <li>Press <kbd>N</kbd> to jump to the box, <kbd>?</kbd> to open this help.</li>
+        <li>On a project page, the <b>▾</b> next to its name switches to another project or back to the Dashboard.</li>
+        <li>Press <kbd>N</kbd> to jump to the box, <kbd>G</kbd> (or <kbd>⌘K</kbd> / <kbd>Ctrl K</kbd>) to go to a project or the Dashboard by typing its name, <kbd>?</kbd> to open this help.</li>
       </ul>
     </div>
   </dialog>
@@ -735,6 +780,7 @@
   <script src="https://cdn.jsdelivr.net/npm/marked@12.0.2/marked.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/dompurify@3.1.6/dist/purify.min.js"></script>
   <script src="js/project.js"></script>
+  <script src="js/jump.js"></script>
   <script src="js/settings.js"></script>
   <script src="js/consent.js"></script>
   <script src="js/connect.js"></script>
