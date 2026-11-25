@@ -43,7 +43,7 @@ Budget around **$18k**. Contractor visits are on weekdays; see @salesDeck for th
 - Cabinet colour: sage or off-white
 - Tile: [zellige samples](https://example.com/tiles)
 - Book a plumber for the sink move
-- Order the sink → task
+- Order the sink
 
 ## Notes from the showroom
 > Soft-close hinges are worth it.`;
@@ -95,6 +95,7 @@ function seed() {
     task('Measure the kitchen', { list: 'l-kitchen', planDate: tomorrow }),
     task('Clear out the cabinets', { list: 'l-kitchen', planDate: yesterday, doneOn: yesterday }),
     task('Pick cabinet colour', { list: 'l-kitchen' }),
+    task('Order the sink', { list: 'l-kitchen' }),   // (so that notes line shows "added as task")
     task('Buy cedar planks', { list: 'l-bird' }),
     task('Find a 1.5" hole saw', { list: 'l-bird', priority: 3 }),
   ];

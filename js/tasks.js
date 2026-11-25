@@ -55,6 +55,16 @@ const Tasks = (() => {
       if (t.list && !list(t.list)) t.list = t.planDate ? null : TRIAGE_LIST.id;
       if (!t.list && !t.planDate) t.list = TRIAGE_LIST.id;
     });
+    // Earlier versions wrote " → task" (or " ✓") after note lines turned into tasks. Notes are no
+    // longer changed for that (project.js matches lines to tasks instead): take the old marks out.
+    // (Clean-up for existing notes; can be removed once everyone's notes have been loaded once.)
+    const OLD_MARK = /^(\s*(?:[-*+]|\d+[.)])\s.*?)[ \t]*(?:→ task|✓)[ \t]*$/gm;
+    let cleaned = false;
+    lists.forEach(l => {
+      const notes = typeof l.notes === 'string' ? l.notes.replace(OLD_MARK, '$1') : l.notes;
+      if (notes !== l.notes) { l.notes = notes; cleaned = true; }
+    });
+    if (cleaned) Store.save('lists', lists);
     rollover();
   }
 

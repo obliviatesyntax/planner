@@ -6,9 +6,9 @@
 //       @projectName   → a link to that project's page
 //       list items     → can become tasks in this project, one-way. Right after you write new list
 //                        items (click Done), the notes offer "Add N as tasks" once; any line also has
-//                        a "+ task" on hover. A line that became a task gets " → task" saved after it
-//                        (shown as "added as task"), so it isn't added twice. Tasks and notes aren't
-//                        kept in sync afterwards (tasks can move anywhere).
+//                        a "+ task" on hover. A line whose title matches one of this project's tasks
+//                        shows "added as task" instead, so it isn't added twice. The notes text is
+//                        never changed by any of this; tasks and notes aren't kept in sync.
 //   • Tasks: not planned yet (the list itself: drag into it, "+ Add"), planned on a day (with the
 //     day and time), and done (the 3 most recent; "Show all" for the rest).
 // The header is editable in place: click the name to rename, pick a label chip, 🗑 deletes (Undo).
@@ -96,7 +96,7 @@ const Project = (() => {
           <h3>Notes ${editing ? '' : '<button type="button" class="link-btn pj-notes-edit">Edit</button>'}</h3>
           ${!editing && offer && offer.length ? `
             <div class="pj-offer">
-              <span>You added ${offer.length} list item${offer.length === 1 ? '' : 's'}. Add ${offer.length === 1 ? 'it' : 'them'} to @${escapeHtml(l.name)} as tasks?</span>
+              <span>You added ${offer.length} list item${offer.length === 1 ? '' : 's'}. Add ${offer.length === 1 ? 'it' : 'them'} to @${escapeHtml(l.name)} as ${offer.length === 1 ? 'a task' : 'tasks'}?</span>
               <button type="button" class="primary pj-offer-yes">Add ${offer.length === 1 ? 'as a task' : `${offer.length} as tasks`}</button>
               <button type="button" class="link-btn pj-offer-no">Not now</button>
             </div>` : ''}
@@ -197,40 +197,47 @@ const Project = (() => {
   }
 
   // The list lines of the notes, in order (skipping code blocks): { index, text, added }.
+  // Nothing is written into the notes to remember which lines became tasks: a line counts as
+  // "added" while this project has a task with the same title (not planned, planned or done).
+  // So deleting that task, renaming it, or moving it to another project brings "+ task" back.
   const LIST_LINE = /^(\s*)([-*+]|\d+[.)])\s+(\[[ xX]\]\s+)?(.*?)\s*$/;
-  const ADDED = ' → task';                        // saved after a line that became a task
-  const ADDED_END = /\s*(→ task|✓)\s*$/;          // (✓ = how earlier versions marked it)
-  function listLines(text) {
+  function listLines(text, id) {
+    const titles = id ? projectTitles(id) : new Set();
     const out = [];
     let fenced = false;
     text.split('\n').forEach((line, index) => {
       if (/^\s*```/.test(line)) { fenced = !fenced; return; }
       const m = !fenced && line.match(LIST_LINE);
-      if (m) out.push({ index, text: m[4], added: ADDED_END.test(m[4]) });
+      if (m) out.push({ index, text: m[4], added: titles.has(sameTitle(taskTitle(m[4]))) });
     });
     return out;
   }
   // "**Buy** [tiles](https://…) `now`" → "Buy tiles now"
-  const plainTitle = s => s.replace(ADDED_END, '').replace(/\[([^\]]*)\]\([^)]*\)/g, '$1').replace(/[*_`~]+/g, '').trim();
+  const plainTitle = s => s.replace(/\[([^\]]*)\]\([^)]*\)/g, '$1').replace(/[*_`~]+/g, '').trim();
+  // The title a line gets as a task (quick-add shortcuts like p1 or #label come out, as when adding).
+  const taskTitle = s => App.parseQuickAdd(plainTitle(s)).title;
+  const sameTitle = s => s.toLowerCase().replace(/\s+/g, ' ').trim();
+  function projectTitles(id) {
+    const { waiting, planned, done } = Tasks.projectTasks(id);
+    return new Set([...waiting, ...planned, ...done].map(t => sameTitle(t.title)));
+  }
 
-  // Each list item gets a "+ task" (shown on hover); a line already turned into a task shows
-  // "added as task" instead of its saved " → task".
+  // Each list item gets a "+ task" (shown on hover); a line that already is one of this
+  // project's tasks shows "added as task" instead.
   function addTaskButtons(box, l) {
     const items = [...box.querySelectorAll('li')];
-    const lines = listLines(l.notes || '');
+    const lines = listLines(l.notes || '', l.id);
     if (items.length !== lines.length) return;   // couldn't match lines to the drawing: no buttons
     items.forEach((li, i) => {
       const holder = li.querySelector(':scope > p') || li;   // (loose lists wrap text in <p>)
       if (lines[i].added) {
-        const text = [...holder.childNodes].filter(n => n.nodeType === Node.TEXT_NODE).reverse().find(n => ADDED_END.test(n.nodeValue));
-        if (text) text.nodeValue = text.nodeValue.replace(ADDED_END, '');
         const tag = document.createElement('span');
         tag.className = 'pj-added';
         tag.textContent = 'added as task';
-        holder.insertBefore(tag, text ? text.nextSibling : holder.querySelector(':scope > ul, :scope > ol'));
+        holder.insertBefore(tag, holder.querySelector(':scope > ul, :scope > ol'));
         return;
       }
-      if (!plainTitle(lines[i].text)) return;
+      if (!taskTitle(lines[i].text)) return;
       const b = document.createElement('button');
       b.type = 'button';
       b.className = 'pj-to-task';
@@ -241,32 +248,30 @@ const Project = (() => {
     });
   }
 
-  // List items in `now` that weren't in `before` (by their text): offered as tasks once.
-  function newListItems(before, now) {
-    const old = new Set(listLines(before).map(x => plainTitle(x.text).toLowerCase()));
-    return listLines(now).filter(x => !x.added && plainTitle(x.text) && !old.has(plainTitle(x.text).toLowerCase())).map(x => x.index);
+  // List items in `now` that weren't in `before` (by their text) and aren't tasks yet: offered once.
+  function newListItems(before, now, id) {
+    const old = new Set(listLines(before).map(x => sameTitle(taskTitle(x.text))));
+    return listLines(now, id).filter(x => !x.added && taskTitle(x.text) && !old.has(sameTitle(taskTitle(x.text)))).map(x => x.index);
   }
 
-  // Turn note lines into tasks in this project (one-way), and mark the lines with " → task".
+  // Turn note lines into tasks in this project (one-way). The notes themselves aren't changed.
   function linesToTasks(id, indexes) {
     const l = Tasks.list(id);
     const lines = (l.notes || '').split('\n');
-    const before = l.notes;
     const created = [];
+    const seen = projectTitles(id);
     indexes.forEach(i => {
       const m = lines[i] && lines[i].match(LIST_LINE);
       const title = m && plainTitle(m[4]);
-      if (!title) return;
+      if (!title || seen.has(sameTitle(taskTitle(m[4])))) return;   // (a repeated line: once)
       const task = App.addFromText(title, { list: id });
       if (!task) return;
       created.push(task.id);
-      lines[i] = lines[i].replace(/\s*$/, '') + ADDED;
+      seen.add(sameTitle(task.title));
     });
     if (!created.length) return;
-    Tasks.setListNotes(id, lines.join('\n'));
     App.toast(`Added ${created.length} task${created.length === 1 ? '' : 's'} to @${l.name}`, 'Undo', () => {
       created.forEach(tid => { if (Tasks.get(tid)) Tasks.remove(tid); });
-      Tasks.setListNotes(id, before);
     });
   }
 
@@ -311,7 +316,7 @@ const Project = (() => {
   function finishEditing(id) {
     saveNotes();
     editing = false;
-    const added = newListItems(editStart, Tasks.list(id).notes || '');
+    const added = newListItems(editStart, Tasks.list(id).notes || '', id);
     offer = added.length ? added : null;
     render();
   }
