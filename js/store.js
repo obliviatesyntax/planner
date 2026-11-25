@@ -45,14 +45,17 @@ const Store = (() => {
   let onError = () => {};
 
   // Returns { tasks: [...], lists: [...], labels: [...] } for the signed-in person.
+  // The three tables are asked for at the same time (one wait, not three in a row).
   async function load() {
+    const tables = Object.keys(TABLES);
+    const answers = await Promise.all(tables.map(table => db.from(table).select('*')));
     const result = {};
-    for (const table of Object.keys(TABLES)) {
-      const { data, error } = await db.from(table).select('*');
+    tables.forEach((table, i) => {
+      const { data, error } = answers[i];
       if (error) throw error;
       result[table] = data.map(TABLES[table].fromRow);
       lastSaved[table] = new Map(result[table].map(x => [x.id, JSON.stringify(x)]));
-    }
+    });
     return result;
   }
 

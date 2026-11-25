@@ -127,4 +127,6 @@ Design and internal docs live in a separate private repo: `git@github.com:oblivi
 | `supabase/schema.sql` | Full database setup for a fresh install (wipes data). |
 | `supabase/migrations/` | Upgrades for an existing database, run in order (keep your data): 002 lists, 003 optional priority, 004 description, 005 list labels. |
 
-Plain JavaScript loaded with `<script>` tags — no framework, no build step.
+Plain JavaScript loaded with `<script>` tags — no framework, nothing to build while you work.
+When you push to `main`, a GitHub Action (`.github/workflows/pages.yml`) publishes the site with
+the `js/` files joined into one (`tools/build.py`), so it loads with one request instead of 24.

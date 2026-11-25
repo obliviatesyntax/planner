@@ -113,9 +113,28 @@ const Project = (() => {
   const isMarkdown = text => MARKDOWN.test(text);
   const canRender = () => typeof marked !== 'undefined' && typeof DOMPurify !== 'undefined';
 
+  // The Markdown tools (marked + DOMPurify, ~19 KB) aren't needed on the Dashboard, so they load
+  // only when needed: when notes with Markdown are first shown (meanwhile they show as plain
+  // text, then redraw), or quietly once the app is idle, so a project usually opens ready.
+  const LIBS = ['https://cdn.jsdelivr.net/npm/marked@12.0.2/marked.min.js',
+                'https://cdn.jsdelivr.net/npm/dompurify@3.1.6/dist/purify.min.js'];
+  let libsLoading = null;
+  function loadMarkdown() {
+    libsLoading = libsLoading || Promise.all(LIBS.map(src => new Promise((resolve, reject) => {
+      const s = document.createElement('script');
+      s.src = src;
+      s.onload = resolve;
+      s.onerror = reject;
+      document.head.appendChild(s);
+    }))).then(() => { if (currentId()) render(); }, err => console.error('Markdown tools did not load', err));
+    return libsLoading;
+  }
+  window.addEventListener('load', () => (window.requestIdleCallback || setTimeout)(() => loadMarkdown(), { timeout: 3000 }));
+
   function notesViewHtml(l) {
     const text = l.notes || '';
     if (!text.trim()) return '<button type="button" class="pj-notes-empty">No notes yet. Click to write. Markdown works: # headings, - lists, **bold**, [links](…), and @project links.</button>';
+    if (isMarkdown(text) && !canRender()) loadMarkdown();   // plain text until it's here
     const html = isMarkdown(text) && canRender()
       ? DOMPurify.sanitize(marked.parse(text, { gfm: true, breaks: true }))
       : `<p>${escapeHtml(text).replace(/\n/g, '<br>')}</p>`;
