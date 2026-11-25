@@ -1464,3 +1464,5 @@ body.playground .settings-block:has(#set-first-name), body.playground .settings-
   .pj-grid { grid-template-columns: 1fr; }
   .pj-edit { margin-left: 0; }
 }
+
+.drop-target.drop-project { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; min-width: 0; }   /* "@kitchenReno" may be long */

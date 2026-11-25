@@ -97,7 +97,7 @@ const TaskView = (() => {
             <button type="button" data-day="${today}" class="${date === today ? 'on' : ''}">Today</button>
             <button type="button" data-day="${tomorrow}" class="${date === tomorrow ? 'on' : ''}">Tomorrow</button>
             <input type="date" class="tv-date ${otherDate ? 'on' : ''}" min="${today}" value="${otherDate}" title="Pick a day">
-            ${date ? `<button type="button" class="tv-noday" title="Take it off the plan, back into ${project ? `@${escapeHtml(project.name)}` : '@triage'}">No day</button>` : ''}
+            ${date ? `<button type="button" class="tv-noday" title="Take it off the plan, back into ${project ? `@${escapeHtml(project.name)}` : '@triage'}">Unplan</button>` : ''}
           </div>
           ${late ? `<p class="tv-late">Overdue: it was planned for ${formatDay(date)}${timed ? ` at ${formatTime(t.startMin)}` : ''}. Pick a new day or a list.</p>` : ''}
         </div>
@@ -197,7 +197,7 @@ const TaskView = (() => {
     const day = e.target.closest('[data-day]');
     if (day) { moveToDay(day.dataset.day); return afterMove(); }
     if (e.target.closest('.tv-notime')) { Tasks.moveToPlan(id, Tasks.get(id).planDate, null); return afterMove(); }
-    if (e.target.closest('.tv-noday')) {   // off the plan: back into its project's list, or @triage
+    if (e.target.closest('.tv-noday')) {   // Unplan: off the plan, back into its project's list, or @triage
       Tasks.moveToList(id, Tasks.get(id).list || TRIAGE_LIST.id, null);
       return afterMove();
     }

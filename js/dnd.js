@@ -151,13 +151,19 @@ const Dnd = (() => {
 
   const dropBar = document.getElementById('drop-bar');
   // Only places the task isn't already in: no "Today" for a task planned for today, and so on.
+  // The third target is the task's own project ("@kitchenReno": unplan it back there) when it's
+  // planned or done and has one; otherwise @triage (left out when it's already waiting there).
   function showDropBar(task) {
     const today = todayISO(), tomorrow = addDays(today, 1);
     const open = task && !task.doneOn;
+    const project = task && (task.planDate || task.doneOn) && task.list && task.list !== TRIAGE_LIST.id && Tasks.list(task.list);
+    const third = project
+      ? `<div class="drop-target drop-project" data-drop="list" data-list="${project.id}" title="Unplan it, back into @${escapeHtml(project.name)}">@${escapeHtml(project.name)}</div>`
+      : !(open && !task.planDate && task.list === TRIAGE_LIST.id) && `<div class="drop-target" data-drop="list" data-list="${TRIAGE_LIST.id}">Triage</div>`;
     const targets = [
       !(open && task.planDate === today) && `<div class="drop-target" data-drop="plan" data-date="${today}">Today</div>`,
       !(open && task.planDate === tomorrow) && `<div class="drop-target" data-drop="plan" data-date="${tomorrow}">Tomorrow</div>`,
-      !(open && !task.planDate && task.list === TRIAGE_LIST.id) && `<div class="drop-target" data-drop="list" data-list="${TRIAGE_LIST.id}">Triage</div>`,
+      third,
       '<div class="drop-target delete" data-drop="delete">Delete</div>',
     ];
     dropBar.innerHTML = targets.filter(Boolean).join('');
