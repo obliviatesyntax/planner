@@ -4,9 +4,8 @@
 //   P1/P2/P3  → click to cycle priority. It always sits at the far right; with no priority it only
 //               shows on hover, as a faint "P", in that same spot, so setting one never moves it.
 //   checkbox → a little celebration: pop, green flash, burst, and the card flies to Done (see celebrate)
-//   # / tags  → click to pick labels (labels.js → openPicker)
 //   🗑         → delete (lists, to-do lists and calendar), with Undo
-//   anywhere else on the card → open it (taskview.js): rename, description, priority, labels, delete
+//   anywhere else on the card → open it (taskview.js): rename, description, priority, delete
 //   drag      → see dnd.js
 
 const Cards = (() => {
@@ -34,26 +33,24 @@ const Cards = (() => {
     // Not the lists below, and not the "Done today" panel.
     const compressed = Calendar.isCompressed() && where !== 'list' && where !== 'project' && size !== 'panel';
     const canDelete = where !== 'done';   // lists, to-do lists and calendar blocks
-    const hasLabels = Tasks.allLabels().length > 0;   // no labels exist yet: no "#" button
+    // Its project's colour (if the project has one) tints the card, wherever it shows.
+    const pc = task.list && task.list !== TRIAGE_LIST.id ? Tasks.list(task.list)?.color : null;
+    const css = [style, pc ? `--pc:${pc}` : ''].filter(Boolean).join(';');
     return `
-      <div class="card p${p} ${where === 'calendar' ? `event ${size}` : ''} ${compressed ? 'compressed' : ''} ${where === 'done' ? 'done' : ''} ${where === 'done' && justDone.has(task.id) && !flying.has(task.id) ? 'just-done' : ''}" draggable="true"
-           data-task="${task.id}" ${style ? `style="${style}"` : ''}>
+      <div class="card p${p} ${where === 'calendar' ? `event ${size}` : ''} ${compressed ? 'compressed' : ''} ${where === 'done' ? 'done' : ''} ${where === 'done' && justDone.has(task.id) && !flying.has(task.id) ? 'just-done' : ''} ${pc ? 'has-pc' : ''}" draggable="true"
+           data-task="${task.id}" ${css ? `style="${css}"` : ''}>
         <input type="checkbox" class="check" ${where === 'done' ? 'checked title="Mark as not done"' : 'title="Mark done"'}>
         <div class="body">
           ${time && where !== 'calendar' ? `<span class="time">${time}</span>` : ''}
           <span class="title">${escapeHtml(task.title)}</span>
           ${where === 'calendar' && time ? `<span class="time">${time}</span>` : ''}
-          ${Labels.tagsHtml(task)}
           ${task.notes && task.notes.trim() ? '<span class="has-notes" title="Has a description">≡</span>' : ''}
         </div>
         <!-- Priority is always the last thing, at the far right, and never moves (with no priority
-             it's a faint "P" that only shows on hover). The hover buttons (# 🗑) float over the
+             it's a faint "P" that only shows on hover). The hover button (🗑) float over the
              text just left of it, on a see-through background, so nothing reflows. -->
         <button type="button" class="prio ${p ? '' : 'prio-empty'}" title="${p ? `${PRIORITIES[p]} (click to change)` : 'Set a priority'}">P${p || ''}</button>
-        ${canDelete || hasLabels ? `<div class="card-actions">
-          ${hasLabels ? '<button type="button" class="lbl-btn" title="Labels">#</button>' : ''}
-          ${canDelete ? `<button type="button" class="del" title="Delete">${TRASH_ICON}</button>` : ''}
-        </div>` : ''}
+        ${canDelete ? `<div class="card-actions"><button type="button" class="del" title="Delete">${TRASH_ICON}</button></div>` : ''}
         ${where === 'calendar' ? '<div class="resize" title="Drag to change length"></div>' : ''}
       </div>`;
   }
@@ -69,7 +66,6 @@ const Cards = (() => {
       return celebrate(card, id);
     }
     if (e.target.matches('.prio')) return Tasks.cyclePriority(id);
-    if (e.target.matches('.lbl-btn, .tag')) return Labels.openPicker(id, e.target);
     if (e.target.closest('.del')) {
       const removed = Tasks.remove(id);
       return App.toast(`Deleted “${removed.title}”`, 'Undo', () => Tasks.restore(removed));

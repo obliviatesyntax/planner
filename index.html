@@ -169,7 +169,7 @@
                   <!-- Blocks top to bottom by time, each tall enough for its name and time (17%) -->
                   <div class="m-now" style="top:27%"></div>
                   <div class="m-event p2" style="top:4%;height:17%"><i></i>Design review<small>10:00–11:00 AM</small></div>
-                  <div class="m-event p3" style="top:50%;height:17%"><i></i>Gym <s class="m-tag" style="--c:#2b8a3e">#p</s><small>6:00–7:00 PM</small></div>
+                  <div class="m-event p3" style="top:50%;height:17%"><i></i>Gym<small>6:00–7:00 PM</small></div>
                 </div>
               </div>
               <div class="lp-day">
@@ -191,7 +191,7 @@
           </div>
           <div class="lp-app-lists" id="pv-lists">
             <div class="lp-list" id="pv-triage"><b>@triage</b><div class="m-card p0"><i></i>Renew passport</div><div class="m-card p0"><i></i>Call the bank</div></div>
-            <div class="lp-list" id="pv-work"><b>@salesDeck <s class="m-tag" style="--c:#5f3dc4">#w</s></b><div class="m-card p1"><i></i>Update pricing slide <u>P1</u></div><div class="m-card p0"><i></i>Collect customer quotes</div></div>
+            <div class="lp-list has-pc" id="pv-work" style="--pc:#8b5cf6"><b>@salesDeck</b><div class="m-card p1"><i></i>Update pricing slide <u>P1</u></div><div class="m-card p0"><i></i>Collect customer quotes</div></div>
             <div class="lp-list"><b>@kitchenReno</b><div class="m-card p1"><i></i>Get 3 contractor quotes <u>P1</u></div><div class="m-card p0"><i></i>Pick cabinet colour</div></div>
             <div class="lp-list"><b>@birdhouse</b><div class="m-card p0"><i></i>Buy cedar planks</div><div class="m-card p3"><i></i>Find a 1.5" hole saw <u>P3</u></div></div>
           </div>
@@ -294,7 +294,7 @@
         <div class="lp-demo-arrow">↓</div>
         <div class="lp-demo-result" id="lp-result"></div>
       </div>
-      <p class="lp-power">Power users: add a priority (<code>p1</code>), labels (<code>#work</code>) or a list (<code>@travel</code>) in the same line.</p>
+      <p class="lp-power">Power users: add a priority (<code>p1</code>) or a list (<code>@travel</code>) in the same line.</p>
       </div>
 
       <div class="lp-how">
@@ -433,8 +433,8 @@
         </article>
         <article class="lp-feature">
           <div class="lp-icon"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 22V4"/><path d="M4 4h12l-2 4 2 4H4"/></svg></div>
-          <h3>Priorities and labels</h3>
-          <p>Mark what matters most, and colour-code work and personal. Show just one with a single click.</p>
+          <h3>Priorities and project colours</h3>
+          <p>Mark what matters most, and give each project a colour so its tasks stand out on your plan.</p>
         </article>
         <article class="lp-feature">
           <div class="lp-icon"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"/><path d="m8 12 3 3 5-6"/></svg></div>
@@ -471,8 +471,8 @@
         <div class="lp-price-card">
           <div class="lp-price-amount">$0<span>to get started</span></div>
           <ul class="lp-checks lp-checks-col">
-            <li>Plan, calendar, lists and labels</li>
-            <li>Unlimited tasks, lists and labels</li>
+            <li>Plan, calendar, lists and projects</li>
+            <li>Unlimited tasks, lists and projects</li>
             <li>No ads, and we don't sell your data</li>
             <li>Export everything, any time</li>
           </ul>
@@ -573,8 +573,6 @@
   </header>
 
   <main id="main-view">
-    <!-- Label filter chips: All · Work #w · Personal #p · + (see js/labels.js) -->
-    <div id="labels-bar" class="labels-bar"></div>
 
 
     <!-- Top: what you've committed to (js/planner.js). Bottom: your lists (js/lists.js). -->
@@ -585,7 +583,7 @@
   </main>
 
   <footer class="footer">
-    <span class="muted"><b>today 5pm</b>, <b>tomorrow</b>, <b>fri 6-7pm</b> → plan · <b>@listName</b> → list · <b>p1 p2 p3</b> priority · <b>#p</b> label · click the calendar to add at a time · drag to “Done today” to complete · click a task to open it</span>
+    <span class="muted"><b>today 5pm</b>, <b>tomorrow</b>, <b>fri 6-7pm</b> → plan · <b>@listName</b> → list · <b>p1 p2 p3</b> priority · click the calendar to add at a time · drag to “Done today” to complete · click a task to open it</span>
     <span class="spacer"></span>
     <div class="footer-actions">
       <button type="button" id="install-btn" title="Add Planner to your home screen or dock" hidden>Install app</button>
@@ -602,7 +600,7 @@
   </div>
 
   <!-- "How to add tasks" help, opened by the i button next to quick add (js/help.js).
-       Edit the examples here; your own labels and lists are filled in below them. -->
+       Edit the examples here; your own lists are filled in below them. -->
   <dialog id="help-dialog">
     <div class="help">
       <div class="settings-head">
@@ -624,11 +622,10 @@
       <p class="help-note">Days: today, tonight, tomorrow, monday…friday (or mon, tue…), next monday, nov 20.
         Times: 5pm, 5:30pm, 17:00, noon, 6-7pm. Length: for 45 min, for 1h. With a day, an <code>@list</code> becomes the task's project (it stays linked while planned).</p>
 
-      <h3>Priority and labels</h3>
+      <h3>Priority</h3>
       <table class="help-table">
         <tr><td><code>p1</code> <code>p2</code> <code>p3</code></td><td>Priority: must do, should do, nice to have</td></tr>
-        <tr><td><code>#p</code> <code>#work</code></td><td>Labels, by shortcut or name; add several</td></tr>
-        <tr><td><code>Dentist tomorrow 5pm p1 #p</code></td><td>All together</td></tr>
+        <tr><td><code>Dentist tomorrow 5pm p1 @health</code></td><td>All together</td></tr>
       </table>
       <p class="help-note" id="help-yours"></p>
 
@@ -636,7 +633,6 @@
       <table class="help-table">
         <tr><td>“… <b>list weekly</b>”, “… <b>in list upcoming E</b>”</td><td><code>@weekly</code>, <code>@upcomingE</code></td></tr>
         <tr><td>“… <b>at weekly</b>” (an existing list)</td><td><code>@weekly</code></td></tr>
-        <tr><td>“… <b>label personal</b>”, “… <b>tag work</b>”</td><td><code>#p</code>, <code>#w</code></td></tr>
         <tr><td>“… <b>priority one</b>”, “… <b>P 1</b>”</td><td><code>p1</code></td></tr>
         <tr><td>“Call mom tomorrow at 5 p.m.”</td><td>Days and times as above</td></tr>
       </table>
@@ -647,7 +643,7 @@
         <li><b>+ Add</b> under a day or a list adds straight there.</li>
         <li><b>Click an empty spot on the calendar</b> to add a task at that time.</li>
         <li><b>Drag</b> tasks between lists, days, times and “Done today”.</li>
-        <li><b>Click a task</b> to open it: rename it, add a description, set priority and labels, change its project, or delete it.</li>
+        <li><b>Click a task</b> to open it: rename it, add a description, set its priority, plan or move it, or delete it.</li>
         <li><b>Click a list's name</b> to open the project: all its tasks (planned too) and notes. Lists in notes can be turned into tasks.</li>
         <li>Unfinished tasks from past days wait under <b>Overdue</b> (above Done today) until you re-plan them.</li>
         <li>On a project page, the <b>▾</b> next to its name switches to another project or back to the Dashboard.</li>
@@ -744,9 +740,9 @@
         </section>
         <section>
           <h4>Organize</h4>
-          <button type="button" data-ask>Create a list @weekly with label Work</button>
+          <button type="button" data-ask>Create a list @weekly</button>
           <button type="button" data-ask>Rename @kitchenReno to @kitchen</button>
-          <button type="button" data-ask>Label everything in @salesDeck as Work</button>
+          <button type="button" data-ask>Move everything about the kitchen from @triage to @kitchenReno</button>
         </section>
         <section>
           <h4>Think it through</h4>
@@ -755,7 +751,7 @@
           <button type="button" data-ask>Turn this email into tasks: …</button>
         </section>
       </div>
-      <p class="connect-note">Lists and labels by name (@kitchenReno, Work or #w); days and times in plain words. If a request
+      <p class="connect-note">Lists by name (@kitchenReno); days and times in plain words. If a request
         is unclear, the AI asks you, and it always asks before changing anything.</p>
     </div>
   </dialog>
@@ -782,7 +778,6 @@
   <script src="js/store.js"></script>
   <script src="js/playground.js"></script>
   <script src="js/tasks.js"></script>
-  <script src="js/labels.js"></script>
   <script src="js/cards.js"></script>
   <script src="js/taskview.js"></script>
   <script src="js/planner.js"></script>

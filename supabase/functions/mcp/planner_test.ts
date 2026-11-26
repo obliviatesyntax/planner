@@ -9,15 +9,14 @@ const shift = (n: number) => { const d = new Date(`${today}T12:00:00Z`); d.setUT
 
 const BASE: Record<string, any[]> = {
   tasks: [
-    { id: 't1', title: 'Design review', priority: 2, labels: ['w'], list_id: 'triage', plan_date: today, start_min: 600, duration_min: 60, sort_order: 0, done_on: null },
-    { id: 't2', title: 'Reply to Sam', priority: null, labels: [], list_id: 'triage', plan_date: today, start_min: null, duration_min: 30, sort_order: 1, done_on: null, notes: 'about the passport form' },
-    { id: 't3', title: 'Morning run', priority: null, labels: [], list_id: 'triage', plan_date: today, start_min: null, duration_min: 30, sort_order: 2, done_on: today },
-    { id: 't4', title: 'Book flights', priority: 2, labels: [], list_id: 'triage', plan_date: shift(-1), start_min: null, duration_min: 30, sort_order: 0, done_on: null },
-    { id: 't5', title: 'Renew passport', priority: null, labels: [], list_id: 'triage', plan_date: null, start_min: null, duration_min: 30, sort_order: 0, done_on: null },
-    { id: 't6', title: 'Update pricing slide', priority: 1, labels: [], list_id: 'sales', plan_date: null, start_min: null, duration_min: 30, sort_order: 0, done_on: null },
+    { id: 't1', title: 'Design review', priority: 2, list_id: 'triage', plan_date: today, start_min: 600, duration_min: 60, sort_order: 0, done_on: null },
+    { id: 't2', title: 'Reply to Sam', priority: null, list_id: 'triage', plan_date: today, start_min: null, duration_min: 30, sort_order: 1, done_on: null, notes: 'about the passport form' },
+    { id: 't3', title: 'Morning run', priority: null, list_id: 'triage', plan_date: today, start_min: null, duration_min: 30, sort_order: 2, done_on: today },
+    { id: 't4', title: 'Book flights', priority: 2, list_id: 'triage', plan_date: shift(-1), start_min: null, duration_min: 30, sort_order: 0, done_on: null },
+    { id: 't5', title: 'Renew passport', priority: null, list_id: 'triage', plan_date: null, start_min: null, duration_min: 30, sort_order: 0, done_on: null },
+    { id: 't6', title: 'Update pricing slide', priority: 1, list_id: 'sales', plan_date: null, start_min: null, duration_min: 30, sort_order: 0, done_on: null },
   ],
-  lists: [{ id: 'sales', name: 'salesDeck', sort_order: 0, label_id: 'w' }],
-  labels: [{ id: 'w', name: 'Work', shortcut: 'w', sort_order: 0 }],
+  lists: [{ id: 'sales', name: 'salesDeck', sort_order: 0, color: '#8b5cf6' }],
 };
 
 let DB: Record<string, any[]> = structuredClone(BASE);
@@ -95,7 +94,8 @@ Deno.test('initialize, notifications and tools/list', async () => {
   const tools = Object.fromEntries(list.result.tools.map((t: any) => [t.name, t.annotations]));
   for (const name of ['get_plan', 'get_lists', 'search_tasks', 'get_task']) assert(tools[name].readOnlyHint);
   for (const name of ['add_task', 'move_task', 'complete_task', 'create_list']) assert(!tools[name].readOnlyHint && !tools[name].destructiveHint);
-  for (const name of ['delete_task', 'delete_label']) assert(tools[name].destructiveHint);
+  assert(tools.delete_task.destructiveHint);
+  assert(!tools.create_label && !tools.delete_label && !tools.set_list_label);   // labels are gone
   assert(!tools.archive_list.destructiveHint && !tools.delete_list);   // projects are archived, never deleted
 });
 
@@ -103,7 +103,7 @@ Deno.test('get_plan: today, calendar / to-do / done', async () => {
   fresh();
   const text = await call('get_plan', { include_lists: false });
   assertStringIncludes(text, `(${tz}); today is ${today}.`);
-  assertStringIncludes(text, '[ ] Design review · 10:00 AM–11:00 AM · P2 · #w  [id: t1]');
+  assertStringIncludes(text, '[ ] Design review · 10:00 AM–11:00 AM · P2  [id: t1]');
   assertStringIncludes(text, '[ ] Reply to Sam · note: "about the passport form"');
   assertStringIncludes(text, '[x] Morning run');
   assert(!text.includes('Book flights'));   // yesterday's: in @overdue, not today
@@ -111,18 +111,16 @@ Deno.test('get_plan: today, calendar / to-do / done', async () => {
   const all = await call('get_plan');
   assertStringIncludes(all, '# Waiting in lists');
   assertStringIncludes(all, '[ ] Book flights · P2');
-  assertStringIncludes(all, 'Labels: Work #w');
   // dates in words
   assertStringIncludes(await call('get_plan', { date: 'yesterday', include_lists: false }), `## Yesterday`);
   assertStringIncludes(await call('get_plan', { date: 'in 2 days', include_lists: false }), `(${shift(2)})`);
 });
 
-Deno.test('get_lists: overdue first, list labels, labels at the end', async () => {
+Deno.test('get_lists: overdue first, list colours', async () => {
   const text = await call('get_lists');
   assert(text.indexOf('## Overdue') >= 0 && text.indexOf('## Overdue') < text.indexOf('@triage'));
   assertStringIncludes(text, '[ ] Book flights · P2');
-  assertStringIncludes(text, '## @salesDeck (label #w');
-  assertStringIncludes(text, 'Labels: Work #w');
+  assertStringIncludes(text, '## @salesDeck (colour: violet)');
   assertStringIncludes(await call('get_lists', { list: '@nope' }), "There's no list called @nope");
 });
 
@@ -143,15 +141,14 @@ Deno.test('add_task: @triage by default, a day, a calendar time, a new list', as
   const t = DB.tasks.find(r => r.title === 'Buy milk');
   assertEquals([t.list_id, t.plan_date, t.duration_min, t.sort_order], ['triage', null, 45, 1]);   // after Renew passport
 
-  assertStringIncludes(await call('add_task', { title: 'Call mom', date: today, start_time: '21:00', priority: 2, labels: ['work'] }),
-    'Call mom · 9:00 PM–9:45 PM · P2 · #w');
+  assertStringIncludes(await call('add_task', { title: 'Call mom', date: today, start_time: '21:00', priority: 2 }),
+    'Call mom · 9:00 PM–9:45 PM · P2');
   assertEquals(DB.tasks.find(r => r.title === 'Call mom').start_min, 21 * 60);
 
   assertStringIncludes(await call('add_task', { title: 'Sand it', list: 'birdhouse' }), '(new list @birdhouse)');
   assert(DB.lists.some(l => l.name === 'birdhouse'));
 
   assertStringIncludes(await call('add_task', { title: 'x', list: 'overdue' }), '(new list @overdue)');   // the name is free
-  assertStringIncludes(await callError('add_task', { title: 'x', labels: ['nope'] }), 'No label "nope"');
   assertStringIncludes(await callError('add_task', { title: 'x', date: '2026-13-45' }), "isn't a date");
   assertStringIncludes(await callError('add_task', { title: 'x', date: today, start_time: '25:00' }), "isn't a time");
 });
@@ -161,7 +158,7 @@ Deno.test("move_task: onto a day keeps its list (@triage too); to a list un-plan
   const moved = await call('move_task', { id: 't6', date: today, start_time: '14:00' });
   assertStringIncludes(moved, `on the calendar Today`);
   assertStringIncludes(moved, '@salesDeck');                     // the planned task shows its project
-  assertEquals([row('tasks', 't6').list_id, row('tasks', 't6').labels], ['sales', []]);   // kept; no label copied
+  assertEquals(row('tasks', 't6').list_id, 'sales');   // kept
   await call('move_task', { id: 't5', date: today });            // from @triage: stays in @triage
   assertEquals(row('tasks', 't5').list_id, 'triage');
   await call('move_task', { id: 't1', list: 'triage' });
@@ -187,9 +184,9 @@ Deno.test('complete_task / uncomplete_task, and back to @overdue from a past day
 
 Deno.test('update_task and delete_task', async () => {
   fresh();
-  await call('update_task', { id: 't5', title: 'Renew passport soon', priority: 1, labels: ['w'], description: 'form DS-82' });
-  assertEquals([row('tasks', 't5').title, row('tasks', 't5').priority, row('tasks', 't5').labels, row('tasks', 't5').notes],
-    ['Renew passport soon', 1, ['w'], 'form DS-82']);
+  await call('update_task', { id: 't5', title: 'Renew passport soon', priority: 1, description: 'form DS-82' });
+  assertEquals([row('tasks', 't5').title, row('tasks', 't5').priority, row('tasks', 't5').notes],
+    ['Renew passport soon', 1, 'form DS-82']);
   await call('update_task', { id: 't5', priority: 0 });
   assertEquals(row('tasks', 't5').priority, null);
   assertStringIncludes(await call('delete_task', { id: 't5' }), 'Deleted "Renew passport soon"');
@@ -197,14 +194,17 @@ Deno.test('update_task and delete_task', async () => {
   assertStringIncludes(await call('get_task', { id: 't5' }), 'No task with id t5');   // …and hidden
 });
 
-Deno.test('lists: create, rename, label, archive (only with nothing planned)', async () => {
+Deno.test('lists: create, rename, colour, archive (only with nothing planned)', async () => {
   fresh();
-  assertStringIncludes(await call('create_list', { name: '@weekly', label: 'w' }), 'Created @weekly with label #w');
+  assertStringIncludes(await call('create_list', { name: '@weekly', color: 'Teal' }), 'Created @weekly (teal)');
+  assertEquals(DB.lists.find(l => l.name === 'weekly').color, '#14b8a6');
   assertStringIncludes(await callError('create_list', { name: 'weekly' }), 'already a list');
   assertStringIncludes(await call('rename_list', { list: 'salesDeck', new_name: 'salesQ4' }), 'Renamed @salesDeck to @salesQ4');
   assertStringIncludes(await callError('rename_list', { list: 'triage', new_name: 'inbox' }), "can't be renamed");
-  assertStringIncludes(await call('set_list_label', { list: 'salesQ4', label: '' }), 'has no label');
-  assertEquals(row('lists', 'sales').label_id, null);
+  assertStringIncludes(await call('set_list_color', { list: 'salesQ4', color: '' }), 'has no colour');
+  assertEquals(row('lists', 'sales').color, null);
+  assertStringIncludes(await callError('set_list_color', { list: 'salesQ4', color: 'mauve' }), 'No colour "mauve"');
+  assertStringIncludes(await callError('set_list_color', { list: 'triage', color: 'red' }), "can't be given a colour");
   await call('move_task', { id: 't1', list: 'salesQ4' });
   await call('add_task', { title: 'Planned from sales', list: 'salesQ4', date: today });   // planned, from @salesQ4
   assertStringIncludes(await callError('archive_list', { list: 'salesQ4' }), 'still has 1 planned task');   // not while planned
@@ -214,15 +214,6 @@ Deno.test('lists: create, rename, label, archive (only with nothing planned)', a
   assert(!(await call('get_lists', {})).includes('@salesQ4'));           // out of the lists
   assertStringIncludes(await call('archive_list', { list: 'salesQ4', archived: false }), 'back on the Dashboard');
   assertStringIncludes(await callError('archive_list', { list: 'triage' }), "can't be archived");
-});
-
-Deno.test('labels: shortcut picked like the app, delete removes it everywhere', async () => {
-  fresh();
-  assertStringIncludes(await call('create_label', { name: 'Personal' }), '(#p)');
-  assertStringIncludes(await call('create_label', { name: 'Pets' }), '(#pe)');
-  assertStringIncludes(await callError('create_label', { name: 'personal' }), 'already a label');
-  await call('delete_label', { label: 'w' });
-  assertEquals([row('tasks', 't1').labels, row('lists', 'sales').label_id, row('labels', 'w')], [[], null, undefined]);
 });
 
 Deno.test('several tasks at once: move (one after another on the calendar), complete, delete', async () => {
@@ -264,7 +255,7 @@ Deno.test('add several tasks at once; top-level fields are defaults', async () =
   assertEquals([b.plan_date, b.start_min], [shift(1), 600]);   // a date plans it; the list is its project
   // one bad task: nothing is added
   const before = DB.tasks.length;
-  assertStringIncludes(await callError('add_task', { tasks: ['ok', { title: 'bad', labels: ['nope'] }] }), 'No label "nope"');
+  assertStringIncludes(await callError('add_task', { tasks: ['ok', { title: 'bad', date: '2026-13-45' }] }), "isn't a date");
   assertEquals(DB.tasks.length, before);
 });
 
@@ -279,11 +270,10 @@ Deno.test('move everything overdue (overdue: true) to tomorrow', async () => {
   assertStringIncludes(await call('get_lists', { list: 'overdue' }), 'Read the overdue book');
 });
 
-Deno.test('search by filters only: priority, label, list, added_on', async () => {
+Deno.test('search by filters only: priority, list, added_on', async () => {
   fresh();
   DB.tasks.find(r => r.id === 't5').created_at = new Date().toISOString();
   assertStringIncludes(await call('search_tasks', { priority: 1 }), 'Update pricing slide');
-  assertStringIncludes(await call('search_tasks', { label: 'work' }), 'Design review');
   const inSales = await call('search_tasks', { list: 'salesDeck' });
   assertStringIncludes(inSales, '1 open task(s) match in @salesDeck');
   const addedToday = await call('search_tasks', { added_on: 'today' });

@@ -5,7 +5,6 @@
 //   move         (at the bottom) When: Today / Tomorrow / pick a day · a time (optional) · length;
 //                List: "Move back to @its list" (off the plan) and "Move to list…"
 //   priority     P1 / P2 / P3 (tap the chosen one again for none)
-//   labels       tick on/off (only shown once labels exist; new ones are made at the top)
 //   description  free-form notes ("call before 5", links, addresses…)
 //   delete       with Undo
 //
@@ -55,14 +54,6 @@ const TaskView = (() => {
           </div>
         </div>
 
-        ${Tasks.allLabels().length ? `
-          <div class="tv-row">
-            <span class="tv-label">Labels</span>
-            <div class="tv-labels">
-              ${Tasks.allLabels().map(l => `
-                <button type="button" class="tv-label-chip ${t.labels.includes(l.id) ? 'on' : ''}" data-label="${l.id}" style="--c:${l.color}">#${escapeHtml(l.shortcut)} ${escapeHtml(l.name)}</button>`).join('')}
-            </div>
-          </div>` : ''}
 
         <textarea class="tv-notes" rows="4" placeholder="Add a description…" aria-label="Description">${escapeHtml(t.notes || '')}</textarea>
 
@@ -223,12 +214,6 @@ const TaskView = (() => {
     if (prio) {   // tap a priority to set it; tap the chosen one again to clear it
       const n = Number(prio.dataset.prio);
       Tasks.update(id, { priority: Tasks.get(id).priority === n ? null : n });
-      return draw();
-    }
-    const chip = e.target.closest('[data-label]');
-    if (chip) {
-      const t = Tasks.get(id), lid = chip.dataset.label;
-      Tasks.update(id, { labels: t.labels.includes(lid) ? t.labels.filter(x => x !== lid) : [...t.labels, lid] });
       return draw();
     }
     if (e.target.closest('.tv-delete')) {

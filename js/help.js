@@ -1,15 +1,13 @@
 // help.js — the "i" button next to quick add: a popup with every way to add a task.
-// The examples live in index.html (#help-dialog); this fills in your own labels and lists
+// The examples live in index.html (#help-dialog); this fills in your own lists
 // and handles opening/closing. Press "?" anywhere (when not typing) to open it too.
 
 const Help = (() => {
   const dialog = document.getElementById('help-dialog');
 
   function open() {
-    const labels = Tasks.allLabels().map(l => `<code>#${escapeHtml(l.shortcut)}</code> ${escapeHtml(l.name)}`);
     const lists = Tasks.allLists().map(l => `<code>@${escapeHtml(l.name)}</code>`);
     document.getElementById('help-yours').innerHTML =
-      `Your labels: ${labels.length ? labels.join(', ') : 'none yet (create them in Settings → Labels)'}.<br>` +
       `Your lists: ${lists.join(' ')}.`;
     dialog.showModal();
   }

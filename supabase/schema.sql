@@ -4,9 +4,8 @@
 -- and creates them again. To upgrade an existing database without losing tasks, run the
 -- files in supabase/migrations/ instead.
 --
--- Three tables, all private per person (Row Level Security at the bottom):
+-- Two tables, all private per person (Row Level Security at the bottom):
 --   lists  — the lists in the bottom section (@triage, @weekly, …)
---   labels — the filter chips at the top ("Work #w", "Personal #p", …)
 --   tasks  — every task, wherever it lives (a list, a day's to-do, a calendar slot, done)
 
 drop table if exists public.tasks;
@@ -18,19 +17,9 @@ create table public.lists (
   id          text    not null,                    -- "triage" for the built-in list
   name        text    not null,                    -- "weekly"  → shown as @weekly
   sort_order  integer not null default 0,
-  label_id    text,                                -- optional; all the project's tasks count as having it
+  color       text,                                -- project colour ('#14b8a6'), null = white
   notes       text,                                -- project notes (Markdown or plain text)
   archived    boolean not null default false,      -- hidden from the Dashboard, kept (Settings → Archive & trash)
-  primary key (user_id, id)
-);
-
-create table public.labels (
-  user_id     uuid    not null default auth.uid() references auth.users on delete cascade,
-  id          text    not null,
-  name        text    not null,                    -- "Personal"
-  shortcut    text    not null,                    -- "p"  → type #p in quick add
-  color       text    not null,                    -- "#2b8a3e"
-  sort_order  integer not null default 0,
   primary key (user_id, id)
 );
 
@@ -39,7 +28,6 @@ create table public.tasks (
   id           text        not null,               -- the app's own task id, e.g. "lq3k9a2x"
   title        text        not null,
   priority     smallint    check (priority is null or priority in (1, 2, 3)),   -- null = not set
-  labels       text[]      not null default '{}',  -- label ids
   list_id      text        not null default 'triage', -- the list it came from ('' = none: added straight onto a day)
   plan_date    date,                               -- null = in its list; set = committed to that day
   start_min    integer,                            -- minutes after midnight on the calendar; null = in the day's plan list
@@ -55,14 +43,9 @@ create table public.tasks (
 -- Row Level Security: the database itself refuses to show or change anyone else's rows,
 -- even though the app's public key is visible in the browser.
 alter table public.lists  enable row level security;
-alter table public.labels enable row level security;
 alter table public.tasks  enable row level security;
 
 create policy "Users manage their own lists" on public.lists
-  for all to authenticated
-  using ((select auth.uid()) = user_id) with check ((select auth.uid()) = user_id);
-
-create policy "Users manage their own labels" on public.labels
   for all to authenticated
   using ((select auth.uid()) = user_id) with check ((select auth.uid()) = user_id);
 

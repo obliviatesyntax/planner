@@ -50,8 +50,7 @@ const App = (() => {
     let where;
     if (planned) where = `📅 ${When.describe(when)}${project && !project.startsWith('@triage') ? ` · ☰ ${project}` : ''}`;   // (@triage, the default, isn't repeated)
     else where = `☰ ${project || `@${TRIAGE_LIST.name}`}`;
-    const labels = (parsed.labels.length ? parsed.labels : Labels.selectedIds()).map(id => Tasks.label(id)).filter(Boolean);
-    return { title, where, priority: parsed.priority || Settings.get('defaultPriority') || 0, labels };
+    return { title, where, priority: parsed.priority || Settings.get('defaultPriority') || 0 };
   }
 
   function renderPreview() {
@@ -63,7 +62,6 @@ const App = (() => {
       : `${p.title ? `<span class="qa-chip qa-chip-title">${escapeHtml(p.title)}</span>` : ''}
          <span class="qa-chip">${escapeHtml(p.where)}</span>
          ${p.priority ? `<span class="qa-chip qa-chip-p${p.priority}">P${p.priority}</span>` : ''}
-         ${p.labels.map(l => `<span class="qa-chip qa-chip-label" style="--c:${l.color}">#${escapeHtml(l.shortcut)}</span>`).join('')}
          <span class="qa-hint">Enter to add</span>`;
     preview.hidden = false;
   }
@@ -78,10 +76,8 @@ const App = (() => {
   //   { planDate: '2026-11-17' }                 that day's to-do list
   //   { planDate: '2026-11-17', startMin: 570 }  that day's calendar at 9:30
   // Shortcuts inside the text:
-  //   p1 p2 p3   priority            #p #work   labels (by shortcut or name, several allowed)
+  //   p1 p2 p3   priority
   //   @listName  that list (created if it doesn't exist yet)
-  // With label filters selected at the top and no #label typed, the new task gets the
-  // selected labels, so it doesn't vanish from view.
   function addFromText(text, where) {
     const parsed = parseQuickAdd(text);
     const named = parsed.listName ? Tasks.addList(parsed.listName) : null;   // finds or creates
@@ -93,7 +89,6 @@ const App = (() => {
     return Tasks.add({
       title: parsed.title,
       priority: parsed.priority || Settings.get('defaultPriority') || null,
-      labels: parsed.labels.length ? parsed.labels : Labels.selectedIds(),
       list: listId,
       planDate: where.planDate || null,
       startMin: where.startMin ?? null,
@@ -128,16 +123,11 @@ const App = (() => {
 
   // Pulls shortcuts out of the text. With { lists: false } (used when renaming), "@words" stay.
   function parseQuickAdd(text, { lists = true } = {}) {
-    const out = { labels: [] };
+    const out = {};
     // p1 / p2 / p3 as a word of its own (any case): priority
     let rest = text.replace(/(^|\s)p([123])(?=\s|$)/gi, (match, space, n) => { out.priority = Number(n); return space; });
-    rest = rest.replace(/(^|\s)([#@])(\w+)/g, (match, space, sym, word) => {
-      const w = word.toLowerCase();
-      if (sym === '#') {
-        const label = Tasks.findLabel(w);
-        if (label) { if (!out.labels.includes(label.id)) out.labels.push(label.id); return space; }
-      }
-      if (sym === '@' && lists && !out.listName) {
+    rest = rest.replace(/(^|\s)(@)(\w+)/g, (match, space, sym, word) => {
+      if (lists && !out.listName) {
         if (!LIST_NAME.test(word)) { out.badList = word; return match; }
         out.listName = word;   // keeps its case: "@upcomingE"
         return space;
@@ -174,7 +164,6 @@ const App = (() => {
 
   function renderAll() {
     document.getElementById('today-label').textContent = `${formatDay(todayISO())} · ${formatTime(minutesNow())}`;
-    Labels.render();
     Planner.render();
     Lists.render();
     Project.render();   // the project page, when one is open (#project/<name>)
@@ -196,9 +185,9 @@ const App = (() => {
     if (!file) return;
     try {
       const data = JSON.parse(await file.text());
-      if (!Array.isArray(data.tasks) || !Array.isArray(data.labels)) throw new Error('not a backup');
+      if (!Array.isArray(data.tasks)) throw new Error('not a backup');
       data.tasks.forEach(t => { t.list = t.list || TRIAGE_LIST.id; });   // older backups had buckets
-      if (confirm(`Replace everything with ${data.tasks.length} tasks and ${data.labels.length} labels from ${file.name}?`)) {
+      if (confirm(`Replace everything with ${data.tasks.length} tasks from ${file.name}?`)) {
         Tasks.replaceAll(data);
       }
     } catch (err) {
@@ -228,7 +217,7 @@ const App = (() => {
   // @triage (Tasks.rollover redraws the page); otherwise just redraw the plan so the calendar's
   // "now" line moves. Skipped while you're dragging or typing.
   setInterval(() => {
-    const busy = document.querySelector('.dragging, [contenteditable="true"], .col-add-input, .cal-add-input, .label-input, .list-new-input, .pj-notes-input, .label-picker:not([hidden])') || Calendar.isResizing();
+    const busy = document.querySelector('.dragging, [contenteditable="true"], .col-add-input, .cal-add-input, .list-new-input, .pj-notes-input') || Calendar.isResizing();
     document.getElementById('today-label').textContent = `${formatDay(todayISO())} · ${formatTime(minutesNow())}`;
     if (busy || Tasks.rollover()) return;
     renderAll();

@@ -1,11 +1,10 @@
-// tasks.js — all the data (tasks, lists, labels) and every action you can take on it.
+// tasks.js — all the data (tasks and lists) and every action you can take on it.
 //
 // A task looks like:
 //   {
 //     id:        "lq3k9a2x",
 //     title:     "Renew passport",
 //     priority:  null | 1 | 2 | 3       null = not set
-//     labels:    ["k2j3", ...]          ids of labels; can be empty
 //     list:      null | "triage" | "k9x2…"
 //                                       The list it came from. A task added without a day goes into a
 //                                       list (@triage if none is given) and keeps it while planned, so
@@ -34,14 +33,13 @@
 // The list changes only when a task is moved into another list (drag, the task window's "Move to
 // list", the drop bar), or by "@list" in quick add.
 //
-// A list (= a project) looks like:  { id, name: "weekly", order, label, notes, archived }
+// A list (= a project) looks like:  { id, name: "weekly", order, color, notes, archived }
+//   color: null (white, the default) or a hex from PROJECT_COLORS; tints the list and its tasks' cards
 //   archived: hidden from the Dashboard (its page and everything in it stay; Settings → Archive &
 //   trash). Only possible while none of its tasks is planned. Projects are never deleted.
 //   (shown as @weekly; @triage is built in: the default list, always first, a list like the others
 //   in the data, but with no project page, no notes, and it can't be renamed or archived)
-//   label: optional label id; all the project's tasks count as having it (labels.js matches)
 //   notes: optional text, Markdown when it looks like Markdown (project.js)
-// A label looks like: { id, name: "Personal", shortcut: "p", color: "#2b8a3e", order }
 //
 // UI code never edits data directly — it calls these functions, which save and
 // then notify listeners (the page re-renders).
@@ -51,7 +49,6 @@ const Tasks = (() => {
   let trash = [];   // deleted tasks, newest first; each has deletedAt
   const TRASH_DAYS = 30;
   let lists = [];
-  let labels = [];
 
   // Called once after sign-in: fetch this person's data from the database.
   async function init() {
@@ -63,7 +60,6 @@ const Tasks = (() => {
     const purged = data.tasks.some(t => t.deletedAt && t.deletedAt < cutoff);
     tasks = data.tasks.filter(t => !t.deletedAt);
     lists = data.lists;
-    labels = data.labels;
     if (!lists.some(l => l.id === TRIAGE_LIST.id)) lists.push({ ...TRIAGE_LIST, order: -1 });
     tasks.forEach(t => {   // a list that's gone: none (planned / done) or @triage (waiting)
       if (t.list && !list(t.list)) t.list = null;
@@ -88,7 +84,6 @@ const Tasks = (() => {
   function commit() {
     Store.save('tasks', [...tasks, ...trash]);   // the trash is saved too (with deletedAt)
     Store.save('lists', lists);
-    Store.save('labels', labels);
     listeners.forEach(fn => fn());
   }
 
@@ -153,13 +148,13 @@ const Tasks = (() => {
   // New tasks go into a list (default @triage), unless a day (planDate) or a calendar time
   // (planDate + startMin) is given: then they're planned right away, with no list unless one was
   // given (e.g. "Dentist tomorrow 5pm @health" keeps @health, to move back to later).
-  function add({ title, priority = Settings.get('defaultPriority'), labels: labelIds = [], list: listId = null,
+  function add({ title, priority = Settings.get('defaultPriority'), list: listId = null,
                  planDate = null, startMin = null, duration = null }) {
     title = (title || '').trim();
     if (!title) return null;
     listId = listId && list(listId) ? listId : planDate ? null : TRIAGE_LIST.id;
     const task = {
-      id: newId(), title, priority: priority || null, labels: labelIds, list: listId,
+      id: newId(), title, priority: priority || null, list: listId,
       planDate, startMin: planDate ? startMin : null, duration: duration || Settings.get('defaultDuration'),
       order: 0, createdAt: new Date().toISOString(), doneOn: null,
     };
@@ -316,11 +311,11 @@ const Tasks = (() => {
     commit();
   }
 
-  // A list's label (one existing label, or null for none). All the project's tasks count as having it.
-  function setListLabel(id, labelId) {
+  // A project's colour (an id-less hex from PROJECT_COLORS, or null for white). Not @triage.
+  function setListColor(id, color) {
     const l = list(id);
-    if (!l) return;
-    l.label = labelId || null;
+    if (!l || id === TRIAGE_LIST.id) return;
+    l.color = color || null;
     commit();
   }
 
@@ -348,83 +343,13 @@ const Tasks = (() => {
     commit();
   }
 
-  // ---- label actions --------------------------------------------------------------
-
-  function allLabels() { return [...labels].sort(byOrder); }
-  function label(id) { return labels.find(l => l.id === id); }
-
-  // Finds a label by its shortcut or its name, case-insensitive: "p" or "personal".
-  function findLabel(word) {
-    const w = word.toLowerCase();
-    return labels.find(l => l.shortcut === w) || labels.find(l => l.name.toLowerCase() === w);
-  }
-
-  // Returns the new label, or an error message string.
-  function addLabel(name, shortcut) {
-    name = name.trim();
-    if (!name) return 'Give the label a name.';
-    shortcut = (shortcut || '').toLowerCase().replace(/[^a-z0-9]/g, '') || suggestShortcut(name);
-    if (labels.some(l => l.shortcut === shortcut)) return `#${shortcut} is already used by another label.`;
-    if (labels.some(l => l.name.toLowerCase() === name.toLowerCase())) return `There's already a label called ${name}.`;
-    const newLabel = {
-      id: newId(), name, shortcut,
-      color: LABEL_COLORS[labels.length % LABEL_COLORS.length],
-      order: labels.length,
-    };
-    labels.push(newLabel);
-    commit();
-    return newLabel;
-  }
-
-  // "Personal" -> "p", or "pe", "per"… if "p" is taken.
-  function suggestShortcut(name) {
-    const letters = name.toLowerCase().replace(/[^a-z0-9]/g, '') || 'label';
-    for (let n = 1; n <= letters.length; n++) {
-      if (!labels.some(l => l.shortcut === letters.slice(0, n))) return letters.slice(0, n);
-    }
-    let i = 2;
-    while (labels.some(l => l.shortcut === letters + i)) i++;
-    return letters + i;
-  }
-
-  // Rename a label, change its shortcut or colour (Settings → Labels). Everything is checked
-  // first; returns the label, or an error message string.
-  function updateLabel(id, changes) {
-    const l = label(id);
-    if (!l) return 'That label no longer exists.';
-    const next = { ...l };
-    if ('name' in changes) {
-      next.name = String(changes.name).trim();
-      if (!next.name) return 'Give the label a name.';
-      if (labels.some(x => x.id !== id && x.name.toLowerCase() === next.name.toLowerCase())) return `There's already a label called ${next.name}.`;
-    }
-    if ('shortcut' in changes) {
-      next.shortcut = String(changes.shortcut).toLowerCase().replace(/[^a-z0-9]/g, '');
-      if (!next.shortcut) return 'A shortcut needs letters or digits, like p or work.';
-      if (labels.some(x => x.id !== id && x.shortcut === next.shortcut)) return `#${next.shortcut} is already used by another label.`;
-    }
-    if ('color' in changes) next.color = changes.color;
-    Object.assign(l, next);
-    commit();
-    return l;
-  }
-
-  // Deleting a label removes it from every task (the tasks themselves stay).
-  function removeLabel(id) {
-    labels = labels.filter(l => l.id !== id);
-    tasks.forEach(t => { if (t.labels.includes(id)) t.labels = t.labels.filter(x => x !== id); });
-    lists.forEach(l => { if (l.label === id) l.label = null; });   // lists that used it lose it too
-    commit();
-  }
-
   // ---- backup ---------------------------------------------------------------------
 
-  function exportData() { return { tasks, lists, labels }; }
+  function exportData() { return { tasks, lists }; }
 
   function replaceAll(data) {
     tasks = data.tasks;
     lists = data.lists || [{ ...TRIAGE_LIST, order: -1 }];
-    labels = data.labels;
     commit();
   }
 
@@ -432,8 +357,7 @@ const Tasks = (() => {
     init, onChange, rollover, get, allTasks,
     listTasks, overdueTasks, planList, calendarList, doneList,
     add, update, cyclePriority, toggleDone, markDone, moveToList, moveToPlan, moveAllToPlan, restoreFields, moveToCalendar, remove, restore, trashed, purge,
-    allLists, archivedLists, setArchived, list, findList, addList, setListNotes, projectTasks, renameList, setListLabel, moveList,
-    allLabels, label, findLabel, addLabel, updateLabel, removeLabel,
+    allLists, archivedLists, setArchived, list, findList, addList, setListNotes, projectTasks, renameList, setListColor, moveList,
     exportData, replaceAll,
   };
 })();

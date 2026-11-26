@@ -33,9 +33,8 @@ const Landing = (() => {
     'Renew passport',
     'Gym Friday 6-7pm',
     'Buy cedar planks @birdhouse',
-    'Finish the report today at 2pm p1 #work',
+    'Finish the report today at 2pm p1 @salesDeck',
   ];
-  const LABEL_COLORS_DEMO = { personal: '#2b8a3e', work: '#5f3dc4', health: '#c2255c' };
   const typed = document.getElementById('lp-typed');
   const result = document.getElementById('lp-result');
 
@@ -44,15 +43,13 @@ const Landing = (() => {
     const chips = [];
     const list = (text.match(/(?:^|\s)@(\w+)/) || [])[1];
     const prio = (text.match(/(?:^|\s)p([123])(?=\s|$)/i) || [])[1];
-    const labels = [...text.matchAll(/(?:^|\s)#(\w+)/g)].map(m => m[1]);
-    const clean = text.replace(/(?:^|\s)(?:@\w+|#\w+|p[123](?=\s|$))/gi, ' ');
-    const when = list ? { title: clean.trim(), date: null } : When.parse(clean);
+    const clean = text.replace(/(?:^|\s)(?:@\w+|p[123](?=\s|$))/gi, ' ');
+    const when = When.parse(clean);
     chips.push(`<span class="lp-chip lp-chip-title">${escapeHtml(when.title)}</span>`);
-    if (list) chips.push(`<span class="lp-chip">☰ @${escapeHtml(list)} list</span>`);
-    else if (when.date) chips.push(`<span class="lp-chip">📅 ${escapeHtml(When.describe(when))}</span>`);
+    if (when.date) chips.push(`<span class="lp-chip">📅 ${escapeHtml(When.describe(when))}${list ? ` · ☰ @${escapeHtml(list)}` : ''}</span>`);
+    else if (list) chips.push(`<span class="lp-chip">☰ @${escapeHtml(list)} list</span>`);
     else chips.push('<span class="lp-chip">☰ Your list, for later</span>');
     if (prio) chips.push(`<span class="lp-chip lp-chip-p${prio}">P${prio}</span>`);
-    labels.forEach(l => chips.push(`<span class="lp-chip lp-chip-label" style="--c:${LABEL_COLORS_DEMO[l] || '#1971c2'}">#${escapeHtml(l)}</span>`));
     return chips.join('');
   }
 
@@ -182,11 +179,11 @@ const Landing = (() => {
     pvTomorrow.querySelectorAll('.lp-new').forEach(el => el.remove());
     pvInput.textContent = '';
     pvPopup.hidden = true;
-    pvTodo.innerHTML = '<div class="m-card p1"><i></i>Finish launch doc <s class="m-tag" style="--c:#5f3dc4">#w</s><u>P1</u></div>'
+    pvTodo.innerHTML = '<div class="m-card p1 has-pc" style="--pc:#8b5cf6"><i></i>Finish launch doc <u>P1</u></div>'   // from @salesDeck: its colour
       + '<div class="m-card p2" id="pv-sam"><i></i>Reply to Sam <u>P2</u></div>';
     pvCal.querySelectorAll('.lp-new').forEach(el => el.remove());
     pvTriage.innerHTML = '<b>@triage</b>' + plain('Renew passport') + plain('Call the bank');
-    pvWork.innerHTML = '<b>@salesDeck <s class="m-tag" style="--c:#5f3dc4">#w</s></b>'
+    pvWork.innerHTML = '<b>@salesDeck</b>'
       + '<div class="m-card p1"><i></i>Update pricing slide <u>P1</u></div>' + plain('Collect customer quotes');
     pvDone.querySelectorAll('.lp-new').forEach(el => el.remove());
     pvDoneCount.textContent = '3';

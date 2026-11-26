@@ -15,13 +15,13 @@ A daily planner on one page:
   (`#project/<name>`, `js/project.js`): its notes (Markdown when it looks like Markdown, with @project
   links; bullet lines that are tasks show where they are, e.g. "Planned tomorrow 6 PM"; others can be
   added as tasks, one-way, and the notes text is never changed), tasks not planned / planned / done
-  (latest 3, "Show all"), and a header that edits in place (rename, label: all its tasks count as it,
+  (latest 3, "Show all"), and a header that edits in place (rename, a colour that tints its list and tasks,
   delete). The ▾ by the name, or G / ⌘K, switches projects.
 - **Settings** (header): default view, where unfinished tasks go at day end (@triage or the next
   day), week start, 12/24-hour time, minimum calendar height, new task length and priority.
   Saved on the account (Supabase user metadata), so they follow you across devices.
-- **Labels** (top chips): create your own (e.g. *Work #w*, *Personal #p*). Click chips to show only
-  those labels' tasks; **All** shows everything.
+- **Project colours:** white by default; pick one of 9 colours on a project's page and its list and
+  all its tasks' cards are tinted with it. (Labels were removed in Nov 2026.)
 
 ## Run it
 
@@ -50,8 +50,8 @@ contain both `{{ .Token }}` (the code) and `{{ .ConfirmationURL }}` (the link).
   - `@listName` puts it in that list, creating the list if needed: `Renew passport @weekly`.
     (One word; camelCase is fine. An @list wins over a day/time.)
   - **Mic button:** speak instead of typing (Chrome, Edge, Safari). Say "list weekly" for `@weekly`,
-    "label personal" for `#p`, "priority one" for `p1`; the text appears in the box, press Enter.
-  - Neither: it goes to **@triage**. Also: `p1 p2 p3` priority (none by default) · `#` + a label's shortcut.
+    "priority one" for `p1`; the text appears in the box, press Enter.
+  - Neither: it goes to **@triage**. Also: `p1 p2 p3` priority (none by default).
   - Parts of the day go with the day: `dentist tomorrow morning at 10AM` ("Morning yoga" stays as typed).
 - **+ Add** under a day or list adds straight there; **click an empty calendar spot** to add at that
   time. The calendar shows from an hour before now (blue line) to today's last upcoming task;
@@ -61,7 +61,7 @@ contain both `{{ .Token }}` (the code) and `{{ .ConfirmationURL }}` (the link).
   right (done) or left (next day / today).
   Drag a calendar block's bottom edge to change its length.
 - **Click a task** to open it: move it (Today / Tomorrow / a date, an optional time and length, or a list),
-  rename it, write a description, set priority and labels, delete it.
+  rename it, write a description, set priority, delete it.
   Hover a task for quick buttons: **P** / **#** / **×**, or click its P1/P2/P3 tag to change priority.
 
 ## Use Planner from Claude, ChatGPT or Gemini (MCP)
@@ -75,7 +75,7 @@ it. It lives at `https://eiwoavnrsdnffiztwziq.supabase.co/functions/v1/mcp`.
   tried yet. Gemini only allows custom apps in the US (18+, personal Google account, English).
 - **Tools.** Reading: `get_plan`, `get_lists`, `search_tasks`, `get_task`. Changing: `add_task`,
   `update_task`, `move_task`, `complete_task`, `uncomplete_task`, `delete_task`, `create_list`,
-  `rename_list`, `set_list_label`, `delete_list`, `create_label`, `delete_label`. Each tool is
+  `rename_list`, `set_list_color`, `archive_list`. Each tool is
   marked as reading, changing or deleting, and AI apps use that to ask the user before changes.
   Built for few calls: `get_plan` returns the date and time, the plan and every list in one go;
   dates can be words ("next friday"); `add_task` takes several tasks, and move/complete/delete take
@@ -102,7 +102,7 @@ Design and internal docs live in a separate private repo: `git@github.com:oblivi
 
 | File | What it does |
 |---|---|
-| `js/config.js` | @triage, priorities, calendar sizes, plan views, label colours. Change the page's shape here. |
+| `js/config.js` | @triage, priorities, calendar sizes, plan views, project colours. Change the page's shape here. |
 | `js/utils.js` | Date, time and text helpers. |
 | `js/when.js` | Reads days and times from plain English for quick add ("today 5pm"). |
 | `js/landing.js` | The signed-out landing page: buttons that open the sign-in card, the typing demo. (Page text is in `index.html`.) |
@@ -115,9 +115,8 @@ Design and internal docs live in a separate private repo: `git@github.com:oblivi
 | `js/supabase-config.js` | Which Supabase project to use (URL + public key), code-or-link switch. |
 | `js/auth.js` | Sign-in screen: Sign in / Create account tabs, Google/Apple/Facebook (shown when enabled in Supabase), password, emailed link, forgot password. |
 | `js/store.js` | **Where data is saved:** loads from and saves changes to the Supabase tables. |
-| `js/tasks.js` | Tasks, lists, labels and every action (add, move, done…). Data model documented at top. |
-| `js/labels.js` | Label chips: filter, create, delete. |
-| `js/taskview.js` | The task window (click a task): move it (day / time / list), rename, description, priority, labels, delete. |
+| `js/tasks.js` | Tasks, lists and every action (add, move, done…). Data model documented at top. |
+| `js/taskview.js` | The task window (click a task): move it (day / time / list), rename, description, priority, delete. |
 | `js/cards.js` | How a task looks; checkbox, priority, delete, rename. |
 | `js/planner.js` | Top section: calendar and list views, past days' done tasks, Done today. |
 | `js/lists.js` | Bottom section: @triage and your lists; create, reorder, delete. |
@@ -127,7 +126,7 @@ Design and internal docs live in a separate private repo: `git@github.com:oblivi
 | `js/app.js` | Quick add, page switching, header, backup, toast, start-up. |
 | `styles.css` | All styling; colours are variables at the top. |
 | `supabase/schema.sql` | Full database setup for a fresh install (wipes data). |
-| `supabase/migrations/` | Upgrades for an existing database, run in order (keep your data): 002 lists, 003 optional priority, 004 description, 005 list labels, 006 project notes, 007 archive & trash. |
+| `supabase/migrations/` | Upgrades for an existing database, run in order (keep your data): 002 lists, 003 optional priority, 004 description, 005 list labels, 006 project notes, 007 archive & trash, 008 project colours. |
 | `supabase/functions/delete-account/` | Settings → Delete my account: deletes the signed-in user (and, by cascade, their data). |
 | `js/md-editor.js` | The notes toolbar + Write/Preview; loaded only when a project page opens (not in index.html). |
 | `manifest.webmanifest`, `sw.js`, `icons/` | The installable app: manifest (with a share target), service worker (network first, offline fallback), icons. |

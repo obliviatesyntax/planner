@@ -6,7 +6,6 @@
 //
 //   "… list weekly" / "… in list upcoming E"   → @weekly / @upcomingE
 //   "… at weekly"  (only if @weekly exists)     → @weekly
-//   "… label personal" / "… tag work"           → #p / #w   (the label's shortcut)
 //   "… priority one" / "… P 1"                  → p1
 //   "5 p.m."                                    → 5pm        (dates/times then work as typed)
 //
@@ -57,10 +56,6 @@ const Voice = (() => {
     t = t.replace(/(\d)\s*([ap])\.?\s?m\.?(?=\W)/gi, '$1$2m');                       // 5 p.m. -> 5pm
     t = t.replace(/\s(?:with\s+)?priority\s+(one|two|three|[123])(?=\W)/gi, (_, n) => ` p${NUMBERS[n.toLowerCase()]}`);
     t = t.replace(/\sp\s?([123])(?=\W)/gi, ' p$1');                                    // "P 1" -> p1
-    t = t.replace(/\s(?:with\s+)?(?:label|tag|hashtag)\s+([a-z0-9]+)(?=\W)/gi, (m, word) => {
-      const label = Tasks.findLabel(word);
-      return label ? ` #${label.shortcut}` : m;
-    });
     t = t.replace(/\s(?:(?:to|in|into|on)\s+)?(?:the\s+)?list\s+((?:[a-z0-9]+\s?){1,3})/gi, (m, words) => ` ${listShortcut(words)} `);
     t = t.replace(/\sat\s+([a-z][a-z0-9]*)(?=\W)/gi, (m, word) => {                     // "at weekly", only for existing lists
       const list = Tasks.findList(word);

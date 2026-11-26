@@ -34,7 +34,7 @@ const Calendar = (() => {
   // today is shown, otherwise 8 AM. You can always scroll to any hour.
   function viewWindow(dates, minHours = Settings.get('minHours')) {
     minHours = Math.min(minHours, view.maxHours);
-    const events = dates.flatMap(d => Tasks.calendarList(d).filter(Labels.matches));
+    const events = dates.flatMap(d => Tasks.calendarList(d));
     const anchor = events.length ? Math.min(...events.map(t => t.startMin)) - 30
       : dates.includes(todayISO()) ? minutesNow() - view.beforeNow : 8 * 60;
     const maxStart = endHour * 60 - minHours * 60;
@@ -90,7 +90,7 @@ const Calendar = (() => {
   }
 
   function dayHtml(date) {
-    const events = Tasks.calendarList(date).filter(Labels.matches);
+    const events = Tasks.calendarList(date);
     const cols = columns(events);
     const isToday = date === todayISO();
     const now = minutesNow();
@@ -230,7 +230,7 @@ const Planner = (() => {
   // row: it hangs from the top of the column and uses the column's full height, down through the
   // calendar part (which a past day doesn't need). fitFlows() sets that height after drawing.
   function doneCellHtml(date, cls = '') {
-    const done = Tasks.doneList(date).filter(Labels.matches);
+    const done = Tasks.doneList(date);
     const inner = `
         <div class="list">${done.map(t => Cards.html(t, 'done')).join('')}</div>
         ${done.length ? '' : '<p class="empty">Nothing done</p>'}
@@ -251,8 +251,8 @@ const Planner = (() => {
   const flowSizes = new ResizeObserver(fitFlows);
 
   function todoCellHtml(date, cls = '', withTimed = false) {
-    const timed = withTimed ? Tasks.calendarList(date).filter(Labels.matches) : [];
-    const todo = Tasks.planList(date).filter(Labels.matches);
+    const timed = withTimed ? Tasks.calendarList(date) : [];
+    const todo = Tasks.planList(date);
     return `
       <div class="plan-cell ${cls} ${date === todayISO() ? 'is-today' : ''}" data-drop="plan" data-date="${date}">
         <div class="list">${[...timed, ...todo].map(t => Cards.html(t, 'plan')).join('')}</div>
@@ -266,7 +266,7 @@ const Planner = (() => {
   function overdueHtml() {
     const all = Tasks.overdueTasks();
     if (!all.length) return '';
-    const tasks = all.filter(Labels.matches);
+    const tasks = all;
     return `
       <aside class="overdue-panel">
         <h3>Overdue <span class="count">${all.length}</span>
@@ -278,7 +278,7 @@ const Planner = (() => {
 
   function donePanelHtml() {
     const today = todayISO();
-    const done = Tasks.doneList(today).filter(Labels.matches);
+    const done = Tasks.doneList(today);
     return `
       <aside class="done-today" data-drop="done" data-date="${today}">
         <h3>Done today <span class="count ${done.some(t => Cards.isJustDone(t.id)) ? 'bump' : ''}">${done.length}</span></h3>
@@ -416,11 +416,11 @@ const Planner = (() => {
     }
   }
 
-  // Overdue → "Move all to today": every task shown there (respecting the label filter) goes on
+  // Overdue → "Move all to today": every task shown there goes on
   // today's to-do list, without a time. One Undo puts them all back.
   root.addEventListener('click', e => {
     if (!e.target.closest('[data-overdue-all]')) return;
-    const ids = Tasks.overdueTasks().filter(Labels.matches).map(t => t.id);
+    const ids = Tasks.overdueTasks().map(t => t.id);
     if (!ids.length) return;
     const before = Tasks.moveAllToPlan(ids, todayISO());
     App.toast(`Moved ${ids.length} task${ids.length === 1 ? '' : 's'} to today`, 'Undo', () => Tasks.restoreFields(before));

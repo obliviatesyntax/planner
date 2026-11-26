@@ -1721,3 +1721,36 @@ button.pj-added:hover { border-color: currentColor; }
 .pj-archive-wrap { margin-left: auto; display: inline-flex; align-items: center; gap: 10px; }
 .pj-archive-wrap .pj-archive, .pj-archive-wrap .pj-archive-note { margin-left: 0; }
 @media (max-width: 700px) { .pj-archive-wrap { margin-left: 0; flex-wrap: wrap; } .pj-archive-wrap .pj-archive-note { order: 2; flex-basis: auto; } }
+
+/* ==========================================================================
+   Project colours (instead of labels): --pc is the project's colour. White (none) by default.
+   It tints the project's list column and every card of its tasks; the left edge stays priority.
+   ========================================================================== */
+.pj-colors { display: flex; align-items: center; gap: 5px; flex-wrap: wrap; }
+.pj-color {
+  width: 16px; height: 16px; padding: 0; border-radius: 50%; border: 1px solid rgba(0, 0, 0, .12);
+  background: var(--pc); cursor: pointer;
+}
+.pj-color.none { background: #fff; border-color: #d1d5db; }
+.pj-color:hover { transform: scale(1.15); }
+.pj-color.on { box-shadow: 0 0 0 2px #fff, 0 0 0 3.5px var(--pc, #9ca3af); }
+.pj-color.none.on { box-shadow: 0 0 0 2px #fff, 0 0 0 3.5px #9ca3af; }
+@media (max-width: 700px) { .pj-color { width: 22px; height: 22px; } .pj-colors { gap: 7px; } }
+
+/* a coloured project's list column */
+.list-col.has-pc {
+  background: color-mix(in srgb, var(--pc) 7%, #fff);
+  border-color: color-mix(in srgb, var(--pc) 30%, var(--line));
+}
+.list-col.has-pc .list-name { color: color-mix(in srgb, var(--pc) 70%, #111827); }
+/* a coloured project's task cards (lists, plan, calendar, overdue, project page) */
+.card.has-pc:not(.done) {
+  background: color-mix(in srgb, var(--pc) 11%, #fff);
+  border-color: color-mix(in srgb, var(--pc) 28%, var(--line));
+}
+.list > .card.has-pc:not(.done):hover { background: color-mix(in srgb, var(--pc) 18%, #fff); border-color: color-mix(in srgb, var(--pc) 45%, var(--line)); }
+.card.has-pc.done { background: color-mix(in srgb, var(--pc) 6%, #fafafa); }
+/* landing preview: a coloured project (@salesDeck) and its tasks, like in the app */
+.lp-list.has-pc { background: color-mix(in srgb, var(--pc) 7%, #fff); border-color: color-mix(in srgb, var(--pc) 30%, var(--line)); }
+.lp-list.has-pc > b { color: color-mix(in srgb, var(--pc) 70%, #111827); }
+.lp-list.has-pc .m-card, .m-card.has-pc { background: color-mix(in srgb, var(--pc, #8b5cf6) 11%, #fff); border-color: color-mix(in srgb, var(--pc, #8b5cf6) 28%, var(--line)); }

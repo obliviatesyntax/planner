@@ -58,34 +58,30 @@ function seed() {
   // Calendar times near "now", so they're in view (the calendar starts an hour before now).
   const nextHour = Math.min(Math.max(Math.floor(minutesNow() / 60) + 1, 8), 20) * 60;
 
-  const labels = [
-    { id: 'lbl-w', name: 'Work', shortcut: 'w', color: '#5f3dc4', order: 0 },
-    { id: 'lbl-p', name: 'Personal', shortcut: 'p', color: '#2b8a3e', order: 1 },
-  ];
   const lists = [
     { ...TRIAGE_LIST, order: -1 },
-    { id: 'l-sales', name: 'salesDeck', order: 0, label: 'lbl-w' },
-    { id: 'l-kitchen', name: 'kitchenReno', order: 1, notes: KITCHEN_NOTES },
+    { id: 'l-sales', name: 'salesDeck', order: 0, color: '#8b5cf6' },
+    { id: 'l-kitchen', name: 'kitchenReno', order: 1, color: '#14b8a6', notes: KITCHEN_NOTES },
     { id: 'l-bird', name: 'birdhouse', order: 2 },
   ];
   let n = 0;
   // Not planned: in @triage unless a list is given. Planned: no project unless a list is given.
   const task = (title, fields = {}) => ({
-    id: `pg${n}`, title, priority: null, labels: [], list: fields.planDate ? null : TRIAGE_LIST.id, planDate: null,
+    id: `pg${n}`, title, priority: null, list: fields.planDate ? null : TRIAGE_LIST.id, planDate: null,
     startMin: null, duration: 30, order: n++, createdAt: new Date().toISOString(), doneOn: null, ...fields,
   });
   const tasks = [
     // today
     task('Design review', { planDate: today, startMin: nextHour, duration: 60, priority: 2, list: 'l-sales' }),
-    task('Gym', { planDate: today, startMin: Math.min(nextHour + 120, 22 * 60), duration: 60, priority: 3, labels: ['lbl-p'] }),
+    task('Gym', { planDate: today, startMin: Math.min(nextHour + 120, 22 * 60), duration: 60, priority: 3 }),
     task('Reply to Sam', { planDate: today, priority: 2 }),
     task('Water the plants', { planDate: today }),
-    task('Morning run', { planDate: today, doneOn: today, labels: ['lbl-p'] }),
+    task('Morning run', { planDate: today, doneOn: today }),
     task('Pay rent', { planDate: today, doneOn: today }),
-    task('Standup notes', { planDate: today, doneOn: today, labels: ['lbl-w'] }),
+    task('Standup notes', { planDate: today, doneOn: today }),
     // tomorrow
     task('Plan weekend trip', { planDate: tomorrow, priority: 3 }),
-    task('Dentist appointment', { planDate: tomorrow, startMin: 17 * 60, priority: 1, labels: ['lbl-p'] }),
+    task('Dentist appointment', { planDate: tomorrow, startMin: 17 * 60, priority: 1 }),
     // yesterday: one done; the two unfinished ones roll over to @overdue on load
     task('Ran 5k', { planDate: yesterday, doneOn: yesterday }),
     task('Call the insurer', { planDate: yesterday }),
@@ -104,5 +100,5 @@ function seed() {
     task('Buy cedar planks', { list: 'l-bird' }),
     task('Find a 1.5" hole saw', { list: 'l-bird', priority: 3 }),
   ];
-  return Promise.resolve({ tasks, lists, labels });
+  return Promise.resolve({ tasks, lists });
 }

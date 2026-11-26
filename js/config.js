@@ -44,5 +44,10 @@ const PLAN_VIEWS = [
 // The List view shows this many days back (done tasks) and ahead.
 const LIST_VIEW_DAYS = { back: 7, ahead: 21 };
 
-// New labels take the next colour from this list.
-const LABEL_COLORS = ['#5f3dc4', '#2b8a3e', '#1971c2', '#c2255c', '#e8590c', '#0c8599', '#5c940d', '#862e9c'];
+// Colours a project can have (project page → colour dots). None = white, the default. A project's
+// colour tints its list and every card of its tasks (cards.js, styles.css: --pc).
+const PROJECT_COLORS = [
+  { id: 'red', hex: '#ef4444' }, { id: 'orange', hex: '#f97316' }, { id: 'yellow', hex: '#eab308' },
+  { id: 'green', hex: '#22c55e' }, { id: 'teal', hex: '#14b8a6' }, { id: 'blue', hex: '#3b82f6' },
+  { id: 'violet', hex: '#8b5cf6' }, { id: 'pink', hex: '#ec4899' }, { id: 'slate', hex: '#64748b' },
+];

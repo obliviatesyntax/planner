@@ -1,6 +1,6 @@
 // store.js — the ONLY file that knows where data is saved.
 //
-// Three Supabase (Postgres) tables: `tasks`, `lists` and `labels` (see supabase/schema.sql). Each
+// Two Supabase (Postgres) tables: `tasks` and `lists` (see supabase/schema.sql). Each
 // signed-in person only ever sees their own rows (enforced by the database).
 //
 // The rest of the app thinks in terms of "load everything" and "save everything".
@@ -13,7 +13,7 @@ const Store = (() => {
     tasks: {
       toRow: t => ({
         // list_id is NOT NULL in the database: "" there = no list (null here).
-        id: t.id, title: t.title, priority: t.priority, labels: t.labels, list_id: t.list || '',
+        id: t.id, title: t.title, priority: t.priority, list_id: t.list || '',
         plan_date: t.planDate, start_min: t.startMin, duration_min: t.duration,
         sort_order: t.order, created_at: t.createdAt, done_on: t.doneOn,
         // Only sent once a description has been written, so saving still works on a
@@ -23,7 +23,7 @@ const Store = (() => {
         ...(t.deletedAt !== undefined ? { deleted_at: t.deletedAt } : {}),
       }),
       fromRow: r => ({
-        id: r.id, title: r.title, priority: r.priority, labels: r.labels || [], list: r.list_id || null,
+        id: r.id, title: r.title, priority: r.priority, list: r.list_id || null,
         planDate: r.plan_date, startMin: r.start_min, duration: r.duration_min,
         order: r.sort_order, createdAt: r.created_at, doneOn: r.done_on,
         ...(r.notes != null ? { notes: r.notes } : {}),
@@ -31,23 +31,19 @@ const Store = (() => {
       }),
     },
     lists: {
-      // label_id is only sent once a list has (or had) a label, so saving still works on a
-      // database that hasn't run migrations/005-list-label.sql yet.
+      // color (migrations/008) is only sent once a project has one, so saving works before it's run.
       // notes (project notes) only once written, so saving works before migrations/006-project-notes.sql.
-      toRow: l => ({ id: l.id, name: l.name, sort_order: l.order, ...(l.label !== undefined ? { label_id: l.label } : {}), ...(typeof l.notes === 'string' ? { notes: l.notes } : {}), ...(l.archived !== undefined ? { archived: l.archived } : {}) }),
-      fromRow: r => ({ id: r.id, name: r.name, order: r.sort_order, ...(r.label_id !== undefined ? { label: r.label_id } : {}), ...(r.notes != null ? { notes: r.notes } : {}), ...(r.archived ? { archived: true } : {}) }),
-    },
-    labels: {
-      toRow: l => ({ id: l.id, name: l.name, shortcut: l.shortcut, color: l.color, sort_order: l.order }),
-      fromRow: r => ({ id: r.id, name: r.name, shortcut: r.shortcut, color: r.color, order: r.sort_order }),
+      toRow: l => ({ id: l.id, name: l.name, sort_order: l.order, ...(l.color !== undefined ? { color: l.color } : {}), ...(typeof l.notes === 'string' ? { notes: l.notes } : {}), ...(l.archived !== undefined ? { archived: l.archived } : {}) }),
+      fromRow: r => ({ id: r.id, name: r.name, order: r.sort_order, ...(r.color ? { color: r.color } : {}), ...(r.notes != null ? { notes: r.notes } : {}), ...(r.archived ? { archived: true } : {}) }),
     },
   };
 
-  const lastSaved = { tasks: new Map(), lists: new Map(), labels: new Map() };   // id -> JSON as the database has it
+  const lastSaved = { tasks: new Map(), lists: new Map() };   // id -> JSON as the database has it
   let queue = Promise.resolve();      // saves run one after another, never overlapping
   let onError = () => {};
 
-  // Returns { tasks: [...], lists: [...], labels: [...] } for the signed-in person.
+  // Returns { tasks: [...], lists: [...] } for the signed-in person. (Labels were removed in Nov
+  // 2026; the old `labels` table and columns are simply no longer read or written.)
   // The three tables are asked for at the same time (one wait, not three in a row).
   async function load() {
     const tables = Object.keys(TABLES);

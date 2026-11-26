@@ -11,7 +11,7 @@
 //                        never changed by any of this; tasks and notes aren't kept in sync.
 //   • Tasks: not planned yet (the list itself: drag into it, "+ Add"), planned on a day (with the
 //     day and time), and done (the 3 most recent; "Show all" for the rest).
-// The header is editable in place: click the name to rename, pick a label chip, Archive hides it
+// The header is editable in place: click the name to rename, pick a colour, Archive hides it
 // (projects are never deleted; only possible once none of its tasks is planned). @triage has no page.
 // Quick add on this page puts tasks into this project unless you type another @list.
 // The browser's Back button, or "← Dashboard", returns to the Dashboard (the main page). The ▾ next
@@ -61,7 +61,6 @@ const Project = (() => {
     const l = Tasks.list(id);
     const { waiting, planned, done } = Tasks.projectTasks(id);
     const archiveBlocked = !l.archived && planned.length > 0;   // only archive when nothing of it is on the plan
-    const labels = Tasks.allLabels();
     const visibleDone = showAllDone ? done : done.slice(0, RECENT_DONE);
     const draft = editing ? view.querySelector('.pj-notes-input')?.value : undefined;   // keep unsaved typing
 
@@ -69,8 +68,10 @@ const Project = (() => {
       <div class="pj-head">
         <a href="#" class="pj-back" title="Back to the Dashboard">← Dashboard</a>
         <h2 class="pj-title"><span>@</span><input class="pj-name" value="${escapeHtml(l.name)}" size="${Math.max(4, l.name.length)}" maxlength="30" spellcheck="false" aria-label="Project name" title="Click to rename"><button type="button" class="pj-switch" title="Go to another project or the Dashboard" aria-label="Switch project" aria-haspopup="menu">▾</button></h2>
-        ${labels.length ? `<div class="pj-labels" title="This project's label: all its tasks count as it">${labels.map(lab => `
-          <button type="button" class="pj-label ${l.label === lab.id ? 'on' : ''}" data-label="${lab.id}" style="--c:${lab.color}">#${escapeHtml(lab.shortcut)}</button>`).join('')}</div>` : ''}
+        <div class="pj-colors" role="radiogroup" aria-label="Project colour" title="Project colour: tints its list and its tasks everywhere">
+          <button type="button" class="pj-color none ${l.color ? '' : 'on'}" data-color="" role="radio" aria-checked="${!l.color}" title="No colour (white)"></button>
+          ${PROJECT_COLORS.map(c => `<button type="button" class="pj-color ${l.color === c.hex ? 'on' : ''}" data-color="${c.hex}" style="--pc:${c.hex}" role="radio" aria-checked="${l.color === c.hex}" title="${c.id[0].toUpperCase() + c.id.slice(1)}"></button>`).join('')}
+        </div>
         <span class="muted pj-stats">${waiting.length} not planned · ${planned.length} planned · ${done.length} done</span>
         <span class="pj-archive-wrap">${archiveBlocked ? `<span class="pj-archive-note">Can be archived once nothing is planned</span>` : ''}
         <button type="button" class="pj-archive" ${archiveBlocked ? 'disabled' : ''} title="${l.archived ? 'Bring it back to the Dashboard' : archiveBlocked ? 'Finish or unplan its planned tasks first' : 'Archive: hide it from the Dashboard, keep everything'}"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="4" width="18" height="4" rx="1"/><path d="M5 8v11a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1V8"/><path d="M10 12h4"/></svg><span>${l.archived ? 'Unarchive' : 'Archive'}</span></button></span>
@@ -341,8 +342,8 @@ const Project = (() => {
     if (!id) return;
     if (e.target.closest('.pj-back')) { e.preventDefault(); location.hash = ''; return; }
     if (e.target.closest('.pj-archive, .pj-unarchive')) return toggleArchive(id);
-    const chip = e.target.closest('.pj-label');
-    if (chip) return Tasks.setListLabel(id, Tasks.list(id).label === chip.dataset.label ? null : chip.dataset.label);
+    const swatch = e.target.closest('.pj-color');
+    if (swatch) return Tasks.setListColor(id, swatch.dataset.color || null);
     if (e.target.closest('.pj-notes-edit, .pj-notes-empty')) { editing = true; offer = null; editStart = Tasks.list(id).notes || ''; return render(); }
     if (e.target.closest('.pj-notes-done')) return finishEditing(id);
     if (e.target.closest('.pj-offer-yes')) { const lines = offer; offer = null; return linesToTasks(id, lines); }

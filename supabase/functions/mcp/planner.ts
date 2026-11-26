@@ -10,15 +10,15 @@
 //   Reading:  get_plan, get_lists, search_tasks, get_task.
 //   Changing: add_task, update_task, move_task, complete_task, uncomplete_task, delete_task
 //             (those four take several ids at once, so the AI app asks you once),
-//             create_list, rename_list, set_list_label, archive_list, create_label, delete_label.
+//             create_list, rename_list, set_list_color, archive_list.
 //   Projects are never deleted, only archived (with their unfinished tasks, off the plan).
 //   The AI apps ask you before running a tool that changes things (and warn more for deletes).
 //
 // The rules are the same as js/tasks.js; keep them in step:
 //   where a task shows (listTasks, planList, calendarList, doneList), what moving does
 //   (moveToList, moveToPlan, moveToCalendar), done / not done (toggleDone,
-//   markDone), lists (addList, renameList, setListLabel, removeList) and labels (addLabel,
-//   suggestShortcut, removeLabel).
+//   markDone) and lists (addList, renameList, setListColor, setArchived). (Labels were removed in
+//   Nov 2026; projects have a colour instead.)
 // "Overdue" is a view in both, not a list: unfinished tasks planned for a past day show there, but keep their
 // day and time in the database until moved.
 // A Planner tab that's already open doesn't see changes made here until it's reloaded.
@@ -39,9 +39,9 @@ const INSTRUCTIONS = `Planner is the user's daily planner. Tasks either wait in 
 other lists are projects like @salesDeck) or are planned
 on a day: on that day's calendar (with a time) or its to-do list (no time). A task planned from a list remembers it (to move back later); one added straight onto a day has no list. Done tasks are logged on the
 day they were done. Unfinished tasks planned for a past day are "overdue": they keep that day and time
-and show in an Overdue section (not a list) until moved, completed or deleted. Priorities: P1 must do, P2 should do, P3 nice to have. Labels look like #w (Work).
+and show in an Overdue section (not a list) until moved, completed or deleted. Priorities: P1 must do, P2 should do, P3 nice to have.
 Dates are in the user's time zone; get_plan with no date means today. Tools that change a task need its
-id: get it from get_plan, get_lists or search_tasks first. Lists and labels can be named without @ or #.
+id: get it from get_plan, get_lists or search_tasks first. Lists can be named without @.
 Start with get_plan: it has the date and time, the plan and every list, so most questions need nothing else.
 To add several tasks use add_task with tasks: [...]; to move, complete or delete several, pass all their ids
 in ONE call (ids: [...], from_list to move a whole list, or overdue: true for everything overdue): the user then confirms once instead of once per task.
@@ -51,12 +51,16 @@ of their tasks is planned. Dates can be words (tomorrow, friday, next monday). T
 
 // ---- the tools -----------------------------------------------------------------------
 
+// Project colours, as in the app (js/config.js PROJECT_COLORS).
+const COLORS: Record<string, string> = { red: '#ef4444', orange: '#f97316', yellow: '#eab308', green: '#22c55e', teal: '#14b8a6', blue: '#3b82f6', violet: '#8b5cf6', pink: '#ec4899', slate: '#64748b' };
+const COLOR_NAMES = Object.keys(COLORS).join(', ');
+
 const READ_ONLY = { readOnlyHint: true, openWorldHint: false };
 const READ_TOOLS = [
   {
     name: 'get_plan',
     title: 'Get the plan',
-    description: "Start here for most questions. The current date and time, the plan for one or more days (each day's calendar, to-do list and what was done), and by default overdue tasks, everything waiting in lists (@triage, projects) and the labels. Every task line has its id, time, priority, labels, the day it was added and a short note.",
+    description: "Start here for most questions. The current date and time, the plan for one or more days (each day's calendar, to-do list and what was done), and by default overdue tasks, everything waiting in lists (@triage, projects) Every task line has its id, time, priority, the day it was added and a short note.",
     inputSchema: {
       type: 'object',
       properties: {
@@ -70,7 +74,7 @@ const READ_TOOLS = [
   {
     name: 'get_lists',
     title: 'Get lists',
-    description: 'Tasks not yet planned on a day: overdue tasks (unfinished from past days; not a list), @triage (the default list) and the other lists. Also returns the labels that exist.',
+    description: 'Tasks not yet planned on a day: overdue tasks (unfinished from past days; not a list), @triage (the default list) and the other lists.',
     inputSchema: {
       type: 'object',
       properties: {
@@ -96,13 +100,12 @@ const READ_TOOLS = [
   {
     name: 'search_tasks',
     title: 'Search tasks',
-    description: 'Find tasks by text (title or description, not case-sensitive) and/or filters: priority, label, list, the day they were added. Says where each one is: which list, day or time, or when it was done.',
+    description: 'Find tasks by text (title or description, not case-sensitive) and/or filters: priority, list, the day they were added. Says where each one is: which list, day or time, or when it was done.',
     inputSchema: {
       type: 'object',
       properties: {
         query: { type: 'string', description: 'Text to look for in titles and descriptions (optional if a filter is given).' },
         priority: { type: 'integer', minimum: 0, maximum: 3, description: 'Only this priority (0 = none).' },
-        label: { type: 'string', description: 'Only tasks with this label (name or shortcut).' },
         list: { type: 'string', description: 'Only tasks waiting in this list.' },
         added_on: { type: 'string', description: 'Only tasks added on this day (YYYY-MM-DD or today, yesterday, a weekday…).' },
         include_done: { type: 'boolean', description: 'Also done tasks. Default false.' },
@@ -141,10 +144,9 @@ const WRITE_TOOLS = [
       type: 'object',
       properties: {
         title: str('What to do (for one task).'),
-        tasks: { type: 'array', description: 'Several tasks: each a title string, or an object with title and any of the other fields.', items: { anyOf: [{ type: 'string' }, { type: 'object', properties: { title: str('What to do.'), list: str('List name.'), date: str('Day.'), start_time: str('HH:MM.'), duration_minutes: { type: 'integer' }, priority: { type: 'integer' }, labels: { type: 'array', items: { type: 'string' } }, description: str('Notes.') }, required: ['title'] }] } },
+        tasks: { type: 'array', description: 'Several tasks: each a title string, or an object with title and any of the other fields.', items: { anyOf: [{ type: 'string' }, { type: 'object', properties: { title: str('What to do.'), list: str('List name.'), date: str('Day.'), start_time: str('HH:MM.'), duration_minutes: { type: 'integer' }, priority: { type: 'integer' }, description: str('Notes.') }, required: ['title'] }] } },
         ...WHERE,
         priority: { type: 'integer', minimum: 0, maximum: 3, description: '1 must do, 2 should do, 3 nice to have, 0 none. Default: the user\'s setting.' },
-        labels: { type: 'array', items: { type: 'string' }, description: 'Existing labels, by name or shortcut (e.g. "Work" or "w").' },
         description: str('Optional notes.'),
       },
     },
@@ -152,13 +154,12 @@ const WRITE_TOOLS = [
   },
   {
     name: 'update_task', title: 'Change a task',
-    description: 'Rename a task, or change its priority, labels or description. Only the fields given change.',
+    description: 'Rename a task, or change its priority or description. Only the fields given change.',
     inputSchema: {
       type: 'object',
       properties: {
         id: str('The task id.'), title: str('New title.'),
         priority: { type: 'integer', minimum: 0, maximum: 3, description: '1, 2, 3, or 0 for none.' },
-        labels: { type: 'array', items: { type: 'string' }, description: 'The full new set of labels (names or shortcuts); [] removes all.' },
         description: str('New description; "" removes it.'),
         project: str('The list it belongs to (list name, or "" for none). A planned task keeps its day; one not planned moves into that list (@triage for "").'),
       },
@@ -168,7 +169,7 @@ const WRITE_TOOLS = [
   },
   {
     name: 'move_task', title: 'Move tasks',
-    description: "Move one task (id) or several (ids) to a list, to a day's to-do list (date), or to a day's calendar (date + start_time; several tasks are placed one after another from that time). Moving a done task makes it not done. A task leaving a list that has a label gets that label. Prefer one call with ids over many calls.",
+    description: "Move one task (id) or several (ids) to a list, to a day's to-do list (date), or to a day's calendar (date + start_time; several tasks are placed one after another from that time). Moving a done task makes it not done. Prefer one call with ids over many calls.",
     inputSchema: { type: 'object', properties: { id: str('The task id.'), ids: { type: 'array', items: { type: 'string' }, description: 'Several task ids at once (one confirmation for all of them).' }, from_list: str('Instead of ids: every task waiting in this list.'), overdue: { type: 'boolean', description: 'Instead of ids: every overdue task (unfinished, planned for a past day).' }, ...WHERE } },
     annotations: { title: 'Move tasks', ...CHANGE, idempotentHint: true },
   },
@@ -192,8 +193,8 @@ const WRITE_TOOLS = [
   },
   {
     name: 'create_list', title: 'Create a list',
-    description: 'Create a list (one word, letters and digits, like "weekly" or "kitchenReno"), optionally with a label its tasks get when planned.',
-    inputSchema: { type: 'object', properties: { name: str('List name.'), label: str('Optional existing label, by name or shortcut.') }, required: ['name'] },
+    description: 'Create a list (one word, letters and digits, like "weekly" or "kitchenReno"), optionally with a colour.',
+    inputSchema: { type: 'object', properties: { name: str('List name.'), color: str(`Optional colour: ${COLOR_NAMES}.`) }, required: ['name'] },
     annotations: { title: 'Create a list', ...CHANGE },
   },
   {
@@ -203,11 +204,12 @@ const WRITE_TOOLS = [
     annotations: { title: 'Rename a list', ...CHANGE, idempotentHint: true },
   },
   {
-    name: 'set_list_label', title: "Set a list's label",
-    description: 'Give a list one label (its tasks count as that label, and get it when moved onto a day), or remove it with label "".',
-    inputSchema: { type: 'object', properties: { list: str('List name.'), label: str('Existing label by name or shortcut, or "" for none.') }, required: ['list', 'label'] },
-    annotations: { title: "Set a list's label", ...CHANGE, idempotentHint: true },
+    name: 'set_list_color', title: "Set a project's colour",
+    description: `Give a project a colour (it tints its list and its tasks in the app), or "" for none (white). Colours: ${COLOR_NAMES}. Not @triage.`,
+    inputSchema: { type: 'object', properties: { list: str('Project (list) name.'), color: str('A colour name, or "" for none.') }, required: ['list', 'color'] },
+    annotations: { title: "Set a project's colour", ...CHANGE, idempotentHint: true },
   },
+
   {
     name: 'archive_list', title: 'Archive a project',
     description: 'Archive a project (projects are never deleted): it leaves the Dashboard, nothing is lost. Only possible when none of its tasks is planned (complete, unplan or delete those first). archived: false brings it back. @triage can\'t be archived.',
@@ -215,31 +217,18 @@ const WRITE_TOOLS = [
     annotations: { title: 'Archive a project', ...CHANGE, idempotentHint: true },
   },
 
-  {
-    name: 'create_label', title: 'Create a label',
-    description: 'Create a label like "Work" with a short shortcut like "w" (picked automatically if not given).',
-    inputSchema: { type: 'object', properties: { name: str('Label name.'), shortcut: str('Optional short code, letters and digits.') }, required: ['name'] },
-    annotations: { title: 'Create a label', ...CHANGE },
-  },
-  {
-    name: 'delete_label', title: 'Delete a label',
-    description: 'Delete a label. Tasks and lists that had it just lose it; nothing else is deleted.',
-    inputSchema: { type: 'object', properties: { label: str('Label name or shortcut.') }, required: ['label'] },
-    annotations: { title: 'Delete a label', ...DELETE },
-  },
 ];
 const TOOLS = [...READ_TOOLS, ...WRITE_TOOLS];
 
 // ---- reading the database as the user ---------------------------------------------------
 
 type Task = {
-  id: string; title: string; priority: number | null; labels: string[]; list_id: string;
+  id: string; title: string; priority: number | null; list_id: string;
   plan_date: string | null; start_min: number | null; duration_min: number | null;
   sort_order: number; done_on: string | null; notes?: string | null; created_at?: string;
   deleted_at?: string | null;   // in the trash (the app keeps it 30 days)
 };
-type List = { id: string; name: string; sort_order: number; label_id?: string | null; notes?: string | null; archived?: boolean };
-type Label = { id: string; name: string; shortcut: string; sort_order: number };
+type List = { id: string; name: string; sort_order: number; color?: string | null; notes?: string | null; archived?: boolean };
 type User = { id: string; email?: string; user_metadata?: Record<string, any> };
 
 export class AuthError extends Error {}
@@ -288,13 +277,13 @@ export class Db {
   }
 }
 
-export type Data = { user: User; tasks: Task[]; lists: List[]; labels: Label[] };
+export type Data = { user: User; tasks: Task[]; lists: List[] };
 
 export async function loadData(env: Env, token: string, user: User): Promise<Data> {
-  const [tasks, lists, labels] = await Promise.all([
-    table<Task>(env, token, 'tasks'), table<List>(env, token, 'lists'), table<Label>(env, token, 'labels'),
+  const [tasks, lists] = await Promise.all([
+    table<Task>(env, token, 'tasks'), table<List>(env, token, 'lists'),
   ]);
-  return { user, tasks, lists, labels };
+  return { user, tasks, lists };
 }
 
 // ---- dates and formatting (in the user's time zone; the app saves it as user_metadata.time_zone) ----
@@ -355,15 +344,10 @@ class View {
     if (id === 'triage') return 'triage';
     return this.d.lists.find(l => l.id === id)?.name ?? 'triage';   // unknown list: the app shows it in @triage
   }
-  labelText(t: Task) {
-    return (t.labels || []).map(id => this.d.labels.find(l => l.id === id)).filter(Boolean).map(l => `#${l!.shortcut}`).join(' ');
-  }
   line(t: Task, { time = false, done = false } = {}) {
     const parts = [`${done || t.done_on ? '[x]' : '[ ]'} ${t.title}`];
     if (time && t.start_min != null) parts.push(`${clock(t.start_min, this.hour12)}–${clock(t.start_min + (t.duration_min || 30), this.hour12)}`);
     if (t.priority) parts.push(`P${t.priority}`);
-    const labels = this.labelText(t);
-    if (labels) parts.push(labels);
     if ((t.plan_date || t.done_on) && t.list_id && t.list_id !== 'triage') {   // its project (waiting ones sit in it)
       const p = this.d.lists.find(l => l.id === t.list_id);
       if (p) parts.push(`@${p.name}`);
@@ -425,7 +409,7 @@ function getLists(v: View, args: any): string {
 function listsBody(v: View, list: string): string {
   const wanted = list.replace(/^@/, '').trim().toLowerCase();
   const own = [
-    { id: 'triage', name: 'triage', label_id: null as string | null | undefined },
+    { id: 'triage', name: 'triage', color: null as string | null | undefined },
     ...[...v.d.lists].filter(l => l.id !== 'triage').sort((a, b) => a.sort_order - b.sort_order),
   ];
   // Archived projects are hidden in the app; only shown here when asked for by name.
@@ -441,13 +425,11 @@ function listsBody(v: View, list: string): string {
   }
   for (const l of lists) {
     const tasks = v.waiting(l.id);
-    const label = l.label_id && v.d.labels.find(x => x.id === l.label_id);
+    const color = l.color && Object.keys(COLORS).find(k => COLORS[k] === l.color);
     const planned = v.d.tasks.filter(t => t.list_id === l.id && t.plan_date && !t.done_on).length;
-    out.push(`## @${l.name}${label ? ` (label #${label.shortcut}: its tasks count as ${label.name})` : ''}${planned ? ` (+ ${planned} planned on a day: get_project shows them)` : ''}`);
+    out.push(`## @${l.name}${color ? ` (colour: ${color})` : ''}${planned ? ` (+ ${planned} planned on a day: get_project shows them)` : ''}`);
     out.push(...(tasks.length ? tasks.map(t => v.line(t)) : ['- (empty)']), '');
   }
-  const labels = [...v.d.labels].sort((a, b) => a.sort_order - b.sort_order);
-  out.push(`Labels: ${labels.length ? labels.map(l => `${l.name} #${l.shortcut}`).join(', ') : '(none)'}`);
   return out.join('\n');
 }
 
@@ -476,18 +458,16 @@ function getProject(v: View, args: any): string {
 function searchTasks(v: View, args: any): string {
   const q = String(args?.query ?? '').trim().toLowerCase();
   const priority = args?.priority !== undefined ? Number(args.priority) : null;
-  const label = args?.label ? findLabel(v, args.label) : null;
   const list = args?.list ? findList(v, args.list) : null;
   if (args?.list) need(list, `No list called @${String(args.list).replace(/^@/, '')}. Lists: ${listNames(v)}.`);
   const addedOn = args?.added_on ? parseDate(v, args.added_on) : null;
-  need(q || priority !== null || label || list || addedOn, 'Give text to search for, or a filter: priority, label, list or added_on.');
+  need(q || priority !== null || list || addedOn, 'Give text to search for, or a filter: priority, list or added_on.');
   const found = v.d.tasks.filter(t => (args?.include_done || !t.done_on)
     && (!q || t.title.toLowerCase().includes(q) || (t.notes || '').toLowerCase().includes(q))
     && (priority === null || (t.priority || 0) === priority)
-    && (!label || (t.labels || []).includes(label.id))
     && (!list || (!t.plan_date && !t.done_on && t.list_id === list.id))
     && (!addedOn || v.added(t) === addedOn));
-  const what = [q && `"${args.query}"`, priority !== null && `P${priority}`, label && `#${label.shortcut}`, list && `in @${list.name}`, addedOn && `added ${addedOn}`].filter(Boolean).join(', ');
+  const what = [q && `"${args.query}"`, priority !== null && `P${priority}`, list && `in @${list.name}`, addedOn && `added ${addedOn}`].filter(Boolean).join(', ');
   if (!found.length) return `${v.nowLine()}\nNo ${args?.include_done ? '' : 'open '}tasks match ${what}.`;
   return `${v.nowLine()}\n${found.length} ${args?.include_done ? '' : 'open '}task(s) match ${what}:\n`
     + found.slice(0, 100).map(t => `${v.line(t, { time: true })} — ${v.where(t)}`).join('\n')
@@ -502,7 +482,6 @@ function getTask(v: View, args: any): string {
     `Where: ${v.where(t)}`,
     t.plan_date && t.start_min != null ? `Time: ${clock(t.start_min, v.hour12)}–${clock(t.start_min + (t.duration_min || 30), v.hour12)}` : '',
     `Priority: ${t.priority ? `P${t.priority}` : 'none'}`,
-    `Labels: ${v.labelText(t) || 'none'}`,
     `Added: ${v.added(t) ?? 'unknown'}`,
     `Description: ${t.notes && t.notes.trim() ? `\n${t.notes}` : 'none'}`,
     `Id: ${t.id}`,
@@ -513,7 +492,6 @@ function getTask(v: View, args: any): string {
 // ---- changing things: same rules as js/tasks.js ----------------------------------------------
 
 const LIST_NAME = /^[A-Za-z][A-Za-z0-9]{0,29}$/;   // as in js/config.js
-const LABEL_COLORS = ['#5f3dc4', '#2b8a3e', '#1971c2', '#c2255c', '#e8590c', '#0c8599', '#5c940d', '#862e9c'];
 const newId = () => Date.now().toString(36) + Math.random().toString(36).slice(2, 6);   // as js/utils.js
 
 class Problem extends Error {}   // a mistake in what was asked: told back to the AI as is
@@ -534,12 +512,6 @@ function findList(v: View, name: unknown): List | { id: 'triage'; name: string }
 }
 function listNames(v: View) {
   return ['triage', ...v.d.lists.filter(l => l.id !== 'triage').map(l => l.name)].map(n => `@${n}`).join(', ');
-}
-function findLabel(v: View, word: unknown): Label {
-  const w = String(word ?? '').replace(/^#/, '').trim().toLowerCase();
-  const l = v.d.labels.find(x => x.shortcut === w) || v.d.labels.find(x => x.name.toLowerCase() === w);
-  need(l, `No label "${word}". Labels: ${v.d.labels.map(x => `${x.name} (#${x.shortcut})`).join(', ') || 'none yet (create_label makes one)'}.`);
-  return l!;
 }
 // Dates as YYYY-MM-DD, or in words: today, tomorrow, yesterday, a weekday ("friday" = the coming
 // one, today if it's Friday; "next friday" = a week later than that if it's today), "in 3 days".
@@ -605,7 +577,6 @@ async function addTask(c: Ctx, args: any) {
   const items = Array.isArray(many) && many.length ? many.map((x: any) => ({ ...defaults, ...(typeof x === 'string' ? { title: x } : x) })) : [args];
   for (const x of items) {   // check them all before adding any
     need(String(x.title ?? '').trim(), 'Every task needs a title.');
-    (x.labels || []).forEach((w: string) => findLabel(c.v, w));
     if (x.date) parseDate(c.v, x.date);
     if (x.start_time) parseTime(x.start_time);
   }
@@ -616,11 +587,10 @@ async function addTask(c: Ctx, args: any) {
 
 async function addOne(c: Ctx, args: any) {
   const title = String(args.title ?? '').trim();
-  const labels = (args.labels || []).map((w: string) => findLabel(c.v, w).id);
   const where = await placement(c, args) ?? { kind: 'list' as const, list: { id: 'triage', name: 'triage' } };
   const priority = args.priority !== undefined ? Number(args.priority) : Number(settings(c.v).defaultPriority || 0);
   const t: Task = {
-    id: newId(), title, priority: priority || null, labels,
+    id: newId(), title, priority: priority || null,
     list_id: where.kind === 'list' ? where.list.id : where.project ? where.project.id : '',   // straight onto a day: no list
     plan_date: where.kind === 'day' ? where.date : null, start_min: where.kind === 'day' ? where.start : null,
     duration_min: Number(args.duration_minutes) || Number(settings(c.v).defaultDuration) || 30,
@@ -639,7 +609,6 @@ async function updateTask(c: Ctx, args: any) {
   const changes: Partial<Task> = {};
   if (args.title !== undefined) { changes.title = String(args.title).trim(); need(changes.title, 'The title can\'t be empty.'); }
   if (args.priority !== undefined) changes.priority = Number(args.priority) || null;
-  if (args.labels !== undefined) changes.labels = [...new Set<string>((args.labels || []).map((w: string) => findLabel(c.v, w).id))];
   if (args.description !== undefined) changes.notes = String(args.description);
   if (args.project !== undefined) {   // link to a project; a planned task keeps its day
     const name = String(args.project ?? '').trim();
@@ -647,7 +616,7 @@ async function updateTask(c: Ctx, args: any) {
     if (t.plan_date || t.done_on) changes.list_id = target ? target.id : '';
     else Object.assign(changes, { list_id: target ? target.id : 'triage', sort_order: nextOrder(c.v.waiting(target ? target.id : 'triage')) });
   }
-  need(Object.keys(changes).length, 'Nothing to change: give a title, priority, labels, description or project.');
+  need(Object.keys(changes).length, 'Nothing to change: give a title, priority, description or project.');
   await c.db.update('tasks', t.id, changes);
   Object.assign(t, changes);
   return done(c, t, 'Updated: ');
@@ -739,10 +708,10 @@ async function deleteTask(c: Ctx, args: any) {
 async function createList(c: Ctx, args: any) {
   const name = String(args.name ?? '').replace(/^@/, '').trim();
   need(!findList(c.v, name), `There's already a list called @${findList(c.v, name)?.name}.`);
-  const label = args.label ? findLabel(c.v, args.label) : null;
+  const color = args.color ? colorFor(args.color) : null;
   const list = await listFor(c, name);
-  if (label) await c.db.update('lists', list.id, { label_id: label.id });
-  return `Created @${list.name}${label ? ` with label #${label.shortcut}` : ''}.`;
+  if (color) await c.db.update('lists', list.id, { color });
+  return `Created @${list.name}${color ? ` (${String(args.color).toLowerCase()})` : ''}.`;
 }
 
 function ownList(c: Ctx, name: unknown, verb: string): List {
@@ -765,13 +734,18 @@ async function renameList(c: Ctx, args: any) {
   return `Renamed @${old} to @${name}.`;
 }
 
-async function setListLabel(c: Ctx, args: any) {
-  const l = findList(c.v, args.list);
-  need(l, `No list called @${String(args.list).replace(/^@/, '')}. Lists: ${listNames(c.v)}.`);
-  const label = String(args.label ?? '').trim() ? findLabel(c.v, args.label) : null;
-  if (!c.v.d.lists.some(x => x.id === l!.id)) await c.db.insert('lists', { id: l!.id, name: l!.name, sort_order: -1 });   // @triage row, if missing
-  await c.db.update('lists', l!.id, { label_id: label ? label.id : null });
-  return label ? `@${l!.name} now has label #${label.shortcut} (${label.name}).` : `@${l!.name} has no label now.`;
+function colorFor(name: unknown): string {
+  const hex = COLORS[String(name).trim().toLowerCase()];
+  need(hex, `No colour "${name}". Colours: ${COLOR_NAMES}, or "" for none.`);
+  return hex;
+}
+
+async function setListColor(c: Ctx, args: any) {
+  const l = ownList(c, args.list, 'given a colour');
+  const color = String(args.color ?? '').trim() ? colorFor(args.color) : null;
+  await c.db.update('lists', l.id, { color });
+  l.color = color;
+  return color ? `@${l.name} is now ${String(args.color).toLowerCase()}.` : `@${l.name} has no colour now (white).`;
 }
 
 async function archiveList(c: Ctx, args: any) {
@@ -784,38 +758,12 @@ async function archiveList(c: Ctx, args: any) {
   return on ? `Archived @${l.name}. Unarchive with archived: false.` : `@${l.name} is back on the Dashboard.`;
 }
 
-async function createLabel(c: Ctx, args: any) {
-  const name = String(args.name ?? '').trim();
-  need(name, 'Give the label a name.');
-  need(!c.v.d.labels.some(l => l.name.toLowerCase() === name.toLowerCase()), `There's already a label called ${name}.`);
-  let shortcut = String(args.shortcut ?? '').toLowerCase().replace(/[^a-z0-9]/g, '');
-  if (shortcut) need(!c.v.d.labels.some(l => l.shortcut === shortcut), `#${shortcut} is already used by another label.`);
-  else {   // "Personal" -> "p", or "pe", "per"… (suggestShortcut in js/tasks.js)
-    const letters = name.toLowerCase().replace(/[^a-z0-9]/g, '') || 'label';
-    for (let n = 1; n <= letters.length && !shortcut; n++) if (!c.v.d.labels.some(l => l.shortcut === letters.slice(0, n))) shortcut = letters.slice(0, n);
-    for (let i = 2; !shortcut; i++) if (!c.v.d.labels.some(l => l.shortcut === letters + i)) shortcut = letters + i;
-  }
-  const label = { id: newId(), name, shortcut, color: LABEL_COLORS[c.v.d.labels.length % LABEL_COLORS.length], sort_order: c.v.d.labels.length };
-  await c.db.insert('labels', label);
-  c.v.d.labels.push(label);
-  return `Created label ${name} (#${shortcut}).`;
-}
-
-async function deleteLabel(c: Ctx, args: any) {
-  const label = findLabel(c.v, args.label);
-  for (const t of c.v.d.tasks.filter(t => (t.labels || []).includes(label.id))) {
-    await c.db.update('tasks', t.id, { labels: t.labels.filter(x => x !== label.id) });
-  }
-  for (const l of c.v.d.lists.filter(l => l.label_id === label.id)) await c.db.update('lists', l.id, { label_id: null });
-  await c.db.remove('labels', [label.id]);
-  return `Deleted label ${label.name} (#${label.shortcut}). Tasks and lists that had it keep everything else.`;
-}
 
 const RUN: Record<string, (c: Ctx, args: any) => string | Promise<string>> = {
   get_plan: (c, a) => getPlan(c.v, a), get_project: (c, a) => getProject(c.v, a), get_lists: (c, a) => getLists(c.v, a), search_tasks: (c, a) => searchTasks(c.v, a), get_task: (c, a) => getTask(c.v, a),
   add_task: addTask, update_task: updateTask, move_task: moveTask, complete_task: completeTask,
   uncomplete_task: uncompleteTask, delete_task: deleteTask, create_list: createList, rename_list: renameList,
-  set_list_label: setListLabel, archive_list: archiveList, create_label: createLabel, delete_label: deleteLabel,
+  set_list_color: setListColor, archive_list: archiveList,
 };
 
 // ---- the protocol: JSON-RPC over HTTP POST ----------------------------------------------------

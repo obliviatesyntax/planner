@@ -1,8 +1,7 @@
 // lists.js — the bottom section: your lists. New tasks without a day land in @triage; make your
 // own with "+ New list" or by typing "@name" in quick add ("Renew passport @weekly" creates
-// @weekly if needed). Drag a list's header to reorder; click it to open the list window, where you
-// rename it, give it a label, or delete it (and its tasks, with Undo). Drag a task up to a day or a
-// time to commit; if the list has a label, the task picks it up then.
+// @weekly if needed). Drag a list's header to reorder; click it to open the project page. A project's
+// colour (set on its page) tints its list. Drag a task up to a day or a time to commit.
 //
 // Lists sit in fixed columns, dealt in order (see render()).
 //
@@ -50,27 +49,20 @@ const Lists = (() => {
   new ResizeObserver(() => { if (columns && columnCount() !== columns) render(); }).observe(root);
 
   function listHtml(l) {
-    const tasks = Tasks.listTasks(l.id).filter(Labels.matches);
+    const tasks = Tasks.listTasks(l.id);
     const isTriage = l.id === TRIAGE_LIST.id;   // always first: not draggable
     // A project also counts its tasks already planned on a day (they're shown on the plan).
-    const planned = isTriage ? 0 : Tasks.projectTasks(l.id).planned.filter(Labels.matches).length;
+    const planned = isTriage ? 0 : Tasks.projectTasks(l.id).planned.length;
     return `
-      <div class="list-col" data-drop="list" data-list="${l.id}">
+      <div class="list-col ${l.color ? 'has-pc' : ''}" data-drop="list" data-list="${l.id}" ${l.color ? `style="--pc:${l.color}"` : ''}>
         <div class="list-head ${isTriage ? '' : 'openable'}" ${isTriage ? '' : `data-list-open="${l.id}" draggable="true" data-list-drag="${l.id}" title="Click to open the project · drag to reorder"`}>
           <span class="list-name">@${escapeHtml(l.name)}</span>
-          ${listTagHtml(l)}
           <span class="count" title="${tasks.length} not planned yet">${tasks.length}</span>
           ${planned ? `<span class="planned-count" title="${planned} more from this project planned on a day">+${planned} planned</span>` : ''}
         </div>
         <div class="list">${tasks.map(t => Cards.html(t, 'list')).join('')}</div>
         <button type="button" class="col-add" data-list="${l.id}">+ Add</button>
       </div>`;
-  }
-
-  // The list's label, shown next to its name ("@kitchenReno #p").
-  function listTagHtml(l) {
-    const lab = l.label && Tasks.label(l.label);
-    return lab ? `<span class="tag" style="--c:${lab.color}" title="Tasks moved from this list onto a day get #${escapeHtml(lab.shortcut)}">#${escapeHtml(lab.shortcut)}</span>` : '';
   }
 
   root.addEventListener('click', e => {
