@@ -1659,3 +1659,25 @@ button.pj-added:hover { border-color: currentColor; }
   .lp-footer-links { margin-left: 0; }
 }
 .lp-nav-cta a { text-decoration: none; display: inline-flex; align-items: center; }
+
+/* ==========================================================================
+   Notes editor (js/md-editor.js): toolbar + Write / Preview over the notes box
+   ========================================================================== */
+.md-toolbar {
+  display: flex; align-items: center; gap: 8px; flex-wrap: wrap; padding: 4px; margin-bottom: -1px;
+  border: 1px solid var(--line); border-bottom: 0; border-radius: var(--radius-sm) var(--radius-sm) 0 0; background: var(--bg);
+}
+.md-toolbar + .pj-notes-input { border-top-left-radius: 0; border-top-right-radius: 0; }
+.md-tabs { display: flex; background: var(--panel); border: 1px solid var(--line); border-radius: 7px; overflow: hidden; }
+.md-tabs button { border: 0; background: none; padding: 3px 10px; font-size: 12.5px; font-weight: 600; color: var(--muted); }
+.md-tabs button.on { background: var(--text); color: #fff; }
+.md-tools { display: flex; align-items: center; gap: 2px; flex-wrap: wrap; }
+.md-tools button {
+  border: 0; background: none; width: 30px; height: 28px; border-radius: 6px; color: #4b5563; font-size: 14px;
+  display: inline-grid; place-items: center;
+}
+.md-tools button:hover { background: var(--panel); color: var(--text); box-shadow: inset 0 0 0 1px var(--line); }
+.md-sep { width: 1px; height: 18px; background: var(--line); margin: 0 4px; }
+.md-toolbar.previewing .md-tools { visibility: hidden; }
+.md-preview { min-height: 320px; padding: 10px 12px; border: 1px solid var(--line); border-radius: 0 0 var(--radius-sm) var(--radius-sm); background: var(--panel); }
+@media (max-width: 700px) { .md-tools button { width: 34px; height: 32px; } }

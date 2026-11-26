@@ -106,9 +106,11 @@ const Project = (() => {
           ${editing ? notesEditorHtml(l) : notesViewHtml(l)}
         </section>
       </div>`;
+    loadEditor();   // (once; the toolbar appears when editing)
     if (editing) {
       const box = view.querySelector('.pj-notes-input');
       if (draft !== undefined) box.value = draft;
+      attachEditor();
       box.focus();
       box.setSelectionRange(box.value.length, box.value.length);
     } else decorateNotes(l);
@@ -148,6 +150,33 @@ const Project = (() => {
     return libsLoading;
   }
   window.addEventListener('load', () => (window.requestIdleCallback || setTimeout)(() => loadMarkdown(), { timeout: 3000 }));
+
+  // The notes editor's toolbar and preview (js/md-editor.js): only fetched once a project page
+  // opens, never on the Dashboard. Until it's here the notes box is a plain text box.
+  let editorLoading = null;
+  function loadEditor() {
+    editorLoading = editorLoading || new Promise((resolve, reject) => {
+      const s = document.createElement('script');
+      s.src = 'js/md-editor.js';   // (a file of its own, not part of the joined app.js)
+      s.onload = resolve;
+      s.onerror = reject;
+      document.head.appendChild(s);
+    }).then(() => { if (editing) attachEditor(); }, err => console.error('Notes editor did not load', err));
+    return editorLoading;
+  }
+  function attachEditor() {
+    const box = view.querySelector('.pj-notes-input');
+    if (!box || typeof MdEditor === 'undefined') return;
+    MdEditor.attach(box, { render: text => {
+      if (!text.trim()) return '';
+      if (!canRender()) { loadMarkdown(); return `<p>${escapeHtml(text).replace(/\n/g, '<br>')}</p>`; }
+      const html = DOMPurify.sanitize(marked.parse(text, { gfm: true, breaks: true }));
+      const tmp = document.createElement('div');
+      tmp.innerHTML = html;
+      linkProjects(tmp);
+      return tmp.innerHTML;
+    } });
+  }
 
   function notesViewHtml(l) {
     const text = l.notes || '';
