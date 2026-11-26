@@ -15,7 +15,8 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent
 OUT = ROOT / '_site'
-COPY = ['index.html', 'styles.css', '.nojekyll', 'js', 'manifest.webmanifest', 'sw.js', 'icons']
+COPY = ['index.html', 'styles.css', '.nojekyll', 'js', 'manifest.webmanifest', 'sw.js', 'icons', 'about.html', 'privacy.html']
+PAGES = ['about.html', 'privacy.html']   # other pages: only their stylesheet link is versioned
 LOCAL_SCRIPT = re.compile(r'[ \t]*<script src="(js/[^"]+\.js)"></script>\n?')
 ANY_SCRIPT = re.compile(r'<script\b[^>]*>')
 
@@ -47,6 +48,8 @@ def main():
         src = ROOT / item
         (shutil.copytree if src.is_dir() else shutil.copy2)(src, OUT / item)
     (OUT / 'index.html').write_text(html)
+    for page in PAGES:
+        (OUT / page).write_text((ROOT / page).read_text().replace('href="styles.css"', f'href="styles.css?v={version}"'))
     (OUT / name).write_text(bundle)
     print(f'{len(scripts)} scripts -> {name} ({len(bundle) // 1024} KB)')
 

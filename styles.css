@@ -1630,3 +1630,32 @@ button.pj-added:hover { border-color: currentColor; }
 .danger { border: 0; background: var(--p1); color: #fff; font-weight: 600; padding: 7px 14px; border-radius: 8px; }
 .danger:disabled { opacity: .45; cursor: not-allowed; }
 @media (max-width: 700px) { .set-delete-confirm { font-size: 16px; } }
+
+/* ==========================================================================
+   About and Privacy pages (about.html, privacy.html): the landing page's look, a readable column
+   ========================================================================== */
+.lp-docpage { min-height: 100vh; }
+.lp-doc { max-width: 760px; margin: 0 auto; padding: 56px 24px 24px; font-size: 16px; line-height: 1.65; color: #374151; }
+.lp-doc h1 { font-size: clamp(32px, 5vw, 46px); line-height: 1.1; margin: 10px 0 14px; font-weight: 800; color: var(--text); }
+.lp-doc h2 { font-size: 21px; margin: 36px 0 10px; color: var(--text); }
+.lp-doc h3 { font-size: 16px; margin: 0 0 6px; color: var(--text); }
+.lp-doc p { margin: 0 0 12px; }
+.lp-doc a { color: var(--accent); }
+.lp-doc .primary, .lp-doc .lp-btn-ghost { text-decoration: none; }
+.lp-doc .primary { color: #fff; }
+.lp-doc-lead { font-size: 18px; color: #4b5563; }
+.lp-doc-meta { font-size: 14px; color: var(--muted); }
+.lp-doc-list { padding-left: 20px; margin: 0 0 12px; display: grid; gap: 8px; }
+.lp-doc-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px; }
+.lp-doc-grid section { background: var(--panel); border: 1px solid var(--line); border-radius: 16px; padding: 16px 18px; box-shadow: var(--shadow); }
+.lp-doc-grid p { margin: 0; font-size: 15px; }
+.lp-doc-cta { display: flex; gap: 12px; flex-wrap: wrap; margin-top: 24px; }
+.lp-footer-links { display: flex; gap: 16px; margin-left: auto; }
+.lp-footer-links a { color: var(--muted); text-decoration: none; font-size: 14px; }
+.lp-footer-links a:hover { color: var(--text); }
+@media (max-width: 640px) {
+  .lp-doc { padding-top: 32px; font-size: 15.5px; }
+  .lp-doc-grid { grid-template-columns: 1fr; }
+  .lp-footer-links { margin-left: 0; }
+}
+.lp-nav-cta a { text-decoration: none; display: inline-flex; align-items: center; }

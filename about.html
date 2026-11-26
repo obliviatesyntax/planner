@@ -1,0 +1,81 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>About Planner</title>
+  <meta name="description" content="Why Planner exists, what we believe, and how to reach us.">
+  <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='15' fill='%234f46e5'/%3E%3Crect x='13' y='17' width='38' height='34' rx='6' fill='none' stroke='white' stroke-width='5'/%3E%3Cpath d='M13 27h38' stroke='white' stroke-width='5'/%3E%3Cpath d='M24 39l5 5 10-11' fill='none' stroke='white' stroke-width='5' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E">
+  <link rel="manifest" href="manifest.webmanifest">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap">
+  <link rel="stylesheet" href="styles.css">
+</head>
+<!-- about.html: a plain page that shares the landing page's look (styles.css → .landing, .lp-doc).
+     The contact address is a placeholder until Planner has its own domain: search for hello@planner.example. -->
+<body>
+  <div class="landing lp-docpage">
+    <header class="lp-nav">
+      <a href="./" class="lp-brand"><svg class="logo" viewBox="0 0 64 64" aria-hidden="true"><rect width="64" height="64" rx="15" fill="#4f46e5"/><rect x="13" y="17" width="38" height="34" rx="6" fill="none" stroke="#fff" stroke-width="5"/><path d="M13 27h38" stroke="#fff" stroke-width="5"/><path d="M24 39l5 5 10-11" fill="none" stroke="#fff" stroke-width="5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        Planner
+      </a>
+      <nav class="lp-links">
+        <a href="./#why">Why Planner</a>
+        <a href="./#how">How it works</a>
+        <a href="about.html">About</a>
+        <a href="privacy.html">Privacy</a>
+      </nav>
+      <div class="lp-nav-cta">
+        <a class="lp-btn-ghost" href="./">Sign in</a>
+        <a class="primary" href="./#signup">Get started</a>
+      </div>
+    </header>
+    <main class="lp-doc">
+      <span class="lp-eyebrow">About</span>
+      <h1>A calmer way to plan your day.</h1>
+      <p class="lp-doc-lead">Planner is an independent product, made by people who got tired of juggling a notes app,
+        a to-do app and a calendar. We wanted one page that holds everything we might do, and makes it easy to
+        commit to the few things we'll actually do today. So we built it.</p>
+
+      <h2>What we believe</h2>
+      <div class="lp-doc-grid">
+        <section><h3>One page beats ten screens</h3>
+          <p>Your lists, today's plan and your calendar sit side by side. No menus to dig through, no settings maze.</p></section>
+        <section><h3>Not everything needs a date</h3>
+          <p>Ideas wait in a list, without made-up due dates, until you decide when they happen. Then a drag puts them on your day.</p></section>
+        <section><h3>Plain words, not syntax</h3>
+          <p>Type tasks the way you'd say them: “Dentist tomorrow at 5pm”. Or say them out loud. Or ask your AI assistant.</p></section>
+        <section><h3>Your data is yours</h3>
+          <p>Only your account can read your tasks; the database itself enforces it. Export everything any time, or delete your
+            account and everything in it from Settings.</p></section>
+      </div>
+
+      <h2>How Planner is run</h2>
+      <ul class="lp-doc-list">
+        <li><b>Free to use.</b> Everything you see today is free, with no ads and no trial. If we ever add a paid plan, it will be
+          for extras, and we'll say so well in advance.</li>
+        <li><b>No ads, no selling data, no tracking.</b> Planner has no advertising, no analytics trackers, and we never sell or
+          share your tasks. See the <a href="privacy.html">privacy policy</a> for the details.</li>
+        <li><b>Built on solid ground.</b> Your data is stored in a managed Postgres database (Supabase), with row-level security on
+          every table, and every connection is encrypted (HTTPS).</li>
+        <li><b>Shaped by the people who use it.</b> Planner keeps improving based on what you tell us. Tell us what would make
+          your day easier.</li>
+      </ul>
+
+      <h2>Get in touch</h2>
+      <p>Questions, ideas, bug reports or a kind word: write to <a href="mailto:hello@planner.example">hello@planner.example</a>. A real person reads every
+        message.</p>
+      <p class="lp-doc-cta"><a class="primary lp-big" href="./#signup">Get started, it's free</a>
+        <a class="lp-btn-ghost lp-big" href="./?playground">Try the interactive preview</a></p>
+    </main>
+    <footer class="lp-footer">
+      <a href="./" class="lp-brand"><svg class="logo" viewBox="0 0 64 64" aria-hidden="true"><rect width="64" height="64" rx="15" fill="#4f46e5"/><rect x="13" y="17" width="38" height="34" rx="6" fill="none" stroke="#fff" stroke-width="5"/><path d="M13 27h38" stroke="#fff" stroke-width="5"/><path d="M24 39l5 5 10-11" fill="none" stroke="#fff" stroke-width="5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        Planner
+      </a>
+      <span class="muted">For people who'd rather do the thing than manage the list.</span>
+      <nav class="lp-footer-links"><a href="about.html">About</a><a href="privacy.html">Privacy</a><a href="mailto:hello@planner.example">Contact</a></nav>
+    </footer>
+  </div>
+</body>
+</html>

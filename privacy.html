@@ -1,0 +1,112 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Privacy policy · Planner</title>
+  <meta name="description" content="How Planner handles your data: what we keep, why, who helps us run it, and how to export or delete it.">
+  <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='15' fill='%234f46e5'/%3E%3Crect x='13' y='17' width='38' height='34' rx='6' fill='none' stroke='white' stroke-width='5'/%3E%3Cpath d='M13 27h38' stroke='white' stroke-width='5'/%3E%3Cpath d='M24 39l5 5 10-11' fill='none' stroke='white' stroke-width='5' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E">
+  <link rel="manifest" href="manifest.webmanifest">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap">
+  <link rel="stylesheet" href="styles.css">
+</head>
+<!-- privacy.html: a plain page that shares the landing page's look (styles.css → .landing, .lp-doc).
+     The contact address is a placeholder until Planner has its own domain: search for hello@planner.example. -->
+<body>
+  <div class="landing lp-docpage">
+    <header class="lp-nav">
+      <a href="./" class="lp-brand"><svg class="logo" viewBox="0 0 64 64" aria-hidden="true"><rect width="64" height="64" rx="15" fill="#4f46e5"/><rect x="13" y="17" width="38" height="34" rx="6" fill="none" stroke="#fff" stroke-width="5"/><path d="M13 27h38" stroke="#fff" stroke-width="5"/><path d="M24 39l5 5 10-11" fill="none" stroke="#fff" stroke-width="5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        Planner
+      </a>
+      <nav class="lp-links">
+        <a href="./#why">Why Planner</a>
+        <a href="./#how">How it works</a>
+        <a href="about.html">About</a>
+        <a href="privacy.html">Privacy</a>
+      </nav>
+      <div class="lp-nav-cta">
+        <a class="lp-btn-ghost" href="./">Sign in</a>
+        <a class="primary" href="./#signup">Get started</a>
+      </div>
+    </header>
+    <main class="lp-doc">
+      <span class="lp-eyebrow">Privacy</span>
+      <h1>Privacy policy</h1>
+      <p class="lp-doc-meta">Last updated: November 26, 2026</p>
+      <p class="lp-doc-lead">The short version: we keep what's needed to run your planner, nothing more. No ads, no trackers,
+        no selling or sharing your data. You can export everything, and delete your account and all of its data, at any time.</p>
+
+      <h2>What we keep</h2>
+      <ul class="lp-doc-list">
+        <li><b>Your account:</b> your email address and first name, and your password (stored only as a secure hash by our
+          sign-in provider). If you sign in with Google, Apple or Facebook, we receive your name and email from them.</li>
+        <li><b>Your planner:</b> the tasks, lists, project notes and labels you create, with their dates, times and priorities.</li>
+        <li><b>Your settings and time zone,</b> saved on your account so Planner works the same on every device and knows what
+          “today” means for you.</li>
+        <li><b>Basic technical logs</b> kept by our hosting providers (such as IP address, time and type of request), used to keep
+          the service running and secure. Our AI connection server logs only whether a request was signed in and which app sent
+          it, never your tasks or sign-in tokens.</li>
+      </ul>
+      <p>We don't use analytics or advertising trackers, and we don't build profiles about you.</p>
+
+      <h2>How we use it</h2>
+      <p>Only to provide Planner to you: to show and save your plan, sign you in, sync between your devices, send the emails you
+        ask for (sign-in links, password resets, address confirmation), and answer you when you write to us. We don't sell your
+        data, rent it, or share it for advertising, and we don't use your tasks to train AI models.</p>
+
+      <h2>Who helps us run Planner</h2>
+      <ul class="lp-doc-list">
+        <li><b>Supabase</b> stores your account and planner data and runs our sign-in and server functions.</li>
+        <li><b>GitHub Pages</b> serves the website itself.</li>
+        <li><b>Google Fonts and jsDelivr</b> deliver the typeface and a few open-source code libraries to your browser.</li>
+      </ul>
+      <p>These providers process data only as needed to deliver their service to us. When you use these features, your data is
+        also handled by:</p>
+      <ul class="lp-doc-list">
+        <li><b>Voice input:</b> your browser's built-in speech recognition (for example Google in Chrome, or Apple in Safari).</li>
+        <li><b>AI apps you connect</b> (Claude, ChatGPT or Gemini): they read and change your planner only after you sign in
+          and click Allow, under their own privacy policies. You can disconnect them in those apps at any time.</li>
+      </ul>
+
+      <h2>Cookies and storage</h2>
+      <p>Planner stores your sign-in session and a few preferences in your browser's local storage so you stay signed in. There
+        are no advertising or tracking cookies.</p>
+
+      <h2>Keeping your data safe</h2>
+      <p>All connections are encrypted (HTTPS). Every table uses row-level security, so the database itself only ever returns
+        your own data to your account. Passwords are never stored in readable form.</p>
+
+      <h2>Your choices and rights</h2>
+      <ul class="lp-doc-list">
+        <li><b>Export:</b> “Export backup” at the bottom of the app downloads everything as a file.</li>
+        <li><b>Correct:</b> edit or delete any task, list, note or label in the app; change your name in Settings.</li>
+        <li><b>Delete:</b> Settings → Account → “Delete my account” permanently removes your account and all of its data right away.
+          Deleted tasks stay in your trash for 30 days unless you empty it. Copies in our providers' routine backups expire on their
+          normal schedule.</li>
+        <li><b>Ask:</b> write to <a href="mailto:hello@planner.example">hello@planner.example</a> for a copy of your data, a correction, or anything else
+          about your privacy. We'll answer within 30 days.</li>
+      </ul>
+
+      <h2>Children</h2>
+      <p>Planner isn't meant for children under 13, and we don't knowingly collect their data. If you think a child has created
+        an account, write to us and we'll delete it.</p>
+
+      <h2>Changes to this policy</h2>
+      <p>If we change how we handle your data, we'll update this page and its date, and tell you in the app before any important
+        change takes effect.</p>
+
+      <h2>Contact</h2>
+      <p>Planner · <a href="mailto:hello@planner.example">hello@planner.example</a></p>
+    </main>
+    <footer class="lp-footer">
+      <a href="./" class="lp-brand"><svg class="logo" viewBox="0 0 64 64" aria-hidden="true"><rect width="64" height="64" rx="15" fill="#4f46e5"/><rect x="13" y="17" width="38" height="34" rx="6" fill="none" stroke="#fff" stroke-width="5"/><path d="M13 27h38" stroke="#fff" stroke-width="5"/><path d="M24 39l5 5 10-11" fill="none" stroke="#fff" stroke-width="5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        Planner
+      </a>
+      <span class="muted">For people who'd rather do the thing than manage the list.</span>
+      <nav class="lp-footer-links"><a href="about.html">About</a><a href="privacy.html">Privacy</a><a href="mailto:hello@planner.example">Contact</a></nav>
+    </footer>
+  </div>
+</body>
+</html>
