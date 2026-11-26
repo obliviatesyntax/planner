@@ -40,7 +40,7 @@ const Project = (() => {
     if (!m) return null;
     const name = decodeURIComponent(m[1]);
     const l = Tasks.findList(name);
-    if (l && l.id !== TRIAGE_LIST.id) return l.id;
+    if (l) return l.id;
     // Not found, but it's the name of the page on screen: that project was just renamed.
     const shown = shownId && Tasks.list(shownId);
     return shown && shownName && name.toLowerCase() === shownName.toLowerCase() ? shownId : null;
@@ -58,6 +58,7 @@ const Project = (() => {
     shownName = Tasks.list(id).name;
     if (shownId !== id) { editing = false; showAllDone = false; offer = null; shownId = id; }
     const l = Tasks.list(id);
+    const builtIn = id === TRIAGE_LIST.id;   // @triage: can't be renamed or deleted
     const { waiting, planned, done } = Tasks.projectTasks(id);
     const labels = Tasks.allLabels();
     const visibleDone = showAllDone ? done : done.slice(0, RECENT_DONE);
@@ -66,11 +67,11 @@ const Project = (() => {
     view.innerHTML = `
       <div class="pj-head">
         <a href="#" class="pj-back" title="Back to the Dashboard">← Dashboard</a>
-        <h2 class="pj-title"><span>@</span><input class="pj-name" value="${escapeHtml(l.name)}" size="${Math.max(4, l.name.length)}" maxlength="30" spellcheck="false" aria-label="Project name" title="Click to rename"><button type="button" class="pj-switch" title="Go to another project or the Dashboard" aria-label="Switch project" aria-haspopup="menu">▾</button></h2>
+        <h2 class="pj-title"><span>@</span>${builtIn ? `<span class="pj-name pj-name-fixed" title="@triage is built in: where new tasks land">${escapeHtml(l.name)}</span>` : `<input class="pj-name" value="${escapeHtml(l.name)}" size="${Math.max(4, l.name.length)}" maxlength="30" spellcheck="false" aria-label="Project name" title="Click to rename">`}<button type="button" class="pj-switch" title="Go to another project or the Dashboard" aria-label="Switch project" aria-haspopup="menu">▾</button></h2>
         ${labels.length ? `<div class="pj-labels" title="This project's label: all its tasks count as it">${labels.map(lab => `
           <button type="button" class="pj-label ${l.label === lab.id ? 'on' : ''}" data-label="${lab.id}" style="--c:${lab.color}">#${escapeHtml(lab.shortcut)}</button>`).join('')}</div>` : ''}
         <span class="muted pj-stats">${waiting.length} not planned · ${planned.length} planned · ${done.length} done</span>
-        <button type="button" class="pj-delete" title="Delete this project (and its tasks not planned yet). Asks first."><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 6h18"/><path d="M8 6V4h8v2"/><path d="M19 6l-1 14H6L5 6"/><path d="M10 11v6M14 11v6"/></svg></button>
+        ${builtIn ? '' : `<button type="button" class="pj-delete" title="Delete this project (and its tasks not planned yet). Asks first."><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 6h18"/><path d="M8 6V4h8v2"/><path d="M19 6l-1 14H6L5 6"/><path d="M10 11v6M14 11v6"/></svg></button>`}
       </div>
       <div class="pj-grid">
         <section class="pj-tasks">
@@ -184,7 +185,7 @@ const Project = (() => {
       const frag = document.createDocumentFragment();
       parts.forEach(part => {
         const target = part.startsWith('@') && Tasks.findList(part.slice(1));
-        if (target && target.id !== TRIAGE_LIST.id) {
+        if (target) {
           const a = document.createElement('a');
           a.href = href(target);
           a.className = 'pj-link';
@@ -350,7 +351,7 @@ const Project = (() => {
     const { waiting, planned, done } = Tasks.projectTasks(id);
     const n = waiting.length, kept = planned.length + done.length;
     const question = `Delete @${name}${n ? ` and its ${n} task${n === 1 ? '' : 's'} not planned yet` : ''}?`
-      + (kept ? `\n\nIts ${kept} planned or done task${kept === 1 ? '' : 's'} will stay, without a project.` : '');
+      + (kept ? `\n\nIts ${kept} planned or done task${kept === 1 ? '' : 's'} will stay, moved to @triage.` : '');
     if (!confirm(question)) return;
     const removed = Tasks.removeList(id);
     location.hash = '';

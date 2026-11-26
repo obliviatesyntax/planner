@@ -2,8 +2,8 @@
 //
 //   name         edit it here (the only place to rename a task)
 //   where        where it is: a list, a day's to-do list, a calendar time, or done
-//   move         (at the bottom) Day (Today / Tomorrow / pick a date) · Time (optional; with a
-//                length) · List (choosing one takes it off the plan)
+//   move         (at the bottom) When: Today / Tomorrow / pick a day · a time (optional) · length;
+//                List: "Move back to @its list" (off the plan) and "Move to list…"
 //   priority     P1 / P2 / P3 (tap the chosen one again for none)
 //   labels       tick on/off (only shown once labels exist; new ones are made at the top)
 //   description  free-form notes ("call before 5", links, addresses…)
@@ -78,51 +78,63 @@ const TaskView = (() => {
 
   // ---- moving: a day, a day + time, or a list ------------------------------------
 
-  const hhmm = min => `${String(Math.floor(min / 60)).padStart(2, '0')}:${String(min % 60).padStart(2, '0')}`;
+  // ---- moving: one "When" row (day + optional time + length) and the list it belongs to ----
+  //
+  //   When   [Today] [Tomorrow] [📅 Thu, Nov 27] [⏱ 5:00 PM ▾] [30 min ▾]
+  //   List   [Move back to @kitchenReno]  [Move to list ▾]      (planned or done)
+  //   List   [Move to list: @kitchenReno ▾]  Open ↗             (waiting in a list)
+  // The day chip opens the browser's date picker (a hidden <input type="date">); the time is a
+  // plain select in half hours (plus the task's own time if it's in between), "No time" = the
+  // day's to-do list. Picking a time on a task that isn't planned puts it on today.
+
+  const ICON_CAL = '<svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="4" width="18" height="17" rx="2"/><path d="M3 9h18M8 2v4M16 2v4"/></svg>';
+  const ICON_LIST = '<svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 6h12M9 12h12M9 18h12"/><circle cx="4" cy="6" r="1"/><circle cx="4" cy="12" r="1"/><circle cx="4" cy="18" r="1"/></svg>';
+  const ICON_WHEN = '<svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg>';
+
+  function timeOptions(current) {
+    const times = [];
+    for (let m = 0; m < 24 * 60; m += 30) times.push(m);
+    if (current != null && !times.includes(current)) times.push(current);
+    times.sort((a, b) => a - b);
+    return `<option value="">No time</option>${times.map(m =>
+      `<option value="${m}" ${m === current ? 'selected' : ''}>${formatTime(m)}</option>`).join('')}`;
+  }
 
   function moveHtml(t) {
     const today = todayISO(), tomorrow = addDays(today, 1);
     const date = t.doneOn ? null : t.planDate;           // the day it's planned for (if any)
     const timed = date && t.startMin != null;
     const late = date && date < today;                    // overdue: still has its old day and time
-    const otherDate = date && !late && date !== today && date !== tomorrow ? date : '';
-    const projects = Tasks.allLists().filter(l => l.id !== TRIAGE_LIST.id);
-    const unplanned = !date && !t.doneOn;
-    const project = t.list && t.list !== TRIAGE_LIST.id ? Tasks.list(t.list) : null;
+    const otherDate = date && date !== today && date !== tomorrow ? date : '';
+    const own = Tasks.list(t.list) || Tasks.list(TRIAGE_LIST.id);
+    const waiting = !date && !t.doneOn;
+    const lists = Tasks.allLists();
     return `
       <section class="tv-move" aria-label="Move this task">
         <div class="tv-row">
-          <span class="tv-label"><i><svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="4" width="18" height="17" rx="2"/><path d="M3 9h18M8 2v4M16 2v4"/></svg></i><b>Day</b></span>
+          <span class="tv-label"><i>${ICON_WHEN}</i><b>When</b></span>
           <div class="tv-when">
             <button type="button" data-day="${today}" class="${date === today ? 'on' : ''}">Today</button>
             <button type="button" data-day="${tomorrow}" class="${date === tomorrow ? 'on' : ''}">Tomorrow</button>
-            <input type="date" class="tv-date ${otherDate ? 'on' : ''}" min="${today}" value="${otherDate}" title="Pick a day">
-            ${date ? `<button type="button" class="tv-noday" title="Take it off the plan, back into ${project ? `@${escapeHtml(project.name)}` : '@triage'}">Unplan</button>` : ''}
+            <span class="tv-pick ${otherDate ? 'on' : ''} ${late ? 'late' : ''}">
+              ${ICON_CAL}<span>${otherDate ? formatDay(otherDate) : 'Date'}</span>
+              <input type="date" class="tv-date" min="${today}" value="${otherDate && !late ? otherDate : ''}" tabindex="-1" aria-label="Pick a day">
+            </span>
+            <select class="tv-time ${timed ? 'on' : ''}" title="A time puts it on the calendar">${timeOptions(timed ? t.startMin : null)}</select>
+            ${timed ? `<select class="tv-dur" title="How long">${[15, 30, 45, 60, 90, 120, 180].map(m =>
+                `<option value="${m}" ${m === t.duration ? 'selected' : ''}>${m < 60 ? `${m} min` : `${m / 60} h`}</option>`).join('')}</select>` : ''}
           </div>
-          ${late ? `<p class="tv-late">Overdue: it was planned for ${formatDay(date)}${timed ? ` at ${formatTime(t.startMin)}` : ''}. Pick a new day or a list.</p>` : ''}
+          ${late ? `<p class="tv-late">Overdue: it was planned for ${formatDay(date)}${timed ? ` at ${formatTime(t.startMin)}` : ''}. Pick a new day, or move it back to its list.</p>` : ''}
         </div>
         <div class="tv-row">
-          <span class="tv-label"><i><svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg></i><b>Time</b></span>
+          <span class="tv-label"><i>${ICON_LIST}</i><b>List</b></span>
           <div class="tv-when">
-            <input type="time" class="tv-time ${timed ? 'on' : ''}" step="900" value="${timed ? hhmm(t.startMin) : ''}" title="Put it on the calendar at this time">
-            ${timed
-              ? `<select class="tv-dur" title="How long">${[15, 30, 45, 60, 90, 120, 180].map(m =>
-                  `<option value="${m}" ${m === t.duration ? 'selected' : ''}>${m < 60 ? `${m} min` : `${m / 60} h`}</option>`).join('')}</select>
-                 <button type="button" class="tv-notime">No time</button>`
-              : `<span class="tv-hint">${date ? "Optional. Without a time it stays on the day's to-do list" : 'Optional. Picks today if no day is chosen'}</span>`}
-          </div>
-        </div>
-        <div class="tv-row">
-          <span class="tv-label"><i><svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 6h12M9 12h12M9 18h12"/><circle cx="4" cy="6" r="1"/><circle cx="4" cy="12" r="1"/><circle cx="4" cy="18" r="1"/></svg></i><b>Project</b></span>
-          <div class="tv-when">
-            <!-- Planned: re-links it, keeping its day. Not planned: moves it into that list. -->
-            <select class="tv-project ${project ? 'on' : ''}" title="${unplanned ? 'Move it to another list' : 'Link it to a project (it stays on its day)'}">
-              ${unplanned
-                ? `<option value="${TRIAGE_LIST.id}" ${t.list === TRIAGE_LIST.id ? 'selected' : ''}>@triage (inbox)</option>`
-                : `<option value="" ${project ? '' : 'selected'}>No project</option>`}
-              ${projects.map(l => `<option value="${l.id}" ${project && l.id === project.id ? 'selected' : ''}>@${escapeHtml(l.name)}</option>`).join('')}
+            ${waiting ? '' : `<button type="button" class="tv-back" title="Take it off the plan, back into @${escapeHtml(own.name)}">Move back to @${escapeHtml(own.name)}</button>`}
+            <select class="tv-list" title="Move it into another list (off the plan)">
+              ${waiting ? '' : '<option value="" selected>Move to list…</option>'}
+              ${lists.map(l => `<option value="${l.id}" ${waiting && l.id === own.id ? 'selected' : ''}>@${escapeHtml(l.name)}</option>`).join('')}
             </select>
-            ${project ? `<a class="tv-open-project" href="${Project.href(project)}" title="Open @${escapeHtml(project.name)}">Open ↗</a>` : ''}
+            <a class="tv-open-project" href="${Project.href(own)}" title="Open @${escapeHtml(own.name)}">Open ↗</a>
           </div>
         </div>
       </section>`;
@@ -145,14 +157,14 @@ const TaskView = (() => {
     if (!id) return;
     const t = Tasks.get(id);
     if (e.target.matches('.tv-date') && e.target.value) { moveToDay(e.target.value); afterMove(); }
-    if (e.target.matches('.tv-time') && e.target.value) {
-      const [h, m] = e.target.value.split(':').map(Number);
+    if (e.target.matches('.tv-time')) {
       const date = t.planDate && !t.doneOn ? t.planDate : todayISO();
-      Tasks.moveToCalendar(id, date, h * 60 + m);
+      if (e.target.value === '') Tasks.moveToPlan(id, date, null);   // No time: the day's to-do list
+      else Tasks.moveToCalendar(id, date, Number(e.target.value));
       afterMove();
     }
     if (e.target.matches('.tv-dur')) { Tasks.update(id, { duration: Number(e.target.value) }); afterMove(); }
-    if (e.target.matches('.tv-project')) { Tasks.setProject(id, e.target.value); afterMove(); }
+    if (e.target.matches('.tv-list') && e.target.value) { Tasks.moveToList(id, e.target.value, null); afterMove(); }
   });
 
   // The name box grows with the text.
@@ -196,8 +208,12 @@ const TaskView = (() => {
     if (e.target === dialog) return dialog.close();   // click outside closes
     const day = e.target.closest('[data-day]');
     if (day) { moveToDay(day.dataset.day); return afterMove(); }
-    if (e.target.closest('.tv-notime')) { Tasks.moveToPlan(id, Tasks.get(id).planDate, null); return afterMove(); }
-    if (e.target.closest('.tv-noday')) {   // Unplan: off the plan, back into its project's list, or @triage
+    if (e.target.closest('.tv-pick')) {   // the day chip: open the browser's date picker
+      const input = dialog.querySelector('.tv-date');
+      try { input.showPicker(); } catch { input.focus(); input.click(); }
+      return;
+    }
+    if (e.target.closest('.tv-back')) {   // off the plan, back into the list it belongs to
       Tasks.moveToList(id, Tasks.get(id).list || TRIAGE_LIST.id, null);
       return afterMove();
     }

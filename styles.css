@@ -1554,3 +1554,27 @@ button.pj-added:hover { border-color: currentColor; }
 .pj-added-planned { color: var(--accent); background: var(--accent-soft); border-color: transparent; }
 .pj-added-overdue { color: var(--p1); background: var(--p1-soft); border-color: transparent; }
 .pj-added-done { color: var(--done); background: var(--bg); }
+
+/* ==========================================================================
+   Task window: one "When" row (day chip + time select + length) and the List row (js/taskview.js)
+   ========================================================================== */
+.tv-pick {   /* "📅 Pick a day" chip; the real date input sits invisibly on top of it */
+  position: relative; display: inline-flex; align-items: center; gap: 6px; cursor: pointer;
+  border: 1px solid var(--line); background: var(--panel); border-radius: 8px; padding: 5px 10px; color: var(--muted);
+}
+.tv-pick:hover { border-color: #d1d5db; color: var(--text); }
+.tv-pick.late { border-color: #fecaca; }
+.tv-pick .tv-date {   /* invisible but positioned, so the picker opens right under the chip */
+  position: absolute; inset: 0; width: 100%; height: 100%; opacity: 0; padding: 0; border: 0; cursor: pointer;
+}
+.tv-pick .tv-date::-webkit-calendar-picker-indicator { position: absolute; inset: 0; width: auto; height: auto; opacity: 0; cursor: pointer; }
+.tv-when select.tv-time { max-width: 120px; }
+.tv-when .tv-back { color: var(--text); font-weight: 600; }
+.tv-when .tv-back:hover { border-color: var(--accent); color: var(--accent); }
+.tv-when select.tv-list { max-width: 200px; color: var(--muted); }
+.pj-title .pj-name.pj-name-fixed { color: var(--text); border-color: transparent; background: none; }
+.tv-row { grid-template-columns: 64px 1fr; }   /* short field names (When, List), so the When row fits on one line */
+.tv-when select.tv-time { padding-right: 4px; }
+@media (max-width: 600px) { .tv-row { grid-template-columns: 22px 1fr; } }
+#task-dialog { width: min(560px, calc(100vw - 24px)); }
+@media (max-width: 600px) { #task-dialog { width: 100vw; } }

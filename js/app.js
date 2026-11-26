@@ -48,7 +48,7 @@ const App = (() => {
     const project = parsed.listName ? (existing ? `@${existing.name}` : `@${parsed.listName} (new list)`)
       : (typeof Project !== 'undefined' && Project.currentId()) ? `@${Tasks.list(Project.currentId()).name}` : null;
     let where;
-    if (planned) where = `📅 ${When.describe(when)}${project && !project.startsWith('@triage') ? ` · ☰ ${project}` : ''}`;
+    if (planned) where = `📅 ${When.describe(when)}${project && !project.startsWith('@triage') ? ` · ☰ ${project}` : ''}`;   // (@triage, the default, isn't repeated)
     else where = `☰ ${project || `@${TRIAGE_LIST.name}`}`;
     const labels = (parsed.labels.length ? parsed.labels : Labels.selectedIds()).map(id => Tasks.label(id)).filter(Boolean);
     return { title, where, priority: parsed.priority || Settings.get('defaultPriority') || 0, labels };
