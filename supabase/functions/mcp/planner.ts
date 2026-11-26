@@ -184,7 +184,7 @@ const WRITE_TOOLS = [
   },
   {
     name: 'delete_task', title: 'Delete tasks',
-    description: 'Delete one task (id) or several (ids) for good.',
+    description: 'Delete one task (id) or several (ids). They go to the trash, where the user can restore them in the app for 30 days.',
     inputSchema: { type: 'object', properties: { id: str('The task id.'), ids: { type: 'array', items: { type: 'string' }, description: 'Several task ids at once (one confirmation for all of them).' } } },
     annotations: { title: 'Delete tasks', ...DELETE },
   },
@@ -233,8 +233,9 @@ type Task = {
   id: string; title: string; priority: number | null; labels: string[]; list_id: string;
   plan_date: string | null; start_min: number | null; duration_min: number | null;
   sort_order: number; done_on: string | null; notes?: string | null; created_at?: string;
+  deleted_at?: string | null;   // in the trash (the app keeps it 30 days)
 };
-type List = { id: string; name: string; sort_order: number; label_id?: string | null; notes?: string | null };
+type List = { id: string; name: string; sort_order: number; label_id?: string | null; notes?: string | null; archived?: boolean };
 type Label = { id: string; name: string; shortcut: string; sort_order: number };
 type User = { id: string; email?: string; user_metadata?: Record<string, any> };
 
@@ -274,6 +275,10 @@ export class Db {
   }
   insert(table: string, row: object) { return this.send('POST', table, [row]); }
   update(table: string, id: string, changes: object) { return this.send('PATCH', `${table}?id=eq.${encodeURIComponent(id)}`, changes); }
+  updateMany(table: string, ids: string[], changes: object) {
+    if (!ids.length) return Promise.resolve();
+    return this.send('PATCH', `${table}?id=in.(${ids.map(id => `"${id.replace(/"/g, '')}"`).join(',')})`, changes);
+  }
   remove(table: string, ids: string[]) {
     if (!ids.length) return Promise.resolve();
     return this.send('DELETE', `${table}?id=in.(${ids.map(id => `"${id.replace(/"/g, '')}"`).join(',')})`);
@@ -322,6 +327,8 @@ class View {
     this.timeZone = timeZoneOf(d.user);
     this.today = todayIn(this.timeZone);
     this.hour12 = d.user.user_metadata?.settings?.clock !== '24';
+    // Deleted tasks (the trash) aren't part of the plan at all.
+    d.tasks = d.tasks.filter(t => !t.deleted_at);
     // Every task belongs to a list: no list ('' in older data) or one that's gone means @triage.
     const known = new Set(['triage', ...d.lists.map(l => l.id)]);
     d.tasks.forEach(t => { if (!known.has(t.list_id)) t.list_id = 'triage'; });
@@ -415,7 +422,8 @@ function listsBody(v: View, list: string): string {
     { id: 'triage', name: 'triage', label_id: null as string | null | undefined },
     ...[...v.d.lists].filter(l => l.id !== 'triage').sort((a, b) => a.sort_order - b.sort_order),
   ];
-  const lists = own.filter(l => !wanted || l.name.toLowerCase() === wanted);
+  // Archived projects are hidden in the app; only shown here when asked for by name.
+  const lists = own.filter(l => wanted ? l.name.toLowerCase() === wanted : !(l as List).archived);
   // Overdue isn't a list, but it's shown first (and when asked for "overdue" with no such list).
   const showOverdue = !wanted || (wanted === 'overdue' && !lists.length);
   if (wanted && !lists.length && !showOverdue) return `There's no list called @${wanted}. Lists: ${listNames(v)}.`;
@@ -715,10 +723,11 @@ async function uncompleteTask(c: Ctx, args: any) {
 
 async function deleteTask(c: Ctx, args: any) {
   const tasks = targets(c, args);
-  await c.db.remove('tasks', tasks.map(t => t.id));
+  // Into the trash, like the app: restorable for 30 days in Settings → Archive & trash.
+  await c.db.updateMany('tasks', tasks.map(t => t.id), { deleted_at: new Date().toISOString() });
   const gone = new Set(tasks.map(t => t.id));
   c.v.d.tasks = c.v.d.tasks.filter(x => !gone.has(x.id));
-  return `Deleted ${tasks.map(t => `"${t.title}"`).join(', ')}.`;
+  return `Deleted ${tasks.map(t => `"${t.title}"`).join(', ')} (in the trash for 30 days: Settings → Archive & trash in the app).`;
 }
 
 async function createList(c: Ctx, args: any) {
@@ -763,7 +772,7 @@ async function deleteList(c: Ctx, args: any) {
   const l = ownList(c, args.list, 'deleted');
   const waiting = c.v.waiting(l.id);
   const others = c.v.d.tasks.filter(t => t.list_id === l.id && !waiting.includes(t));
-  await c.db.remove('tasks', waiting.map(t => t.id));
+  await c.db.updateMany('tasks', waiting.map(t => t.id), { deleted_at: new Date().toISOString() });   // into the trash
   for (const t of others) await c.db.update('tasks', t.id, { list_id: 'triage' });   // planned/done ones live on, in @triage
   await c.db.remove('lists', [l.id]);
   return `Deleted @${l.name} and the ${waiting.length} task${waiting.length === 1 ? '' : 's'} waiting in it${waiting.length ? `: ${waiting.map(t => t.title).join(', ')}` : ''}.`;

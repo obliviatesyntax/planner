@@ -18,20 +18,23 @@ const Store = (() => {
         // Only sent once a description has been written, so saving still works on a
         // database that hasn't run migrations/004-description.sql yet.
         ...(typeof t.notes === 'string' ? { notes: t.notes } : {}),
+        // In the trash since (migrations/007); only sent once a task has been deleted.
+        ...(t.deletedAt !== undefined ? { deleted_at: t.deletedAt } : {}),
       }),
       fromRow: r => ({
         id: r.id, title: r.title, priority: r.priority, labels: r.labels || [], list: r.list_id || 'triage',   // ('' was "no project" in older versions)
         planDate: r.plan_date, startMin: r.start_min, duration: r.duration_min,
         order: r.sort_order, createdAt: r.created_at, doneOn: r.done_on,
         ...(r.notes != null ? { notes: r.notes } : {}),
+        ...(r.deleted_at ? { deletedAt: r.deleted_at } : {}),
       }),
     },
     lists: {
       // label_id is only sent once a list has (or had) a label, so saving still works on a
       // database that hasn't run migrations/005-list-label.sql yet.
       // notes (project notes) only once written, so saving works before migrations/006-project-notes.sql.
-      toRow: l => ({ id: l.id, name: l.name, sort_order: l.order, ...(l.label !== undefined ? { label_id: l.label } : {}), ...(typeof l.notes === 'string' ? { notes: l.notes } : {}) }),
-      fromRow: r => ({ id: r.id, name: r.name, order: r.sort_order, ...(r.label_id !== undefined ? { label: r.label_id } : {}), ...(r.notes != null ? { notes: r.notes } : {}) }),
+      toRow: l => ({ id: l.id, name: l.name, sort_order: l.order, ...(l.label !== undefined ? { label_id: l.label } : {}), ...(typeof l.notes === 'string' ? { notes: l.notes } : {}), ...(l.archived !== undefined ? { archived: l.archived } : {}) }),
+      fromRow: r => ({ id: r.id, name: r.name, order: r.sort_order, ...(r.label_id !== undefined ? { label: r.label_id } : {}), ...(r.notes != null ? { notes: r.notes } : {}), ...(r.archived ? { archived: true } : {}) }),
     },
     labels: {
       toRow: l => ({ id: l.id, name: l.name, shortcut: l.shortcut, color: l.color, sort_order: l.order }),

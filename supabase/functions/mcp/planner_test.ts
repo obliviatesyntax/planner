@@ -192,7 +192,8 @@ Deno.test('update_task and delete_task', async () => {
   await call('update_task', { id: 't5', priority: 0 });
   assertEquals(row('tasks', 't5').priority, null);
   assertStringIncludes(await call('delete_task', { id: 't5' }), 'Deleted "Renew passport soon"');
-  assertEquals(row('tasks', 't5'), undefined);
+  assert(row('tasks', 't5').deleted_at);                         // in the trash, not gone
+  assertStringIncludes(await call('get_task', { id: 't5' }), 'No task with id t5');   // …and hidden
 });
 
 Deno.test('lists: create, rename, label, delete (with its waiting tasks)', async () => {
@@ -207,7 +208,8 @@ Deno.test('lists: create, rename, label, delete (with its waiting tasks)', async
   await call('add_task', { title: 'Planned from sales', date: today });
   await call('move_task', { id: DB.tasks.at(-1).id, date: today });
   assertStringIncludes(await call('delete_list', { list: 'salesQ4' }), 'the 2 tasks waiting in it');
-  assertEquals([row('tasks', 't6'), row('tasks', 't1'), row('lists', 'sales')], [undefined, undefined, undefined]);
+  assert(row('tasks', 't6').deleted_at && row('tasks', 't1').deleted_at);   // waiting tasks: into the trash
+  assertEquals(row('lists', 'sales'), undefined);
 });
 
 Deno.test('labels: shortcut picked like the app, delete removes it everywhere', async () => {
@@ -232,7 +234,7 @@ Deno.test('several tasks at once: move (one after another on the calendar), comp
   assertStringIncludes(await callError('delete_task', { ids: ['t5', 'nope'] }), 'No task with id nope');
   assert(row('tasks', 't5'));
   assertStringIncludes(await call('delete_task', { ids: ['t5', 't6'] }), 'Deleted "Renew passport", "Update pricing slide"');
-  assertEquals([row('tasks', 't5'), row('tasks', 't6')], [undefined, undefined]);
+  assert(row('tasks', 't5').deleted_at && row('tasks', 't6').deleted_at);
   assertStringIncludes(await callError('move_task', { list: 'triage' }), 'Say which task');
 });
 

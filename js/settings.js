@@ -16,6 +16,7 @@ const Settings = (() => {
     { id: 'plan', title: 'Plan view' },
     { id: 'tasks', title: 'New tasks' },
     { id: 'day', title: 'End of the day' },
+    { id: 'archive', title: 'Archive & trash' },
   ];
 
   const OPTIONS = [
@@ -98,7 +99,7 @@ const Settings = (() => {
         ${GROUPS.map(g => `
           <section class="settings-block">
             <h3>${g.title}</h3>
-            ${g.id === 'account' ? accountHtml() : g.id === 'labels' ? `<div id="set-labels">${labelsHtml()}</div>` : OPTIONS.filter(o => o.group === g.id).map(optionHtml).join('')}
+            ${g.id === 'account' ? accountHtml() : g.id === 'labels' ? `<div id="set-labels">${labelsHtml()}</div>` : g.id === 'archive' ? `<div id="set-archive">${archiveHtml()}</div>` : OPTIONS.filter(o => o.group === g.id).map(optionHtml).join('')}
           </section>`).join('')}
         <p class="muted settings-note">Saved to your account, so they apply on every device.</p>
       </form>`;
@@ -173,6 +174,61 @@ const Settings = (() => {
     if (e.target.closest('.set-label-del') && confirm(`Delete the label "${l.name}"? Tasks keep everything else, they just lose this label.`)) {
       Tasks.removeLabel(l.id);
       refreshLabels();
+    }
+  });
+
+  // ---- Settings → Archive & trash: archived projects, and deleted tasks (kept 30 days) ----------
+  function archiveHtml() {
+    const archived = Tasks.archivedLists();
+    const trash = Tasks.trashed();
+    const when = iso => { const d = toISO(new Date(iso)); return d === todayISO() ? 'today' : formatDay(d); };
+    return `
+      <h4 class="set-sub">Archived projects</h4>
+      ${archived.length ? archived.map(l => {
+        const { waiting, planned, done } = Tasks.projectTasks(l.id);
+        const n = waiting.length + planned.length + done.length;
+        return `<div class="set-row" data-list="${l.id}">
+          <span class="set-row-main"><b>@${escapeHtml(l.name)}</b> <span class="setting-sub">${n} task${n === 1 ? '' : 's'}</span></span>
+          <a class="link-btn" href="${Project.href(l)}" data-close-settings>Open</a>
+          <button type="button" class="secondary set-unarchive">Unarchive</button>
+        </div>`;
+      }).join('') : '<p class="setting-sub">No archived projects. Archive one from its page (the box button next to 🗑) to hide it from the Dashboard without losing anything.</p>'}
+      <h4 class="set-sub">Deleted tasks <span class="setting-sub">kept for 30 days</span></h4>
+      ${trash.length ? `${trash.map(t => {
+        const l = Tasks.list(t.list);
+        return `<div class="set-row" data-trash="${t.id}">
+          <span class="set-row-main">${escapeHtml(t.title)} <span class="setting-sub">deleted ${when(t.deletedAt)}${l ? ` · from @${escapeHtml(l.name)}` : ''}</span></span>
+          <button type="button" class="secondary set-restore">Restore</button>
+          <button type="button" class="link-btn set-forever" title="Delete for good">Delete forever</button>
+        </div>`;
+      }).join('')}
+      <button type="button" class="secondary set-empty-trash">Empty trash (${trash.length})</button>` : '<p class="setting-sub">Nothing deleted in the last 30 days.</p>'}`;
+  }
+  function refreshArchive() { const box = dialog.querySelector('#set-archive'); if (box) box.innerHTML = archiveHtml(); }
+
+  dialog.addEventListener('click', e => {
+    if (e.target.closest('[data-close-settings]')) return dialog.close();   // "Open" an archived project
+    const listRow = e.target.closest('.set-row[data-list]');
+    if (listRow && e.target.closest('.set-unarchive')) {
+      Tasks.setArchived(listRow.dataset.list, false);
+      App.toast(`@${Tasks.list(listRow.dataset.list).name} is back on the Dashboard`);
+      return refreshArchive();
+    }
+    const trashRow = e.target.closest('.set-row[data-trash]');
+    const task = trashRow && Tasks.trashed().find(t => t.id === trashRow.dataset.trash);
+    if (task && e.target.closest('.set-restore')) {
+      Tasks.restore(task);
+      const l = Tasks.list(task.list);
+      App.toast(`Restored “${task.title}”${task.planDate || task.doneOn ? '' : ` to @${l.name}`}`);
+      return refreshArchive();
+    }
+    if (task && e.target.closest('.set-forever') && confirm(`Delete “${task.title}” for good? This can't be undone.`)) {
+      Tasks.purge([task.id]);
+      return refreshArchive();
+    }
+    if (e.target.closest('.set-empty-trash')) {
+      const n = Tasks.trashed().length;
+      if (confirm(`Delete all ${n} task${n === 1 ? '' : 's'} in the trash for good? This can't be undone.`)) { Tasks.purge(); refreshArchive(); }
     }
   });
 

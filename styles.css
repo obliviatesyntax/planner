@@ -1601,3 +1601,21 @@ button.pj-added:hover { border-color: currentColor; }
   .jump-input { font-size: 16px; }
 }
 .jump-dialog { width: min(560px, calc(100vw - 24px)); }
+
+/* Settings → Archive & trash; project page archive button and banner */
+.set-sub { margin: 10px 0 4px; font-size: 12.5px; font-weight: 700; }
+.set-sub:first-child { margin-top: 0; }
+.set-row { display: flex; align-items: center; gap: 8px; padding: 6px 0; border-top: 1px solid var(--line-soft); font-size: 13px; }
+.set-row-main { flex: 1; min-width: 0; overflow-wrap: anywhere; }
+.set-row .secondary { padding: 3px 10px; font-size: 12.5px; }
+.set-row .link-btn { font-size: 12.5px; white-space: nowrap; }
+.set-row .set-forever { color: var(--p1); }
+.set-empty-trash { margin-top: 8px; color: var(--p1); }
+.pj-archive {
+  margin-left: auto; display: inline-flex; align-items: center; gap: 6px; border: 1px solid var(--line); background: var(--panel);
+  color: var(--muted); padding: 4px 10px; border-radius: 8px; font-size: 12.5px; font-weight: 600;
+}
+.pj-archive:hover { color: var(--text); border-color: #d1d5db; }
+.pj-archive + .pj-delete { margin-left: 0; }
+.pj-archived { margin: -4px 0 12px; padding: 8px 12px; border-radius: 10px; background: #f3f4f6; border: 1px solid var(--line); color: var(--muted); font-size: 13px; }
+.jump-archived { font-size: 11px; color: var(--faint); border: 1px solid var(--line); border-radius: 99px; padding: 0 6px; }

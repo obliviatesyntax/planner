@@ -7,10 +7,10 @@
 
 const Jump = (() => {
   // Where you can go: the Dashboard first, then the projects in their Dashboard order.
-  function entries() {
-    const projects = Tasks.allLists().map(l => {
+  function entries({ archived = false } = {}) {
+    const projects = Tasks.allLists({ archived }).map(l => {
       const { waiting, planned } = Tasks.projectTasks(l.id);
-      return { hash: Project.href(l).slice(1), id: l.id, name: l.name, waiting: waiting.length, planned: planned.length };
+      return { hash: Project.href(l).slice(1), id: l.id, name: l.name, waiting: waiting.length, planned: planned.length, archived: !!l.archived };
     });
     return [{ hash: '', id: null, name: 'Dashboard' }, ...projects];
   }
@@ -20,6 +20,7 @@ const Jump = (() => {
     return `<a href="#${e.hash}" class="jump-row ${i === active ? 'active' : ''} ${current ? 'current' : ''}" data-i="${i}">
       <span class="jump-name">${e.id ? `<span class="jump-at">@</span>${escapeHtml(e.name)}` : '<span class="jump-home">⌂</span>Dashboard'}</span>
       ${e.id ? `<span class="jump-counts" title="${e.waiting} not planned · ${e.planned} planned">${e.waiting} · ${e.planned}</span>` : ''}
+      ${e.archived ? '<span class="jump-archived">archived</span>' : ''}
       ${current ? '<span class="jump-here">here</span>' : ''}
     </a>`;
   }
@@ -111,7 +112,7 @@ const Jump = (() => {
 
   function search(q) {
     const ws = words(q);
-    const places = entries().map(e => ({ kind: 'place', ...e }));
+    const places = entries({ archived: words(q).length > 0 }).map(e => ({ kind: 'place', ...e }));   // archived ones only when searching
     if (!ws.length) return { ws, places, tasks: [], notes: [] };
     const name = e => e.name.toLowerCase();
     const starts = places.filter(e => name(e).startsWith(ws[0]) || (e.id === null && 'dashboard'.startsWith(ws[0])));
@@ -123,7 +124,7 @@ const Jump = (() => {
       .slice(0, MAX_TASKS)
       .map(t => ({ kind: 'task', task: t, inNotes: !hasAll(t.title, ws) }));
     const notes = [];
-    Tasks.allLists().forEach(l => (l.notes || '').split('\n').forEach(line => {
+    Tasks.allLists({ archived: true }).forEach(l => (l.notes || '').split('\n').forEach(line => {
       if (notes.length < MAX_NOTES && line.trim() && hasAll(line, ws)) notes.push({ kind: 'note', list: l, line: line.replace(/^[\s#>*+-]+|\s+$/g, '') });
     }));
     return { ws, places: [...starts, ...has], tasks, notes };

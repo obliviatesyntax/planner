@@ -18,7 +18,11 @@
 //     createdAt: "2026-11-17T09:10:00.000Z",
 //     doneOn:    null | "2026-11-17"    the day it was done
 //     notes:     "Call before 5"         optional description (taskview.js)
+//     deletedAt: "2026-11-26T…"          only in the trash (see below)
 //   }
+//
+// Deleting a task moves it to the trash (kept apart from the live tasks, saved with deletedAt)
+// for 30 days: Settings → Archive & trash can restore it. After 30 days it's removed for good.
 //
 // Where a task shows up:
 //   done            → on that day: "Done today" for today, crossed out on past days
@@ -28,7 +32,8 @@
 // The list changes only when a task is moved into another list (drag, the task window's "Move to
 // list", the drop bar), or by "@list" in quick add.
 //
-// A list (= a project) looks like:  { id, name: "weekly", order, label, notes }
+// A list (= a project) looks like:  { id, name: "weekly", order, label, notes, archived }
+//   archived: hidden from the Dashboard (its page, tasks and notes stay; Settings → Archive & trash)
 //   (shown as @weekly; @triage is built in: always first, can't be renamed or deleted)
 //   label: optional label id; all the project's tasks count as having it (labels.js matches)
 //   notes: optional text, Markdown when it looks like Markdown (project.js)
@@ -39,13 +44,20 @@
 
 const Tasks = (() => {
   let tasks = [];
+  let trash = [];   // deleted tasks, newest first; each has deletedAt
+  const TRASH_DAYS = 30;
   let lists = [];
   let labels = [];
 
   // Called once after sign-in: fetch this person's data from the database.
   async function init() {
     const data = await Store.load();
-    tasks = data.tasks;
+    // The trash: deleted tasks, kept 30 days. Older ones are dropped here, so the next save
+    // deletes them from the database for good.
+    const cutoff = new Date(Date.now() - TRASH_DAYS * 864e5).toISOString();
+    trash = data.tasks.filter(t => t.deletedAt && t.deletedAt >= cutoff).sort((a, b) => b.deletedAt.localeCompare(a.deletedAt));
+    const purged = data.tasks.some(t => t.deletedAt && t.deletedAt < cutoff);
+    tasks = data.tasks.filter(t => !t.deletedAt);
     lists = data.lists;
     labels = data.labels;
     if (!lists.some(l => l.id === TRIAGE_LIST.id)) lists.push({ ...TRIAGE_LIST, order: -1 });
@@ -62,13 +74,14 @@ const Tasks = (() => {
       if (notes !== l.notes) { l.notes = notes; cleaned = true; }
     });
     if (cleaned) Store.save('lists', lists);
+    if (purged) Store.save('tasks', [...tasks, ...trash]);
     rollover();
   }
 
   const listeners = [];
   function onChange(fn) { listeners.push(fn); }
   function commit() {
-    Store.save('tasks', tasks);
+    Store.save('tasks', [...tasks, ...trash]);   // the trash is saved too (with deletedAt)
     Store.save('lists', lists);
     Store.save('labels', labels);
     listeners.forEach(fn => fn());
@@ -230,23 +243,47 @@ const Tasks = (() => {
     commit();
   }
 
+  // Delete = into the trash. Returns the task (for Undo: restore(task)).
   function remove(id) {
     const index = tasks.findIndex(t => t.id === id);
     const [removed] = tasks.splice(index, 1);
+    removed.deletedAt = new Date().toISOString();
+    trash.unshift(removed);
     commit();
     return removed;
   }
 
+  // Undo a delete, or restore from the trash. Its list gone (or archived)? It goes to @triage.
   function restore(task) {
+    trash = trash.filter(t => t.id !== task.id);
+    task.deletedAt = null;
+    if (!list(task.list)) task.list = TRIAGE_LIST.id;
     tasks.push(task);
+    commit();
+  }
+
+  function trashed() { return trash; }
+  // Gone for good (Settings → Archive & trash: "Delete forever" / "Empty trash").
+  function purge(ids) {
+    trash = ids ? trash.filter(t => !ids.includes(t.id)) : [];
     commit();
   }
 
   // ---- list actions -------------------------------------------------------------
 
-  // @triage first, then the person's own order.
-  function allLists() {
-    return [...lists].sort((a, b) => (b.id === TRIAGE_LIST.id) - (a.id === TRIAGE_LIST.id) || a.order - b.order);
+  // @triage first, then the person's own order. Archived projects are left out unless asked for.
+  function allLists({ archived = false } = {}) {
+    return lists.filter(l => archived || !l.archived)
+      .sort((a, b) => (b.id === TRIAGE_LIST.id) - (a.id === TRIAGE_LIST.id) || a.order - b.order);
+  }
+  function archivedLists() { return allLists({ archived: true }).filter(l => l.archived); }
+
+  // Archive: hide a project from the Dashboard, keeping everything (not @triage).
+  function setArchived(id, on) {
+    const l = list(id);
+    if (!l || id === TRIAGE_LIST.id) return;
+    l.archived = Boolean(on);
+    commit();
   }
   function list(id) { return lists.find(l => l.id === id); }
   function findList(name) {
@@ -312,6 +349,9 @@ const Tasks = (() => {
     const removedTasks = listTasks(id);
     lists = lists.filter(l => l.id !== id);
     tasks = tasks.filter(t => !removedTasks.includes(t));
+    const when = new Date().toISOString();   // its waiting tasks go to the trash (restorable for 30 days)
+    removedTasks.forEach(t => { t.deletedAt = when; });
+    trash.unshift(...removedTasks);
     const unlinked = tasks.filter(t => t.list === id).map(t => t.id);   // planned/done ones keep living,
     unlinked.forEach(tid => { get(tid).list = TRIAGE_LIST.id; });       // in @triage
     commit();
@@ -320,6 +360,8 @@ const Tasks = (() => {
 
   function restoreList({ list: l, tasks: removed, unlinked = [] }) {
     lists.push(l);
+    trash = trash.filter(t => !removed.includes(t));
+    removed.forEach(t => { t.deletedAt = null; });
     tasks.push(...removed);
     unlinked.forEach(tid => { const t = get(tid); if (t) t.list = l.id; });   // link them back
     commit();
@@ -408,8 +450,8 @@ const Tasks = (() => {
   return {
     init, onChange, rollover, get, allTasks,
     listTasks, overdueTasks, planList, calendarList, doneList,
-    add, update, cyclePriority, toggleDone, markDone, moveToList, moveToPlan, moveAllToPlan, restoreFields, moveToCalendar, remove, restore,
-    allLists, list, findList, addList, setListNotes, projectTasks, renameList, setListLabel, moveList, removeList, restoreList,
+    add, update, cyclePriority, toggleDone, markDone, moveToList, moveToPlan, moveAllToPlan, restoreFields, moveToCalendar, remove, restore, trashed, purge,
+    allLists, archivedLists, setArchived, list, findList, addList, setListNotes, projectTasks, renameList, setListLabel, moveList, removeList, restoreList,
     allLabels, label, findLabel, addLabel, updateLabel, removeLabel,
     exportData, replaceAll,
   };
