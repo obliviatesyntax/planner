@@ -1619,3 +1619,14 @@ button.pj-added:hover { border-color: currentColor; }
 .pj-archive + .pj-delete { margin-left: 0; }
 .pj-archived { margin: -4px 0 12px; padding: 8px 12px; border-radius: 10px; background: #f3f4f6; border: 1px solid var(--line); color: var(--muted); font-size: 13px; }
 .jump-archived { font-size: 11px; color: var(--faint); border: 1px solid var(--line); border-radius: 99px; padding: 0 6px; }
+
+/* Settings → Account: delete the account (typed confirmation) */
+.set-danger { margin-top: 10px; padding-top: 10px; border-top: 1px solid var(--line-soft); }
+.set-delete-account { color: var(--p1); font-size: 13px; }
+.set-delete-box { margin-top: 8px; padding: 10px 12px; border: 1px solid #fecaca; background: #fffbfb; border-radius: 10px; font-size: 13px; }
+.set-delete-box p { margin: 0 0 8px; color: #4b5563; line-height: 1.5; }
+.set-delete-row { display: flex; gap: 8px; flex-wrap: wrap; }
+.set-delete-confirm { flex: 1; min-width: 160px; padding: 6px 10px; border: 1px solid var(--line); border-radius: 8px; }
+.danger { border: 0; background: var(--p1); color: #fff; font-weight: 600; padding: 7px 14px; border-radius: 8px; }
+.danger:disabled { opacity: .45; cursor: not-allowed; }
+@media (max-width: 700px) { .set-delete-confirm { font-size: 16px; } }

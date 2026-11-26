@@ -120,6 +120,17 @@ const Settings = (() => {
       <div class="setting-signout">
         <span class="setting-sub">Signed in as ${escapeHtml(user.email)}</span>
         <button type="button" id="set-signout" class="secondary">Sign out</button>
+      </div>
+      <div class="set-danger">
+        <button type="button" class="link-btn set-delete-account">Delete my account…</button>
+        <div class="set-delete-box" hidden>
+          <p>This deletes your account and everything in it for good: tasks, lists, notes, labels and settings.
+             Connected AI apps lose access. It can't be undone; you may want to <b>Export backup</b> (at the bottom of the page) first.</p>
+          <div class="set-delete-row">
+            <input class="set-delete-confirm" placeholder="Type DELETE to confirm" autocomplete="off" autocapitalize="characters" aria-label="Type DELETE to confirm">
+            <button type="button" class="danger set-delete-go" disabled>Delete everything</button>
+          </div>
+        </div>
       </div>`;
   }
 
@@ -252,6 +263,42 @@ const Settings = (() => {
       Auth.showApp(user);   // header greeting
       App.toast('Name saved.');
     }
+  });
+
+  // ---- delete the account (supabase/functions/delete-account): typed confirmation, inline ----
+  dialog.addEventListener('click', e => {
+    if (e.target.closest('.set-delete-account')) {
+      const box = dialog.querySelector('.set-delete-box');
+      box.hidden = !box.hidden;
+      if (!box.hidden) box.querySelector('input').focus();
+    }
+  });
+  dialog.addEventListener('input', e => {
+    if (e.target.matches('.set-delete-confirm')) dialog.querySelector('.set-delete-go').disabled = e.target.value.trim() !== 'DELETE';
+  });
+  dialog.addEventListener('keydown', e => { if (e.target.matches('.set-delete-confirm') && e.key === 'Enter') e.preventDefault(); });
+  dialog.addEventListener('click', async e => {
+    const go = e.target.closest('.set-delete-go');
+    if (!go || go.disabled) return;
+    go.disabled = true;
+    go.textContent = 'Deleting…';
+    const { data: { session } } = await db.auth.getSession();
+    let error = 'You are not signed in.';
+    if (session) {
+      try {
+        const res = await fetch(`${SUPABASE_URL}/functions/v1/delete-account`, {
+          method: 'POST',
+          headers: { Authorization: `Bearer ${session.access_token}`, apikey: SUPABASE_KEY, 'Content-Type': 'application/json' },
+          body: JSON.stringify({ confirm: 'DELETE' }),
+        });
+        const body = await res.json().catch(() => ({}));
+        error = res.ok ? null : body.error || `Something went wrong (${res.status}).`;
+      } catch (err) { error = 'Could not reach the server. Check your connection and try again.'; }
+    }
+    if (error) { go.disabled = false; go.textContent = 'Delete everything'; return App.toast(error); }
+    try { sessionStorage.setItem('planner.accountDeleted', '1'); } catch { /* the landing page just won't say so */ }
+    await db.auth.signOut({ scope: 'local' }).catch(() => {});
+    location.href = location.pathname;   // the landing page ("Your account has been deleted.")
   });
 
   // Same flow as "Forgot password?": an email with a link to choose a new password.

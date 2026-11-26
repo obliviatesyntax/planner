@@ -65,7 +65,9 @@ const Auth = (() => {
   function showSignIn() {
     $('signin').hidden = false;
     $('app').hidden = true;
-    showPane('signin-form', '', false);   // don't jump the landing page down to the form
+    let deleted = false;   // just deleted the account (Settings → Account)?
+    try { deleted = sessionStorage.getItem('planner.accountDeleted') === '1'; sessionStorage.removeItem('planner.accountDeleted'); } catch { /* fine */ }
+    showPane('signin-form', deleted ? 'Your account and all its data have been deleted.' : '', false);   // don't jump the landing page down to the form
     loadProviders();
     Landing.play();
   }
