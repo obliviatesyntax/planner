@@ -12,7 +12,8 @@ const Store = (() => {
   const TABLES = {
     tasks: {
       toRow: t => ({
-        id: t.id, title: t.title, priority: t.priority, labels: t.labels, list_id: t.list || 'triage',
+        // list_id is NOT NULL in the database: "" there = no list (null here).
+        id: t.id, title: t.title, priority: t.priority, labels: t.labels, list_id: t.list || '',
         plan_date: t.planDate, start_min: t.startMin, duration_min: t.duration,
         sort_order: t.order, created_at: t.createdAt, done_on: t.doneOn,
         // Only sent once a description has been written, so saving still works on a
@@ -22,7 +23,7 @@ const Store = (() => {
         ...(t.deletedAt !== undefined ? { deleted_at: t.deletedAt } : {}),
       }),
       fromRow: r => ({
-        id: r.id, title: r.title, priority: r.priority, labels: r.labels || [], list: r.list_id || 'triage',   // ('' was "no project" in older versions)
+        id: r.id, title: r.title, priority: r.priority, labels: r.labels || [], list: r.list_id || null,
         planDate: r.plan_date, startMin: r.start_min, duration: r.duration_min,
         order: r.sort_order, createdAt: r.created_at, doneOn: r.done_on,
         ...(r.notes != null ? { notes: r.notes } : {}),

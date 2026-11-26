@@ -1681,3 +1681,31 @@ button.pj-added:hover { border-color: currentColor; }
 .md-toolbar.previewing .md-tools { visibility: hidden; }
 .md-preview { min-height: 320px; padding: 10px 12px; border: 1px solid var(--line); border-radius: 0 0 var(--radius-sm) var(--radius-sm); background: var(--panel); }
 @media (max-width: 700px) { .md-tools button { width: 34px; height: 32px; } }
+
+/* ==========================================================================
+   Quick add: help (i), mic and Add sit inside the box at its right end; search right after the box.
+   Phones: no Add button (the keyboard's Done/Enter adds), so the box gets the room.
+   ========================================================================== */
+.qa-field #qa-title { padding-right: 118px; }
+.qa-tools { position: absolute; right: 4px; top: 50%; transform: translateY(-50%); display: flex; align-items: center; gap: 4px; }
+.qa-tools .qa-help { position: static; transform: none; }
+.qa-tools .mic-btn {
+  width: 24px; height: 24px; padding: 0; border-radius: 50%; box-shadow: none;
+  border: 1px solid var(--line); background: var(--panel); color: var(--muted); display: grid; place-items: center;
+}
+.qa-tools .mic-btn:hover { color: var(--accent); border-color: var(--accent); }
+.qa-tools .mic-btn.listening { color: #fff; background: var(--p1); border-color: var(--p1); }
+.qa-tools .qa-add { padding: 4px 12px; font-size: 13px; border-radius: 5px; margin-left: 2px; }
+.qa-search {
+  flex: none; width: 36px; display: grid; place-items: center; padding: 0; color: var(--muted);
+  border: 1px solid var(--line); background: var(--panel); border-radius: var(--radius-sm); box-shadow: var(--shadow);
+}
+.qa-search:hover { color: var(--text); border-color: #d1d5db; }
+@media (max-width: 700px) {
+  .topbar { grid-template-columns: auto minmax(0, 1fr); }
+  .topbar .account { display: none; }
+  .qa-tools .qa-add { display: none; }
+  .qa-field #qa-title { padding-right: 70px; }
+  .qa-tools .qa-help, .qa-tools .mic-btn { width: 28px; height: 28px; }
+  .qa-search { width: 40px; }
+}

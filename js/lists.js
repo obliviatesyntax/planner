@@ -53,10 +53,10 @@ const Lists = (() => {
     const tasks = Tasks.listTasks(l.id).filter(Labels.matches);
     const isTriage = l.id === TRIAGE_LIST.id;   // always first: not draggable
     // A project also counts its tasks already planned on a day (they're shown on the plan).
-    const planned = Tasks.projectTasks(l.id).planned.filter(Labels.matches).length;
+    const planned = isTriage ? 0 : Tasks.projectTasks(l.id).planned.filter(Labels.matches).length;
     return `
       <div class="list-col" data-drop="list" data-list="${l.id}">
-        <div class="list-head openable" data-list-open="${l.id}" ${isTriage ? 'title="Click to open @triage"' : `draggable="true" data-list-drag="${l.id}" title="Click to open the project · drag to reorder"`}>
+        <div class="list-head ${isTriage ? '' : 'openable'}" ${isTriage ? '' : `data-list-open="${l.id}" draggable="true" data-list-drag="${l.id}" title="Click to open the project · drag to reorder"`}>
           <span class="list-name">@${escapeHtml(l.name)}</span>
           ${listTagHtml(l)}
           <span class="count" title="${tasks.length} not planned yet">${tasks.length}</span>

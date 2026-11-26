@@ -127,7 +127,11 @@ Design and internal docs live in a separate private repo: `git@github.com:oblivi
 | `js/app.js` | Quick add, page switching, header, backup, toast, start-up. |
 | `styles.css` | All styling; colours are variables at the top. |
 | `supabase/schema.sql` | Full database setup for a fresh install (wipes data). |
-| `supabase/migrations/` | Upgrades for an existing database, run in order (keep your data): 002 lists, 003 optional priority, 004 description, 005 list labels. |
+| `supabase/migrations/` | Upgrades for an existing database, run in order (keep your data): 002 lists, 003 optional priority, 004 description, 005 list labels, 006 project notes, 007 archive & trash. |
+| `supabase/functions/delete-account/` | Settings → Delete my account: deletes the signed-in user (and, by cascade, their data). |
+| `js/md-editor.js` | The notes toolbar + Write/Preview; loaded only when a project page opens (not in index.html). |
+| `manifest.webmanifest`, `sw.js`, `icons/` | The installable app: manifest (with a share target), service worker (network first, offline fallback), icons. |
+| `about.html`, `privacy.html` | About and Privacy pages (placeholder contact: hello@planner.example). |
 
 Plain JavaScript loaded with `<script>` tags — no framework, nothing to build while you work.
 When you push to `main`, a GitHub Action (`.github/workflows/pages.yml`) publishes the site with

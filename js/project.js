@@ -11,7 +11,8 @@
 //                        never changed by any of this; tasks and notes aren't kept in sync.
 //   • Tasks: not planned yet (the list itself: drag into it, "+ Add"), planned on a day (with the
 //     day and time), and done (the 3 most recent; "Show all" for the rest).
-// The header is editable in place: click the name to rename, pick a label chip, 🗑 deletes (asks first, then Undo).
+// The header is editable in place: click the name to rename, pick a label chip, Archive hides it
+// (projects are never deleted). @triage has no page.
 // Quick add on this page puts tasks into this project unless you type another @list.
 // The browser's Back button, or "← Dashboard", returns to the Dashboard (the main page). The ▾ next
 // to the name switches to another project (see jump.js).
@@ -40,7 +41,7 @@ const Project = (() => {
     if (!m) return null;
     const name = decodeURIComponent(m[1]);
     const l = Tasks.findList(name);
-    if (l) return l.id;
+    if (l && l.id !== TRIAGE_LIST.id) return l.id;   // @triage has no page
     // Not found, but it's the name of the page on screen: that project was just renamed.
     const shown = shownId && Tasks.list(shownId);
     return shown && shownName && name.toLowerCase() === shownName.toLowerCase() ? shownId : null;
@@ -58,7 +59,6 @@ const Project = (() => {
     shownName = Tasks.list(id).name;
     if (shownId !== id) { editing = false; showAllDone = false; offer = null; shownId = id; }
     const l = Tasks.list(id);
-    const builtIn = id === TRIAGE_LIST.id;   // @triage: can't be renamed or deleted
     const { waiting, planned, done } = Tasks.projectTasks(id);
     const labels = Tasks.allLabels();
     const visibleDone = showAllDone ? done : done.slice(0, RECENT_DONE);
@@ -67,14 +67,13 @@ const Project = (() => {
     view.innerHTML = `
       <div class="pj-head">
         <a href="#" class="pj-back" title="Back to the Dashboard">← Dashboard</a>
-        <h2 class="pj-title"><span>@</span>${builtIn ? `<span class="pj-name pj-name-fixed" title="@triage is built in: where new tasks land">${escapeHtml(l.name)}</span>` : `<input class="pj-name" value="${escapeHtml(l.name)}" size="${Math.max(4, l.name.length)}" maxlength="30" spellcheck="false" aria-label="Project name" title="Click to rename">`}<button type="button" class="pj-switch" title="Go to another project or the Dashboard" aria-label="Switch project" aria-haspopup="menu">▾</button></h2>
+        <h2 class="pj-title"><span>@</span><input class="pj-name" value="${escapeHtml(l.name)}" size="${Math.max(4, l.name.length)}" maxlength="30" spellcheck="false" aria-label="Project name" title="Click to rename"><button type="button" class="pj-switch" title="Go to another project or the Dashboard" aria-label="Switch project" aria-haspopup="menu">▾</button></h2>
         ${labels.length ? `<div class="pj-labels" title="This project's label: all its tasks count as it">${labels.map(lab => `
           <button type="button" class="pj-label ${l.label === lab.id ? 'on' : ''}" data-label="${lab.id}" style="--c:${lab.color}">#${escapeHtml(lab.shortcut)}</button>`).join('')}</div>` : ''}
         <span class="muted pj-stats">${waiting.length} not planned · ${planned.length} planned · ${done.length} done</span>
-        ${builtIn ? '' : `<button type="button" class="pj-archive" title="${l.archived ? 'Bring it back to the Dashboard' : 'Archive: hide it from the Dashboard, keep everything'}"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="4" width="18" height="4" rx="1"/><path d="M5 8v11a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1V8"/><path d="M10 12h4"/></svg><span>${l.archived ? 'Unarchive' : 'Archive'}</span></button>`}
-        ${builtIn ? '' : `<button type="button" class="pj-delete" title="Delete this project (and its tasks not planned yet). Asks first."><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 6h18"/><path d="M8 6V4h8v2"/><path d="M19 6l-1 14H6L5 6"/><path d="M10 11v6M14 11v6"/></svg></button>`}
+        <button type="button" class="pj-archive" title="${l.archived ? 'Bring it back to the Dashboard' : 'Archive: hide it and its unfinished tasks from the Dashboard, keep everything'}"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="4" width="18" height="4" rx="1"/><path d="M5 8v11a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1V8"/><path d="M10 12h4"/></svg><span>${l.archived ? 'Unarchive' : 'Archive'}</span></button>
       </div>
-      ${l.archived ? '<p class="pj-archived">This project is archived: it\'s hidden from the Dashboard and the project menu. Its tasks and notes are all here. <button type="button" class="link-btn pj-unarchive">Unarchive</button></p>' : ''}
+      ${l.archived ? '<p class="pj-archived">This project is archived: it and its unfinished tasks are hidden from the Dashboard and your plan. Everything is still here. <button type="button" class="link-btn pj-unarchive">Unarchive</button></p>' : ''}
       <div class="pj-grid">
         <section class="pj-tasks">
           <div class="pj-box">
@@ -216,7 +215,7 @@ const Project = (() => {
       const frag = document.createDocumentFragment();
       parts.forEach(part => {
         const target = part.startsWith('@') && Tasks.findList(part.slice(1));
-        if (target) {
+        if (target && target.id !== TRIAGE_LIST.id) {
           const a = document.createElement('a');
           a.href = href(target);
           a.className = 'pj-link';
@@ -339,7 +338,6 @@ const Project = (() => {
     const id = currentId();
     if (!id) return;
     if (e.target.closest('.pj-back')) { e.preventDefault(); location.hash = ''; return; }
-    if (e.target.closest('.pj-delete')) return deleteProject(id);
     if (e.target.closest('.pj-archive, .pj-unarchive')) return toggleArchive(id);
     const chip = e.target.closest('.pj-label');
     if (chip) return Tasks.setListLabel(id, Tasks.list(id).label === chip.dataset.label ? null : chip.dataset.label);
@@ -381,24 +379,12 @@ const Project = (() => {
   function toggleArchive(id) {
     const l = Tasks.list(id);
     if (l.archived) { Tasks.setArchived(id, false); return App.toast(`@${l.name} is back on the Dashboard`); }
+    const off = Tasks.projectTasks(id).planned.length;   // unfinished planned tasks leave the plan with it
     Tasks.setArchived(id, true);
     location.hash = '';
-    App.toast(`Archived @${l.name}. Find it in Settings → Archive & trash, or search.`, 'Undo', () => Tasks.setArchived(id, false));
+    App.toast(`Archived @${l.name}${off ? ` and its ${off} planned task${off === 1 ? '' : 's'}` : ''}. Find it in Settings → Archive & trash, or search.`, 'Undo', () => Tasks.setArchived(id, false));
   }
 
-  // Asks first (a project can hold a lot), then still offers Undo.
-  function deleteProject(id) {
-    const name = Tasks.list(id).name;
-    const { waiting, planned, done } = Tasks.projectTasks(id);
-    const n = waiting.length, kept = planned.length + done.length;
-    const question = `Delete @${name}${n ? ` and its ${n} task${n === 1 ? '' : 's'} not planned yet` : ''}?`
-      + (n ? '\n\nDeleted tasks stay in Settings → Archive & trash for 30 days.' : '')
-      + (kept ? `\n\nIts ${kept} planned or done task${kept === 1 ? '' : 's'} will stay, moved to @triage.` : '');
-    if (!confirm(question)) return;
-    const removed = Tasks.removeList(id);
-    location.hash = '';
-    App.toast(`Deleted @${name}`, 'Undo', () => Tasks.restoreList(removed));
-  }
   view.addEventListener('focusout', e => {   // clicking away saves too (but stays in edit mode)
     if (e.target.matches('.pj-notes-input')) saveNotes();
   });

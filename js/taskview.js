@@ -81,8 +81,9 @@ const TaskView = (() => {
   // ---- moving: one "When" row (day + optional time + length) and the list it belongs to ----
   //
   //   When   [Today] [Tomorrow] [📅 Thu, Nov 27] [⏱ 5:00 PM ▾] [30 min ▾]
-  //   List   [Move back to @kitchenReno]  [Move to list ▾]      (planned or done)
-  //   List   [Move to list: @kitchenReno ▾]  Open ↗             (waiting in a list)
+  //   List   [Move back to @kitchenReno]  [Move to list ▾]      (planned or done, came from a list)
+  //   List   [Move to list ▾]                                  (planned or done, added straight to a day)
+  //   List   [@kitchenReno ▾]  Open ↗                          (waiting in a list)
   // The day chip opens the browser's date picker (a hidden <input type="date">); the time is a
   // plain select in half hours (plus the task's own time if it's in between), "No time" = the
   // day's to-do list. Picking a time on a task that isn't planned puts it on today.
@@ -106,7 +107,7 @@ const TaskView = (() => {
     const timed = date && t.startMin != null;
     const late = date && date < today;                    // overdue: still has its old day and time
     const otherDate = date && date !== today && date !== tomorrow ? date : '';
-    const own = Tasks.list(t.list) || Tasks.list(TRIAGE_LIST.id);
+    const own = Tasks.list(t.list);   // the list it came from, if any (null: added straight to a day)
     const waiting = !date && !t.doneOn;
     const lists = Tasks.allLists();
     return `
@@ -129,12 +130,12 @@ const TaskView = (() => {
         <div class="tv-row">
           <span class="tv-label"><i>${ICON_LIST}</i><b>List</b></span>
           <div class="tv-when">
-            ${waiting ? '' : `<button type="button" class="tv-back" title="Take it off the plan, back into @${escapeHtml(own.name)}">Move back to @${escapeHtml(own.name)}</button>`}
+            ${waiting || !own ? '' : `<button type="button" class="tv-back" title="Take it off the plan, back into @${escapeHtml(own.name)}">Move back to @${escapeHtml(own.name)}</button>`}
             <select class="tv-list" title="Move it into another list (off the plan)">
               ${waiting ? '' : '<option value="" selected>Move to list…</option>'}
-              ${lists.map(l => `<option value="${l.id}" ${waiting && l.id === own.id ? 'selected' : ''}>@${escapeHtml(l.name)}</option>`).join('')}
+              ${lists.map(l => `<option value="${l.id}" ${waiting && own && l.id === own.id ? 'selected' : ''}>@${escapeHtml(l.name)}</option>`).join('')}
             </select>
-            <a class="tv-open-project" href="${Project.href(own)}" title="Open @${escapeHtml(own.name)}">Open ↗</a>
+            ${own && own.id !== TRIAGE_LIST.id ? `<a class="tv-open-project" href="${Project.href(own)}" title="Open @${escapeHtml(own.name)}">Open ↗</a>` : ''}
           </div>
         </div>
       </section>`;
@@ -213,8 +214,8 @@ const TaskView = (() => {
       try { input.showPicker(); } catch { input.focus(); input.click(); }
       return;
     }
-    if (e.target.closest('.tv-back')) {   // off the plan, back into the list it belongs to
-      Tasks.moveToList(id, Tasks.get(id).list || TRIAGE_LIST.id, null);
+    if (e.target.closest('.tv-back')) {   // off the plan, back into the list it came from
+      Tasks.moveToList(id, Tasks.get(id).list, null);
       return afterMove();
     }
     if (e.target.closest('.tv-open-project')) dialog.close();   // the link opens the project page

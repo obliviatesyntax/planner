@@ -95,7 +95,8 @@ Deno.test('initialize, notifications and tools/list', async () => {
   const tools = Object.fromEntries(list.result.tools.map((t: any) => [t.name, t.annotations]));
   for (const name of ['get_plan', 'get_lists', 'search_tasks', 'get_task']) assert(tools[name].readOnlyHint);
   for (const name of ['add_task', 'move_task', 'complete_task', 'create_list']) assert(!tools[name].readOnlyHint && !tools[name].destructiveHint);
-  for (const name of ['delete_task', 'delete_list', 'delete_label']) assert(tools[name].destructiveHint);
+  for (const name of ['delete_task', 'delete_label']) assert(tools[name].destructiveHint);
+  assert(!tools.archive_list.destructiveHint && !tools.delete_list);   // projects are archived, never deleted
 });
 
 Deno.test('get_plan: today, calendar / to-do / done', async () => {
@@ -196,7 +197,7 @@ Deno.test('update_task and delete_task', async () => {
   assertStringIncludes(await call('get_task', { id: 't5' }), 'No task with id t5');   // …and hidden
 });
 
-Deno.test('lists: create, rename, label, delete (with its waiting tasks)', async () => {
+Deno.test('lists: create, rename, label, archive (its unfinished tasks leave the plan)', async () => {
   fresh();
   assertStringIncludes(await call('create_list', { name: '@weekly', label: 'w' }), 'Created @weekly with label #w');
   assertStringIncludes(await callError('create_list', { name: 'weekly' }), 'already a list');
@@ -205,11 +206,14 @@ Deno.test('lists: create, rename, label, delete (with its waiting tasks)', async
   assertStringIncludes(await call('set_list_label', { list: 'salesQ4', label: '' }), 'has no label');
   assertEquals(row('lists', 'sales').label_id, null);
   await call('move_task', { id: 't1', list: 'salesQ4' });
-  await call('add_task', { title: 'Planned from sales', date: today });
-  await call('move_task', { id: DB.tasks.at(-1).id, date: today });
-  assertStringIncludes(await call('delete_list', { list: 'salesQ4' }), 'the 2 tasks waiting in it');
-  assert(row('tasks', 't6').deleted_at && row('tasks', 't1').deleted_at);   // waiting tasks: into the trash
-  assertEquals(row('lists', 'sales'), undefined);
+  await call('add_task', { title: 'Planned from sales', list: 'salesQ4', date: today });   // planned, from @salesQ4
+  assertStringIncludes(await call('archive_list', { list: 'salesQ4' }), 'Archived @salesQ4');
+  assertEquals(row('lists', 'sales').archived, true);
+  assert(!(await call('get_plan', {})).includes('Planned from sales'));   // off the plan with its project
+  assert(!(await call('get_lists', {})).includes('@salesQ4'));           // and out of the lists
+  assertStringIncludes(await call('archive_list', { list: 'salesQ4', archived: false }), 'back on the Dashboard');
+  assertStringIncludes(await call('get_plan', {}), 'Planned from sales');
+  assertStringIncludes(await callError('archive_list', { list: 'triage' }), "can't be archived");
 });
 
 Deno.test('labels: shortcut picked like the app, delete removes it everywhere', async () => {
@@ -296,16 +300,16 @@ Deno.test('projects: planned counts, update_task project keeps the day, get_proj
   // link a planned task (t2, today's to-do, no project) to a project: it stays on its day
   await call('update_task', { id: 't2', project: 'salesDeck' });
   assertEquals([row('tasks', 't2').plan_date, row('tasks', 't2').list_id], [today, 'sales']);
-  await call('update_task', { id: 't2', project: '' });          // "" = back to @triage
-  assertEquals(row('tasks', 't2').list_id, 'triage');
+  await call('update_task', { id: 't2', project: '' });          // "" = no list (it stays planned)
+  assertEquals(row('tasks', 't2').list_id, '');
   // an unplanned task moves into the project's list
   await call('update_task', { id: 't5', project: 'salesDeck' });
   assertEquals([row('tasks', 't5').plan_date, row('tasks', 't5').list_id], [null, 'sales']);
   const page = await call('get_project', { project: '@salesDeck' });
   for (const s of ['# @salesDeck', '## Notes', '## Not planned', 'Renew passport', '## Planned', 'Pricing call', '## Done']) assertStringIncludes(page, s);
-  assertStringIncludes(await call('get_project', { project: 'triage' }), '# @triage');   // @triage is a project too
+  assertStringIncludes(await callError('get_project', { project: 'triage' }), 'not a project');   // @triage has no page
   assertStringIncludes(await callError('get_project', { project: 'nope' }), 'No project called @nope');
-  // deleting a project: its planned tasks stay, moved to @triage
-  await call('delete_list', { list: 'salesDeck' });
-  assertEquals([row('tasks', planned.id).plan_date, row('tasks', planned.id).list_id], [shift(1), 'triage']);
+  // a task added straight onto a day has no list
+  await call('add_task', { title: 'Call grandma', date: 'tomorrow' });
+  assertEquals(DB.tasks.at(-1).list_id, '');
 });

@@ -8,7 +8,7 @@
 const Jump = (() => {
   // Where you can go: the Dashboard first, then the projects in their Dashboard order.
   function entries({ archived = false } = {}) {
-    const projects = Tasks.allLists({ archived }).map(l => {
+    const projects = Tasks.allLists({ archived }).filter(l => l.id !== TRIAGE_LIST.id).map(l => {   // (@triage has no page)
       const { waiting, planned } = Tasks.projectTasks(l.id);
       return { hash: Project.href(l).slice(1), id: l.id, name: l.name, waiting: waiting.length, planned: planned.length, archived: !!l.archived };
     });

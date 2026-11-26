@@ -10,7 +10,8 @@
 //   Reading:  get_plan, get_lists, search_tasks, get_task.
 //   Changing: add_task, update_task, move_task, complete_task, uncomplete_task, delete_task
 //             (those four take several ids at once, so the AI app asks you once),
-//             create_list, rename_list, set_list_label, delete_list, create_label, delete_label.
+//             create_list, rename_list, set_list_label, archive_list, create_label, delete_label.
+//   Projects are never deleted, only archived (with their unfinished tasks, off the plan).
 //   The AI apps ask you before running a tool that changes things (and warn more for deletes).
 //
 // The rules are the same as js/tasks.js; keep them in step:
@@ -36,7 +37,7 @@ const PROTOCOL_VERSIONS = ['2025-11-25', '2025-06-18', '2025-03-26', '2024-11-05
 const SERVER_INFO = { name: 'planner', title: 'Planner', version: '0.4.0' };
 const INSTRUCTIONS = `Planner is the user's daily planner. Tasks either wait in lists (@triage is the inbox,
 other lists are projects like @salesDeck) or are planned
-on a day: on that day's calendar (with a time) or its to-do list (no time); a planned task still belongs to its list. Done tasks are logged on the
+on a day: on that day's calendar (with a time) or its to-do list (no time). A task planned from a list remembers it (to move back later); one added straight onto a day has no list. Done tasks are logged on the
 day they were done. Unfinished tasks planned for a past day are "overdue": they keep that day and time
 and show in an Overdue section (not a list) until moved, completed or deleted. Priorities: P1 must do, P2 should do, P3 nice to have. Labels look like #w (Work).
 Dates are in the user's time zone; get_plan with no date means today. Tools that change a task need its
@@ -44,8 +45,9 @@ id: get it from get_plan, get_lists or search_tasks first. Lists and labels can 
 Start with get_plan: it has the date and time, the plan and every list, so most questions need nothing else.
 To add several tasks use add_task with tasks: [...]; to move, complete or delete several, pass all their ids
 in ONE call (ids: [...], from_list to move a whole list, or overdue: true for everything overdue): the user then confirms once instead of once per task.
-Every list is a project, @triage included (the default list for new tasks): tasks keep their list while planned
-on a day, and moving a task to a list takes it off the plan; get_project shows a project's notes and all its tasks. Dates can be words (tomorrow, friday, next monday). Task lines include a short note; get_task has the full text.`;
+Lists other than @triage (the default list for new tasks) are projects with notes: get_project shows one with all its tasks.
+Moving a task to a list takes it off the plan. Projects can't be deleted, only archived (archive_list): an archived project's
+unfinished tasks leave the plan with it. Dates can be words (tomorrow, friday, next monday). Task lines include a short note; get_task has the full text.`;
 
 // ---- the tools -----------------------------------------------------------------------
 
@@ -80,7 +82,7 @@ const READ_TOOLS = [
   {
     name: 'get_project',
     title: 'Get a project',
-    description: "Everything about one project (any list, @triage included): its notes (Markdown or plain text), tasks not planned yet, tasks planned on a day (with their day and time) and done tasks (newest first). Tasks keep their project while planned.",
+    description: "Everything about one project (a list other than @triage): its notes (Markdown or plain text), tasks not planned yet, tasks planned on a day (with their day and time) and done tasks (newest first). Tasks keep their project while planned.",
     inputSchema: {
       type: 'object',
       properties: {
@@ -158,7 +160,7 @@ const WRITE_TOOLS = [
         priority: { type: 'integer', minimum: 0, maximum: 3, description: '1, 2, 3, or 0 for none.' },
         labels: { type: 'array', items: { type: 'string' }, description: 'The full new set of labels (names or shortcuts); [] removes all.' },
         description: str('New description; "" removes it.'),
-        project: str('The list it belongs to (list name; "" = @triage). A planned task keeps its day; one not planned moves into that list.'),
+        project: str('The list it belongs to (list name, or "" for none). A planned task keeps its day; one not planned moves into that list (@triage for "").'),
       },
       required: ['id'],
     },
@@ -207,11 +209,12 @@ const WRITE_TOOLS = [
     annotations: { title: "Set a list's label", ...CHANGE, idempotentHint: true },
   },
   {
-    name: 'delete_list', title: 'Delete a list',
-    description: 'Delete a list AND the tasks waiting in it. Tasks from it that are already planned or done stay, moved to @triage. @triage can\'t be deleted.',
-    inputSchema: { type: 'object', properties: { list: str('List name.') }, required: ['list'] },
-    annotations: { title: 'Delete a list', ...DELETE },
+    name: 'archive_list', title: 'Archive a project',
+    description: 'Archive a project (projects are never deleted): it and its unfinished tasks leave the Dashboard and the plan; nothing is lost, and its done tasks stay in the done log. archived: false brings it back. @triage can\'t be archived.',
+    inputSchema: { type: 'object', properties: { list: str('Project (list) name.'), archived: { type: 'boolean', description: 'false to unarchive. Default true.' } }, required: ['list'] },
+    annotations: { title: 'Archive a project', ...CHANGE, idempotentHint: true },
   },
+
   {
     name: 'create_label', title: 'Create a label',
     description: 'Create a label like "Work" with a short shortcut like "w" (picked automatically if not given).',
@@ -329,9 +332,12 @@ class View {
     this.hour12 = d.user.user_metadata?.settings?.clock !== '24';
     // Deleted tasks (the trash) aren't part of the plan at all.
     d.tasks = d.tasks.filter(t => !t.deleted_at);
-    // Every task belongs to a list: no list ('' in older data) or one that's gone means @triage.
+    // A list that's gone: a planned or done task has none (''), a waiting one is in @triage.
     const known = new Set(['triage', ...d.lists.map(l => l.id)]);
-    d.tasks.forEach(t => { if (!known.has(t.list_id)) t.list_id = 'triage'; });
+    d.tasks.forEach(t => {
+      if (t.list_id && !known.has(t.list_id)) t.list_id = t.plan_date || t.done_on ? '' : 'triage';
+      if (!t.list_id && !t.plan_date && !t.done_on) t.list_id = 'triage';   // waiting always sits in a list
+    });
   }
   // "Now: Thursday, Nov 19, 2026, 9:05 AM (America/Los_Angeles); today is 2026-11-19." Starts every
   // read, so an AI app knows the date and time without asking.
@@ -343,8 +349,10 @@ class View {
   added(t: Task) {   // the day the task was created, in the user's time zone
     return t.created_at ? todayIn(this.timeZone, new Date(t.created_at)) : null;
   }
+  // An archived project's unfinished tasks are off the plan (and out of overdue), like in the app.
+  shelved = (t: Task) => !t.done_on && !!this.d.lists.find(l => l.id === t.list_id && l.archived);
   // Not done, planned on a day before today: overdue (shown in the Overdue section; they keep their day).
-  isLate = (t: Task) => !t.done_on && !!t.plan_date && t.plan_date < this.today;
+  isLate = (t: Task) => !t.done_on && !!t.plan_date && t.plan_date < this.today && !this.shelved(t);
   listName(id: string) {
     if (id === 'triage') return 'triage';
     return this.d.lists.find(l => l.id === id)?.name ?? 'triage';   // unknown list: the app shows it in @triage
@@ -396,7 +404,7 @@ function getPlan(v: View, args: any): string {
   const out = [v.nowLine()];
   for (let i = 0; i < days; i++) {
     const date = addDays(start, i);
-    const open = v.d.tasks.filter(t => !t.done_on && t.plan_date === date);
+    const open = v.d.tasks.filter(t => !t.done_on && t.plan_date === date && !v.shelved(t));
     const calendar = open.filter(t => t.start_min != null).sort((a, b) => a.start_min! - b.start_min!);
     const todo = open.filter(t => t.start_min == null).sort((a, b) => a.sort_order - b.sort_order);
     const done = v.d.tasks.filter(t => t.done_on === date);
@@ -447,7 +455,7 @@ function listsBody(v: View, list: string): string {
 
 function getProject(v: View, args: any): string {
   const l = findList(v, args?.project);
-  need(l, `No project called @${String(args?.project ?? '').replace(/^@/, '')}. Projects: ${listNames(v)}.`);
+  need(l && l.id !== 'triage', `No project called @${String(args?.project ?? '').replace(/^@/, '')} (@triage is the default list, not a project: use get_lists). Projects: ${listNames(v).replace('@triage, ', '')}.`);
   const mine = v.d.tasks.filter(t => t.list_id === l!.id);
   const waiting = v.waiting(l!.id);
   const planned = mine.filter(t => t.plan_date && !t.done_on)
@@ -615,7 +623,7 @@ async function addOne(c: Ctx, args: any) {
   const priority = args.priority !== undefined ? Number(args.priority) : Number(settings(c.v).defaultPriority || 0);
   const t: Task = {
     id: newId(), title, priority: priority || null, labels,
-    list_id: where.kind === 'list' ? where.list.id : where.project ? where.project.id : 'triage',
+    list_id: where.kind === 'list' ? where.list.id : where.project ? where.project.id : '',   // straight onto a day: no list
     plan_date: where.kind === 'day' ? where.date : null, start_min: where.kind === 'day' ? where.start : null,
     duration_min: Number(args.duration_minutes) || Number(settings(c.v).defaultDuration) || 30,
     sort_order: 0, done_on: null, created_at: new Date().toISOString(), ...(args.description ? { notes: String(args.description) } : {}),
@@ -638,7 +646,7 @@ async function updateTask(c: Ctx, args: any) {
   if (args.project !== undefined) {   // link to a project; a planned task keeps its day
     const name = String(args.project ?? '').trim();
     const target = name ? await listFor(c, name) : null;
-    if (t.plan_date || t.done_on) changes.list_id = target ? target.id : 'triage';
+    if (t.plan_date || t.done_on) changes.list_id = target ? target.id : '';
     else Object.assign(changes, { list_id: target ? target.id : 'triage', sort_order: nextOrder(c.v.waiting(target ? target.id : 'triage')) });
   }
   need(Object.keys(changes).length, 'Nothing to change: give a title, priority, labels, description or project.');
@@ -682,8 +690,8 @@ async function moveTask(c: Ctx, args: any) {
     if (where!.kind === 'list') {
       Object.assign(changes, { plan_date: null, start_min: null, list_id: where!.list.id, sort_order: nextOrder(c.v.waiting(where!.list.id)) });
     } else {
-      // Onto a day: it keeps its list, or takes the list given.
-      const project = where!.project ? where!.project.id : t.list_id || 'triage';
+      // Onto a day: it keeps the list it came from (to move back later), or takes the list given.
+      const project = where!.project ? where!.project.id : t.list_id;
       Object.assign(changes, { plan_date: where!.date, start_min: start, list_id: project });
       if (start == null) changes.sort_order = nextOrder(toDoOn(c.v, where!.date).filter(x => x.id !== t.id));
     }
@@ -768,14 +776,14 @@ async function setListLabel(c: Ctx, args: any) {
   return label ? `@${l!.name} now has label #${label.shortcut} (${label.name}).` : `@${l!.name} has no label now.`;
 }
 
-async function deleteList(c: Ctx, args: any) {
-  const l = ownList(c, args.list, 'deleted');
-  const waiting = c.v.waiting(l.id);
-  const others = c.v.d.tasks.filter(t => t.list_id === l.id && !waiting.includes(t));
-  await c.db.updateMany('tasks', waiting.map(t => t.id), { deleted_at: new Date().toISOString() });   // into the trash
-  for (const t of others) await c.db.update('tasks', t.id, { list_id: 'triage' });   // planned/done ones live on, in @triage
-  await c.db.remove('lists', [l.id]);
-  return `Deleted @${l.name} and the ${waiting.length} task${waiting.length === 1 ? '' : 's'} waiting in it${waiting.length ? `: ${waiting.map(t => t.title).join(', ')}` : ''}.`;
+async function archiveList(c: Ctx, args: any) {
+  const l = ownList(c, args.list, 'archived');
+  const on = args.archived !== false;
+  await c.db.update('lists', l.id, { archived: on });
+  l.archived = on;
+  const off = c.v.d.tasks.filter(t => t.list_id === l.id && t.plan_date && !t.done_on).length;
+  return on ? `Archived @${l.name}${off ? ` (its ${off} planned task${off === 1 ? '' : 's'} left the plan with it)` : ''}. Unarchive with archived: false.`
+    : `@${l.name} is back on the Dashboard.`;
 }
 
 async function createLabel(c: Ctx, args: any) {
@@ -809,7 +817,7 @@ const RUN: Record<string, (c: Ctx, args: any) => string | Promise<string>> = {
   get_plan: (c, a) => getPlan(c.v, a), get_project: (c, a) => getProject(c.v, a), get_lists: (c, a) => getLists(c.v, a), search_tasks: (c, a) => searchTasks(c.v, a), get_task: (c, a) => getTask(c.v, a),
   add_task: addTask, update_task: updateTask, move_task: moveTask, complete_task: completeTask,
   uncomplete_task: uncompleteTask, delete_task: deleteTask, create_list: createList, rename_list: renameList,
-  set_list_label: setListLabel, delete_list: deleteList, create_label: createLabel, delete_label: deleteLabel,
+  set_list_label: setListLabel, archive_list: archiveList, create_label: createLabel, delete_label: deleteLabel,
 };
 
 // ---- the protocol: JSON-RPC over HTTP POST ----------------------------------------------------

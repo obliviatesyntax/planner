@@ -40,7 +40,7 @@ create table public.tasks (
   title        text        not null,
   priority     smallint    check (priority is null or priority in (1, 2, 3)),   -- null = not set
   labels       text[]      not null default '{}',  -- label ids
-  list_id      text        not null default 'triage', -- its list (= project); @triage is the default
+  list_id      text        not null default 'triage', -- the list it came from ('' = none: added straight onto a day)
   plan_date    date,                               -- null = in its list; set = committed to that day
   start_min    integer,                            -- minutes after midnight on the calendar; null = in the day's plan list
   duration_min integer     not null default 30,    -- length of the calendar block

@@ -151,8 +151,9 @@ const Dnd = (() => {
 
   const dropBar = document.getElementById('drop-bar');
   // Only places the task isn't already in: no "Today" for a task planned for today, and so on.
-  // The third target is the task's own list ("@kitchenReno", or "@triage": move it back there)
-  // when it's planned or done; for a task waiting in a list, @triage (left out if it's there).
+  // The third target: for a planned or done task, the list it came from ("@kitchenReno" or
+  // "@triage": move it back there), or @triage if it has none; for a task waiting in a list,
+  // @triage (left out if it's already there).
   function showDropBar(task) {
     const today = todayISO(), tomorrow = addDays(today, 1);
     const open = task && !task.doneOn;

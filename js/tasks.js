@@ -6,10 +6,12 @@
 //     title:     "Renew passport",
 //     priority:  null | 1 | 2 | 3       null = not set
 //     labels:    ["k2j3", ...]          ids of labels; can be empty
-//     list:      "triage" | "k9x2…"     Its list (= project). Always set: @triage is the default
-//                                       project (new tasks without an @list, tasks created straight
-//                                       onto a day). A task keeps its list while it's planned on a
-//                                       day, so it can be moved back there ("Move back to @x").
+//     list:      null | "triage" | "k9x2…"
+//                                       The list it came from. A task added without a day goes into a
+//                                       list (@triage if none is given) and keeps it while planned, so
+//                                       it can go back there ("Move back to @x"). A task added straight
+//                                       onto a day or the calendar has none (null) unless an @list was
+//                                       typed. Only planned or done tasks can have none.
 //     planDate:  null | "2026-11-17"    null = in its list; a date = committed to that day
 //     startMin:  null | 570             null = in that day's to-do list; a number = on the
 //                                       calendar at that many minutes after midnight (570 = 9:30)
@@ -33,8 +35,11 @@
 // list", the drop bar), or by "@list" in quick add.
 //
 // A list (= a project) looks like:  { id, name: "weekly", order, label, notes, archived }
-//   archived: hidden from the Dashboard (its page, tasks and notes stay; Settings → Archive & trash)
-//   (shown as @weekly; @triage is built in: always first, can't be renamed or deleted)
+//   archived: the project and its unfinished tasks are hidden from the Dashboard and the plan (its
+//   page and everything in it stay; Settings → Archive & trash). Its done tasks stay in the done
+//   log. Projects are never deleted, only archived.
+//   (shown as @weekly; @triage is built in: the default list, always first, a list like the others
+//   in the data, but with no project page, no notes, and it can't be renamed or archived)
 //   label: optional label id; all the project's tasks count as having it (labels.js matches)
 //   notes: optional text, Markdown when it looks like Markdown (project.js)
 // A label looks like: { id, name: "Personal", shortcut: "p", color: "#2b8a3e", order }
@@ -61,8 +66,9 @@ const Tasks = (() => {
     lists = data.lists;
     labels = data.labels;
     if (!lists.some(l => l.id === TRIAGE_LIST.id)) lists.push({ ...TRIAGE_LIST, order: -1 });
-    tasks.forEach(t => {   // no list, or a list that's gone: @triage
-      if (!t.list || !list(t.list)) t.list = TRIAGE_LIST.id;
+    tasks.forEach(t => {   // a list that's gone: none (planned / done) or @triage (waiting)
+      if (t.list && !list(t.list)) t.list = null;
+      if (!t.list && !t.planDate && !t.doneOn) t.list = TRIAGE_LIST.id;
     });
     // Earlier versions wrote " → task" (or " ✓") after note lines turned into tasks. Notes are no
     // longer changed for that (project.js matches lines to tasks instead): take the old marks out.
@@ -110,7 +116,9 @@ const Tasks = (() => {
   // Overdue is a view, not a list: unfinished tasks planned for a day before today. They keep
   // their day and time in the database (nothing is moved); they just show under Overdue until
   // you move them, tick them off or delete them. Oldest first.
-  const isLate = t => !t.doneOn && t.planDate && t.planDate < todayISO();
+  // An archived project takes its unfinished tasks off the plan with it (done ones stay in the log).
+  const shelved = t => !t.doneOn && t.list && list(t.list)?.archived;
+  const isLate = t => !t.doneOn && t.planDate && t.planDate < todayISO() && !shelved(t);
   function overdueTasks() {
     return tasks.filter(isLate)
       .sort((a, b) => a.planDate.localeCompare(b.planDate) || (a.startMin ?? 1e4) - (b.startMin ?? 1e4) || a.order - b.order);
@@ -119,10 +127,10 @@ const Tasks = (() => {
     return tasks.filter(t => !t.doneOn && !t.planDate && t.list === listId).sort(byOrder);
   }
   function planList(date) {
-    return tasks.filter(t => !t.doneOn && t.planDate === date && t.startMin == null).sort(byOrder);
+    return tasks.filter(t => !t.doneOn && t.planDate === date && t.startMin == null && !shelved(t)).sort(byOrder);
   }
   function calendarList(date) {
-    return tasks.filter(t => !t.doneOn && t.planDate === date && t.startMin != null)
+    return tasks.filter(t => !t.doneOn && t.planDate === date && t.startMin != null && !shelved(t))
       .sort((a, b) => a.startMin - b.startMin);
   }
   function doneList(date) {
@@ -145,14 +153,14 @@ const Tasks = (() => {
 
   // ---- task actions -----------------------------------------------------------
 
-  // New tasks belong to a list (default @triage). With a day (planDate) or a calendar time
-  // (planDate + startMin) they're planned right away, still belonging to that list
-  // (e.g. "Dentist tomorrow 5pm @health").
+  // New tasks go into a list (default @triage), unless a day (planDate) or a calendar time
+  // (planDate + startMin) is given: then they're planned right away, with no list unless one was
+  // given (e.g. "Dentist tomorrow 5pm @health" keeps @health, to move back to later).
   function add({ title, priority = Settings.get('defaultPriority'), labels: labelIds = [], list: listId = null,
                  planDate = null, startMin = null, duration = null }) {
     title = (title || '').trim();
     if (!title) return null;
-    listId = listId && list(listId) ? listId : TRIAGE_LIST.id;
+    listId = listId && list(listId) ? listId : planDate ? null : TRIAGE_LIST.id;
     const task = {
       id: newId(), title, priority: priority || null, labels: labelIds, list: listId,
       planDate, startMin: planDate ? startMin : null, duration: duration || Settings.get('defaultDuration'),
@@ -253,11 +261,11 @@ const Tasks = (() => {
     return removed;
   }
 
-  // Undo a delete, or restore from the trash. Its list gone (or archived)? It goes to @triage.
+  // Undo a delete, or restore from the trash. Its list gone? A waiting task goes to @triage.
   function restore(task) {
     trash = trash.filter(t => t.id !== task.id);
     task.deletedAt = null;
-    if (!list(task.list)) task.list = TRIAGE_LIST.id;
+    if (task.list && !list(task.list)) task.list = task.planDate || task.doneOn ? null : TRIAGE_LIST.id;
     tasks.push(task);
     commit();
   }
@@ -278,7 +286,7 @@ const Tasks = (() => {
   }
   function archivedLists() { return allLists({ archived: true }).filter(l => l.archived); }
 
-  // Archive: hide a project from the Dashboard, keeping everything (not @triage).
+  // Archive (projects are never deleted): hide it and its unfinished tasks, keeping everything.
   function setArchived(id, on) {
     const l = list(id);
     if (!l || id === TRIAGE_LIST.id) return;
@@ -305,7 +313,7 @@ const Tasks = (() => {
   // A project's notes (free text; Markdown when it looks like Markdown).
   function setListNotes(id, notes) {
     const l = list(id);
-    if (!l) return;
+    if (!l || id === TRIAGE_LIST.id) return;   // @triage has no notes
     l.notes = notes;
     commit();
   }
@@ -339,31 +347,6 @@ const Tasks = (() => {
     if (index < 0) index = others.length;
     others.splice(index, 0, list(id));
     others.forEach((l, i) => { l.order = i; });
-    commit();
-  }
-
-  // Deletes the list AND its (not yet planned) tasks. Returns what was removed, for Undo.
-  function removeList(id) {
-    if (id === TRIAGE_LIST.id) return null;
-    const removedList = list(id);
-    const removedTasks = listTasks(id);
-    lists = lists.filter(l => l.id !== id);
-    tasks = tasks.filter(t => !removedTasks.includes(t));
-    const when = new Date().toISOString();   // its waiting tasks go to the trash (restorable for 30 days)
-    removedTasks.forEach(t => { t.deletedAt = when; });
-    trash.unshift(...removedTasks);
-    const unlinked = tasks.filter(t => t.list === id).map(t => t.id);   // planned/done ones keep living,
-    unlinked.forEach(tid => { get(tid).list = TRIAGE_LIST.id; });       // in @triage
-    commit();
-    return { list: removedList, tasks: removedTasks, unlinked };
-  }
-
-  function restoreList({ list: l, tasks: removed, unlinked = [] }) {
-    lists.push(l);
-    trash = trash.filter(t => !removed.includes(t));
-    removed.forEach(t => { t.deletedAt = null; });
-    tasks.push(...removed);
-    unlinked.forEach(tid => { const t = get(tid); if (t) t.list = l.id; });   // link them back
     commit();
   }
 
@@ -451,7 +434,7 @@ const Tasks = (() => {
     init, onChange, rollover, get, allTasks,
     listTasks, overdueTasks, planList, calendarList, doneList,
     add, update, cyclePriority, toggleDone, markDone, moveToList, moveToPlan, moveAllToPlan, restoreFields, moveToCalendar, remove, restore, trashed, purge,
-    allLists, archivedLists, setArchived, list, findList, addList, setListNotes, projectTasks, renameList, setListLabel, moveList, removeList, restoreList,
+    allLists, archivedLists, setArchived, list, findList, addList, setListNotes, projectTasks, renameList, setListLabel, moveList,
     allLabels, label, findLabel, addLabel, updateLabel, removeLabel,
     exportData, replaceAll,
   };
