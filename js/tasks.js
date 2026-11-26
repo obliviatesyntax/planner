@@ -35,9 +35,8 @@
 // list", the drop bar), or by "@list" in quick add.
 //
 // A list (= a project) looks like:  { id, name: "weekly", order, label, notes, archived }
-//   archived: the project and its unfinished tasks are hidden from the Dashboard and the plan (its
-//   page and everything in it stay; Settings → Archive & trash). Its done tasks stay in the done
-//   log. Projects are never deleted, only archived.
+//   archived: hidden from the Dashboard (its page and everything in it stay; Settings → Archive &
+//   trash). Only possible while none of its tasks is planned. Projects are never deleted.
 //   (shown as @weekly; @triage is built in: the default list, always first, a list like the others
 //   in the data, but with no project page, no notes, and it can't be renamed or archived)
 //   label: optional label id; all the project's tasks count as having it (labels.js matches)
@@ -116,9 +115,7 @@ const Tasks = (() => {
   // Overdue is a view, not a list: unfinished tasks planned for a day before today. They keep
   // their day and time in the database (nothing is moved); they just show under Overdue until
   // you move them, tick them off or delete them. Oldest first.
-  // An archived project takes its unfinished tasks off the plan with it (done ones stay in the log).
-  const shelved = t => !t.doneOn && t.list && list(t.list)?.archived;
-  const isLate = t => !t.doneOn && t.planDate && t.planDate < todayISO() && !shelved(t);
+  const isLate = t => !t.doneOn && t.planDate && t.planDate < todayISO();
   function overdueTasks() {
     return tasks.filter(isLate)
       .sort((a, b) => a.planDate.localeCompare(b.planDate) || (a.startMin ?? 1e4) - (b.startMin ?? 1e4) || a.order - b.order);
@@ -127,10 +124,10 @@ const Tasks = (() => {
     return tasks.filter(t => !t.doneOn && !t.planDate && t.list === listId).sort(byOrder);
   }
   function planList(date) {
-    return tasks.filter(t => !t.doneOn && t.planDate === date && t.startMin == null && !shelved(t)).sort(byOrder);
+    return tasks.filter(t => !t.doneOn && t.planDate === date && t.startMin == null).sort(byOrder);
   }
   function calendarList(date) {
-    return tasks.filter(t => !t.doneOn && t.planDate === date && t.startMin != null && !shelved(t))
+    return tasks.filter(t => !t.doneOn && t.planDate === date && t.startMin != null)
       .sort((a, b) => a.startMin - b.startMin);
   }
   function doneList(date) {
@@ -286,7 +283,8 @@ const Tasks = (() => {
   }
   function archivedLists() { return allLists({ archived: true }).filter(l => l.archived); }
 
-  // Archive (projects are never deleted): hide it and its unfinished tasks, keeping everything.
+  // Archive (projects are never deleted): hide it, keeping everything. The UI only offers it while
+  // none of its tasks is planned.
   function setArchived(id, on) {
     const l = list(id);
     if (!l || id === TRIAGE_LIST.id) return;

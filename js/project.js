@@ -12,7 +12,7 @@
 //   • Tasks: not planned yet (the list itself: drag into it, "+ Add"), planned on a day (with the
 //     day and time), and done (the 3 most recent; "Show all" for the rest).
 // The header is editable in place: click the name to rename, pick a label chip, Archive hides it
-// (projects are never deleted). @triage has no page.
+// (projects are never deleted; only possible once none of its tasks is planned). @triage has no page.
 // Quick add on this page puts tasks into this project unless you type another @list.
 // The browser's Back button, or "← Dashboard", returns to the Dashboard (the main page). The ▾ next
 // to the name switches to another project (see jump.js).
@@ -60,6 +60,7 @@ const Project = (() => {
     if (shownId !== id) { editing = false; showAllDone = false; offer = null; shownId = id; }
     const l = Tasks.list(id);
     const { waiting, planned, done } = Tasks.projectTasks(id);
+    const archiveBlocked = !l.archived && planned.length > 0;   // only archive when nothing of it is on the plan
     const labels = Tasks.allLabels();
     const visibleDone = showAllDone ? done : done.slice(0, RECENT_DONE);
     const draft = editing ? view.querySelector('.pj-notes-input')?.value : undefined;   // keep unsaved typing
@@ -71,9 +72,10 @@ const Project = (() => {
         ${labels.length ? `<div class="pj-labels" title="This project's label: all its tasks count as it">${labels.map(lab => `
           <button type="button" class="pj-label ${l.label === lab.id ? 'on' : ''}" data-label="${lab.id}" style="--c:${lab.color}">#${escapeHtml(lab.shortcut)}</button>`).join('')}</div>` : ''}
         <span class="muted pj-stats">${waiting.length} not planned · ${planned.length} planned · ${done.length} done</span>
-        <button type="button" class="pj-archive" title="${l.archived ? 'Bring it back to the Dashboard' : 'Archive: hide it and its unfinished tasks from the Dashboard, keep everything'}"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="4" width="18" height="4" rx="1"/><path d="M5 8v11a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1V8"/><path d="M10 12h4"/></svg><span>${l.archived ? 'Unarchive' : 'Archive'}</span></button>
+        <span class="pj-archive-wrap">${archiveBlocked ? `<span class="pj-archive-note">Can be archived once nothing is planned</span>` : ''}
+        <button type="button" class="pj-archive" ${archiveBlocked ? 'disabled' : ''} title="${l.archived ? 'Bring it back to the Dashboard' : archiveBlocked ? 'Finish or unplan its planned tasks first' : 'Archive: hide it from the Dashboard, keep everything'}"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="4" width="18" height="4" rx="1"/><path d="M5 8v11a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1V8"/><path d="M10 12h4"/></svg><span>${l.archived ? 'Unarchive' : 'Archive'}</span></button></span>
       </div>
-      ${l.archived ? '<p class="pj-archived">This project is archived: it and its unfinished tasks are hidden from the Dashboard and your plan. Everything is still here. <button type="button" class="link-btn pj-unarchive">Unarchive</button></p>' : ''}
+      ${l.archived ? '<p class="pj-archived">This project is archived: it\'s hidden from the Dashboard. Everything in it is still here. <button type="button" class="link-btn pj-unarchive">Unarchive</button></p>' : ''}
       <div class="pj-grid">
         <section class="pj-tasks">
           <div class="pj-box">
@@ -379,11 +381,12 @@ const Project = (() => {
   function toggleArchive(id) {
     const l = Tasks.list(id);
     if (l.archived) { Tasks.setArchived(id, false); return App.toast(`@${l.name} is back on the Dashboard`); }
-    const off = Tasks.projectTasks(id).planned.length;   // unfinished planned tasks leave the plan with it
+    if (Tasks.projectTasks(id).planned.length) return;   // (the button is disabled then)
     Tasks.setArchived(id, true);
     location.hash = '';
-    App.toast(`Archived @${l.name}${off ? ` and its ${off} planned task${off === 1 ? '' : 's'}` : ''}. Find it in Settings → Archive & trash, or search.`, 'Undo', () => Tasks.setArchived(id, false));
+    App.toast(`Archived @${l.name}. Find it in Settings → Archive & trash, or search.`, 'Undo', () => Tasks.setArchived(id, false));
   }
+
 
   view.addEventListener('focusout', e => {   // clicking away saves too (but stays in edit mode)
     if (e.target.matches('.pj-notes-input')) saveNotes();

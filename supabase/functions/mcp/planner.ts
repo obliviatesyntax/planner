@@ -46,8 +46,8 @@ Start with get_plan: it has the date and time, the plan and every list, so most 
 To add several tasks use add_task with tasks: [...]; to move, complete or delete several, pass all their ids
 in ONE call (ids: [...], from_list to move a whole list, or overdue: true for everything overdue): the user then confirms once instead of once per task.
 Lists other than @triage (the default list for new tasks) are projects with notes: get_project shows one with all its tasks.
-Moving a task to a list takes it off the plan. Projects can't be deleted, only archived (archive_list): an archived project's
-unfinished tasks leave the plan with it. Dates can be words (tomorrow, friday, next monday). Task lines include a short note; get_task has the full text.`;
+Moving a task to a list takes it off the plan. Projects can't be deleted, only archived (archive_list), and only when none
+of their tasks is planned. Dates can be words (tomorrow, friday, next monday). Task lines include a short note; get_task has the full text.`;
 
 // ---- the tools -----------------------------------------------------------------------
 
@@ -210,7 +210,7 @@ const WRITE_TOOLS = [
   },
   {
     name: 'archive_list', title: 'Archive a project',
-    description: 'Archive a project (projects are never deleted): it and its unfinished tasks leave the Dashboard and the plan; nothing is lost, and its done tasks stay in the done log. archived: false brings it back. @triage can\'t be archived.',
+    description: 'Archive a project (projects are never deleted): it leaves the Dashboard, nothing is lost. Only possible when none of its tasks is planned (complete, unplan or delete those first). archived: false brings it back. @triage can\'t be archived.',
     inputSchema: { type: 'object', properties: { list: str('Project (list) name.'), archived: { type: 'boolean', description: 'false to unarchive. Default true.' } }, required: ['list'] },
     annotations: { title: 'Archive a project', ...CHANGE, idempotentHint: true },
   },
@@ -349,10 +349,8 @@ class View {
   added(t: Task) {   // the day the task was created, in the user's time zone
     return t.created_at ? todayIn(this.timeZone, new Date(t.created_at)) : null;
   }
-  // An archived project's unfinished tasks are off the plan (and out of overdue), like in the app.
-  shelved = (t: Task) => !t.done_on && !!this.d.lists.find(l => l.id === t.list_id && l.archived);
   // Not done, planned on a day before today: overdue (shown in the Overdue section; they keep their day).
-  isLate = (t: Task) => !t.done_on && !!t.plan_date && t.plan_date < this.today && !this.shelved(t);
+  isLate = (t: Task) => !t.done_on && !!t.plan_date && t.plan_date < this.today;
   listName(id: string) {
     if (id === 'triage') return 'triage';
     return this.d.lists.find(l => l.id === id)?.name ?? 'triage';   // unknown list: the app shows it in @triage
@@ -404,7 +402,7 @@ function getPlan(v: View, args: any): string {
   const out = [v.nowLine()];
   for (let i = 0; i < days; i++) {
     const date = addDays(start, i);
-    const open = v.d.tasks.filter(t => !t.done_on && t.plan_date === date && !v.shelved(t));
+    const open = v.d.tasks.filter(t => !t.done_on && t.plan_date === date);
     const calendar = open.filter(t => t.start_min != null).sort((a, b) => a.start_min! - b.start_min!);
     const todo = open.filter(t => t.start_min == null).sort((a, b) => a.sort_order - b.sort_order);
     const done = v.d.tasks.filter(t => t.done_on === date);
@@ -779,11 +777,11 @@ async function setListLabel(c: Ctx, args: any) {
 async function archiveList(c: Ctx, args: any) {
   const l = ownList(c, args.list, 'archived');
   const on = args.archived !== false;
+  const planned = c.v.d.tasks.filter(t => t.list_id === l.id && t.plan_date && !t.done_on);
+  need(!on || !planned.length, `@${l.name} still has ${planned.length} planned task${planned.length === 1 ? '' : 's'} (${planned.map(t => `"${t.title}"`).join(', ')}). A project can only be archived when none of its tasks is planned: complete them, move them back to the list, or delete them first.`);
   await c.db.update('lists', l.id, { archived: on });
   l.archived = on;
-  const off = c.v.d.tasks.filter(t => t.list_id === l.id && t.plan_date && !t.done_on).length;
-  return on ? `Archived @${l.name}${off ? ` (its ${off} planned task${off === 1 ? '' : 's'} left the plan with it)` : ''}. Unarchive with archived: false.`
-    : `@${l.name} is back on the Dashboard.`;
+  return on ? `Archived @${l.name}. Unarchive with archived: false.` : `@${l.name} is back on the Dashboard.`;
 }
 
 async function createLabel(c: Ctx, args: any) {

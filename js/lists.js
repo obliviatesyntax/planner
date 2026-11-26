@@ -60,7 +60,7 @@ const Lists = (() => {
           <span class="list-name">@${escapeHtml(l.name)}</span>
           ${listTagHtml(l)}
           <span class="count" title="${tasks.length} not planned yet">${tasks.length}</span>
-          ${planned ? `<span class="planned-count" title="${planned} planned on a day">${planned} planned</span>` : ''}
+          ${planned ? `<span class="planned-count" title="${planned} more from this project planned on a day">+${planned} planned</span>` : ''}
         </div>
         <div class="list">${tasks.map(t => Cards.html(t, 'list')).join('')}</div>
         <button type="button" class="col-add" data-list="${l.id}">+ Add</button>

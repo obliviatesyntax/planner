@@ -197,7 +197,7 @@ Deno.test('update_task and delete_task', async () => {
   assertStringIncludes(await call('get_task', { id: 't5' }), 'No task with id t5');   // …and hidden
 });
 
-Deno.test('lists: create, rename, label, archive (its unfinished tasks leave the plan)', async () => {
+Deno.test('lists: create, rename, label, archive (only with nothing planned)', async () => {
   fresh();
   assertStringIncludes(await call('create_list', { name: '@weekly', label: 'w' }), 'Created @weekly with label #w');
   assertStringIncludes(await callError('create_list', { name: 'weekly' }), 'already a list');
@@ -207,12 +207,12 @@ Deno.test('lists: create, rename, label, archive (its unfinished tasks leave the
   assertEquals(row('lists', 'sales').label_id, null);
   await call('move_task', { id: 't1', list: 'salesQ4' });
   await call('add_task', { title: 'Planned from sales', list: 'salesQ4', date: today });   // planned, from @salesQ4
+  assertStringIncludes(await callError('archive_list', { list: 'salesQ4' }), 'still has 1 planned task');   // not while planned
+  await call('move_task', { id: DB.tasks.at(-1).id, list: 'salesQ4' });   // unplan it
   assertStringIncludes(await call('archive_list', { list: 'salesQ4' }), 'Archived @salesQ4');
   assertEquals(row('lists', 'sales').archived, true);
-  assert(!(await call('get_plan', {})).includes('Planned from sales'));   // off the plan with its project
-  assert(!(await call('get_lists', {})).includes('@salesQ4'));           // and out of the lists
+  assert(!(await call('get_lists', {})).includes('@salesQ4'));           // out of the lists
   assertStringIncludes(await call('archive_list', { list: 'salesQ4', archived: false }), 'back on the Dashboard');
-  assertStringIncludes(await call('get_plan', {}), 'Planned from sales');
   assertStringIncludes(await callError('archive_list', { list: 'triage' }), "can't be archived");
 });
 
