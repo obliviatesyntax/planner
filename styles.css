@@ -1769,3 +1769,30 @@ button.pj-added:hover { border-color: currentColor; }
 }
 .card .prio:not(.prio-empty)::after { left: -6px; right: -8px; }   /* the tag: a bit wider too, up to the card's edge */
 .card .prio:hover { filter: brightness(.95); box-shadow: inset 0 0 0 1px rgba(0, 0, 0, .12); }
+
+/* ==========================================================================
+   Hover buttons as full-height strips at the card's right end (not little pills): the 🗑 and,
+   with no priority set, the faint "P". Each fills the card from top to bottom; hovering one
+   tints its whole strip (🗑 red). The set P1/P2/P3 tag stays a small tag.
+   ========================================================================== */
+.card .card-actions {
+  top: 0; bottom: 0; padding: 0; gap: 0; border-radius: 0; box-shadow: inset 1px 0 0 var(--line-soft);
+  background: rgba(255, 255, 255, .86); align-items: stretch;
+}
+.card .card-actions button { height: 100%; padding: 0 9px; border-radius: 0; display: grid; place-items: center; }
+.card .card-actions .del:hover { background: var(--p1-soft); color: var(--p1); }
+.card .del::after { display: none; }   /* (the strip itself is the target now) */
+.card .prio.prio-empty {
+  top: 0; bottom: 0; right: 0; width: 28px; padding: 0; border-radius: 0; line-height: normal;
+  display: grid; place-items: center; background: rgba(255, 255, 255, .86); box-shadow: inset 1px 0 0 var(--line-soft);
+}
+.card .prio.prio-empty::after { display: none; }
+.card .prio.prio-empty:hover { box-shadow: inset 1px 0 0 var(--line-soft); background: var(--bg); color: var(--text); }
+.list > .card .prio.prio-empty { top: 0; }
+.card.p0 .card-actions { right: 28px; }                  /* just left of the "P" strip */
+.card:not(.p0) .card-actions { right: 34px; }            /* just left of the P1/P2/P3 tag */
+.card.has-pc .card-actions, .card.has-pc .prio.prio-empty { background: color-mix(in srgb, var(--pc) 9%, #fff); }
+/* calendar blocks: leave the bottom 5px to the resize handle */
+.card.event .card-actions, .card.event .prio.prio-empty { top: 0; bottom: 5px; }
+.card.event.p0 .card-actions { right: 28px; }
+.card.event:not(.p0) .card-actions { right: 30px; }
