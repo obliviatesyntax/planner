@@ -88,6 +88,7 @@ const Tasks = (() => {
   }
 
   function get(id) { return tasks.find(t => t.id === id); }
+  function allTasks() { return tasks; }   // (search reads them; never change them directly)
 
   // ---- what the page shows --------------------------------------------------
 
@@ -405,7 +406,7 @@ const Tasks = (() => {
   }
 
   return {
-    init, onChange, rollover, get,
+    init, onChange, rollover, get, allTasks,
     listTasks, overdueTasks, planList, calendarList, doneList,
     add, update, cyclePriority, toggleDone, markDone, moveToList, moveToPlan, moveAllToPlan, restoreFields, moveToCalendar, remove, restore,
     allLists, list, findList, addList, setListNotes, projectTasks, renameList, setListLabel, moveList, removeList, restoreList,

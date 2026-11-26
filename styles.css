@@ -1578,3 +1578,26 @@ button.pj-added:hover { border-color: currentColor; }
 @media (max-width: 600px) { .tv-row { grid-template-columns: 22px 1fr; } }
 #task-dialog { width: min(560px, calc(100vw - 24px)); }
 @media (max-width: 600px) { #task-dialog { width: 100vw; } }
+
+/* ==========================================================================
+   Search (🔍 in the top bar, G, ⌘K): results grouped Go to / Tasks / In notes (js/jump.js)
+   ========================================================================== */
+.jump-dialog .jump-list { max-height: min(60vh, 520px); overflow-y: auto; }   /* (a results list in a popup: the one place a scroll is fine) */
+.jump-group { font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: .05em; color: var(--faint); padding: 10px 9px 4px; }
+.jump-row mark { background: #fef08a; color: inherit; border-radius: 2px; padding: 0 1px; }
+.jump-check { color: var(--faint); width: 14px; flex: none; text-align: center; }
+.jump-task .jump-name, .jump-note .jump-name { font-weight: 500; white-space: normal; display: flex; flex-direction: column; gap: 1px; }
+.jump-name small { font-size: 12px; color: var(--muted); font-weight: 400; }
+.jump-task.is-done .jump-name { color: var(--muted); text-decoration: line-through; }
+.jump-where { font-size: 12px; color: var(--muted); white-space: nowrap; flex: none; }
+.jump-where.late { color: var(--p1); }
+.jump-input::-webkit-search-cancel-button { cursor: pointer; }
+@media (max-width: 700px) {
+  /* phones: the bar shows the logo, quick add, and the search button (no name, no gear) */
+  .topbar { grid-template-columns: auto minmax(0, 1fr) auto; }
+  .topbar .account { display: flex; }
+  .topbar .account > :not(#search-btn) { display: none; }
+  .jump-dialog { margin-top: 8vh; }
+  .jump-input { font-size: 16px; }
+}
+.jump-dialog { width: min(560px, calc(100vw - 24px)); }

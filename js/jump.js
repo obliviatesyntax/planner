@@ -2,8 +2,8 @@
 //
 //   • Switcher: on a project page, the ▾ next to "@name" opens a short menu: Dashboard, then every
 //     project with its counts (not planned · planned). One click/tap goes there. Same on phones.
-//   • Keyboard jump (computers): press G, or ⌘K / Ctrl+K, type a few letters, Enter goes.
-//     ↑/↓ pick, Esc closes. "Dashboard" is always one of the choices.
+//   • Search: the 🔍 in the top bar (phones too), or G / ⌘K / Ctrl+K on a computer. Goes to the
+//     Dashboard or a project, opens a task (title or description), or a project from its notes.
 
 const Jump = (() => {
   // Where you can go: the Dashboard first, then the projects in their Dashboard order.
@@ -61,35 +61,110 @@ const Jump = (() => {
     if (!menu.hidden && !menu.contains(e.target)) closeMenu();
   });
 
-  // ---- keyboard jump ------------------------------------------------------------------------
+  // ---- search box: the 🔍 button in the top bar, G, or ⌘K / Ctrl+K ---------------------------
+  //
+  // Empty: the Dashboard and every project (go there). Typing searches, in what's already loaded
+  // in the page (no database round trip, so it's instant):
+  //   Go to   the Dashboard ("dash") and projects whose name matches
+  //   Tasks   titles and descriptions (every word typed must appear); open ones first, done last
+  //   Notes   lines of project notes; opens that project
+  // ↑/↓ pick, Enter opens (a task opens in its window), Esc closes.
 
   const dialog = document.createElement('dialog');
   dialog.className = 'jump-dialog';
-  dialog.innerHTML = `<input class="jump-input" placeholder="Go to… type a project, or “dash”" spellcheck="false" autocomplete="off" aria-label="Go to a project or the Dashboard">
+  dialog.innerHTML = `<input class="jump-input" type="search" placeholder="Search projects, tasks and notes…" spellcheck="false" autocomplete="off" aria-label="Search projects, tasks and notes">
     <div class="jump-list"></div>
-    <div class="jump-foot"><kbd>↑</kbd><kbd>↓</kbd> pick · <kbd>Enter</kbd> go · <kbd>Esc</kbd> close</div>`;
+    <div class="jump-foot jump-keys"><kbd>↑</kbd><kbd>↓</kbd> pick · <kbd>Enter</kbd> open · <kbd>Esc</kbd> close</div>`;
   document.body.appendChild(dialog);
   const input = dialog.querySelector('.jump-input');
   const listEl = dialog.querySelector('.jump-list');
-  let shown = [];
+  let shown = [];   // flat list of results: { kind: 'place' | 'task' | 'note', … }
   let active = 0;
+  const MAX_TASKS = 12, MAX_NOTES = 6;
 
-  // Names that start with the typed text first, then ones that contain it.
-  function filter(q) {
-    q = q.trim().toLowerCase().replace(/^@/, '');
-    const all = entries();
-    if (!q) return all;
-    const starts = all.filter(e => e.name.toLowerCase().startsWith(q));
-    const has = all.filter(e => !starts.includes(e) && e.name.toLowerCase().includes(q));
-    return [...starts, ...has];
+  const words = q => q.toLowerCase().replace(/^@/, '').split(/\s+/).filter(Boolean);
+  const hasAll = (text, ws) => { const t = text.toLowerCase(); return ws.every(w => t.includes(w)); };
+  // Escape, then wrap the typed words in <mark>.
+  function marked(text, ws) {
+    let html = escapeHtml(text);
+    ws.forEach(w => { if (w.length > 1) html = html.replace(new RegExp(escapeHtml(w).replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'gi'), m => `<mark>${m}</mark>`); });
+    return html;
+  }
+  // A short snippet of `text` around the first typed word.
+  function snippet(text, ws) {
+    const flat = text.replace(/\s+/g, ' ').trim();
+    const at = Math.max(0, ...ws.map(w => flat.toLowerCase().indexOf(w)).filter(n => n >= 0).slice(0, 1));
+    const from = Math.max(0, at - 30);
+    return (from ? '…' : '') + flat.slice(from, from + 90) + (flat.length > from + 90 ? '…' : '');
+  }
+
+  // Where a task is, in a few words: "Today · 5 PM", "Tomorrow", "Thu, Nov 27", "Overdue", "Done Nov 24", "@triage".
+  function whereShort(t) {
+    const today = todayISO();
+    const day = d => d === today ? 'Today' : d === addDays(today, 1) ? 'Tomorrow' : d === addDays(today, -1) ? 'Yesterday' : formatDay(d);
+    if (t.doneOn) return `Done ${day(t.doneOn).toLowerCase() === 'today' ? 'today' : day(t.doneOn)}`;
+    if (t.planDate && t.planDate < today) return 'Overdue';
+    if (t.planDate) return `${day(t.planDate)}${t.startMin != null ? ` · ${formatTime(t.startMin).replace(':00', '')}` : ''}`;
+    const l = Tasks.list(t.list);
+    return `@${l ? l.name : 'triage'}`;
+  }
+
+  function search(q) {
+    const ws = words(q);
+    const places = entries().map(e => ({ kind: 'place', ...e }));
+    if (!ws.length) return { ws, places, tasks: [], notes: [] };
+    const name = e => e.name.toLowerCase();
+    const starts = places.filter(e => name(e).startsWith(ws[0]) || (e.id === null && 'dashboard'.startsWith(ws[0])));
+    const has = places.filter(e => !starts.includes(e) && hasAll(e.name, ws));
+    const rank = t => t.doneOn ? 3 : t.planDate && t.planDate < todayISO() ? 0 : t.planDate ? 1 : 2;
+    const tasks = Tasks.allTasks()
+      .filter(t => hasAll(`${t.title} ${t.notes || ''}`, ws))
+      .sort((a, b) => rank(a) - rank(b) || (a.planDate || a.doneOn || '9').localeCompare(b.planDate || b.doneOn || '9'))
+      .slice(0, MAX_TASKS)
+      .map(t => ({ kind: 'task', task: t, inNotes: !hasAll(t.title, ws) }));
+    const notes = [];
+    Tasks.allLists().forEach(l => (l.notes || '').split('\n').forEach(line => {
+      if (notes.length < MAX_NOTES && line.trim() && hasAll(line, ws)) notes.push({ kind: 'note', list: l, line: line.replace(/^[\s#>*+-]+|\s+$/g, '') });
+    }));
+    return { ws, places: [...starts, ...has], tasks, notes };
+  }
+
+  function resultHtml(r, i, ws) {
+    const cls = `jump-row ${i === active ? 'active' : ''}`;
+    if (r.kind === 'place') return rowHtml(r, i, active);
+    if (r.kind === 'task') {
+      const t = r.task;
+      return `<a href="#" class="${cls} jump-task ${t.doneOn ? 'is-done' : ''}" data-i="${i}">
+        <span class="jump-check">${t.doneOn ? '☑' : '☐'}</span>
+        <span class="jump-name"><span>${marked(t.title, ws)}</span>${r.inNotes ? `<small>${marked(snippet(t.notes, ws), ws)}</small>` : ''}</span>
+        <span class="jump-where ${t.planDate && !t.doneOn && t.planDate < todayISO() ? 'late' : ''}">${escapeHtml(whereShort(t))}</span>
+      </a>`;
+    }
+    return `<a href="#${Project.href(r.list).slice(1)}" class="${cls} jump-note" data-i="${i}">
+      <span class="jump-check">≡</span>
+      <span class="jump-name"><span>${marked(snippet(r.line, ws), ws)}</span></span>
+      <span class="jump-where">@${escapeHtml(r.list.name)} notes</span>
+    </a>`;
   }
 
   function renderList() {
-    shown = filter(input.value);
+    const { ws, places, tasks, notes } = search(input.value);
+    shown = [...places, ...tasks, ...notes];
     active = Math.min(active, Math.max(0, shown.length - 1));
-    listEl.innerHTML = shown.length ? shown.map((e, i) => rowHtml(e, i, active)).join('')
-      : '<p class="jump-none">No project matches.</p>';
+    let i = 0;
+    const group = (title, items) => items.length
+      ? `${ws.length ? `<div class="jump-group">${title}</div>` : ''}${items.map(r => resultHtml(r, i++, ws)).join('')}` : '';
+    listEl.innerHTML = shown.length
+      ? group('Go to', places) + group('Tasks', tasks) + group('In notes', notes)
+      : '<p class="jump-none">Nothing found. Try fewer words.</p>';
     listEl.querySelector('.active')?.scrollIntoView({ block: 'nearest' });
+  }
+
+  function choose(r) {
+    if (!r) return;
+    if (r.kind === 'task') { close(); return TaskView.open(r.task.id); }
+    if (r.kind === 'note') { close(); location.hash = Project.href(r.list).slice(1); return; }
+    go(r);
   }
 
   function open() {
@@ -110,17 +185,18 @@ const Jump = (() => {
       if (shown.length) active = (active + (e.key === 'ArrowDown' ? 1 : -1) + shown.length) % shown.length;
       renderList();
     }
-    if (e.key === 'Enter') { e.preventDefault(); if (shown[active]) go(shown[active]); }
+    if (e.key === 'Enter') { e.preventDefault(); choose(shown[active]); }
   });
   listEl.addEventListener('click', e => {
     const row = e.target.closest('.jump-row');
-    if (row) { e.preventDefault(); go(shown[row.dataset.i]); }
+    if (row) { e.preventDefault(); choose(shown[row.dataset.i]); }
   });
   listEl.addEventListener('mousemove', e => {
     const row = e.target.closest('.jump-row');
     if (row && Number(row.dataset.i) !== active) { active = Number(row.dataset.i); listEl.querySelectorAll('.jump-row').forEach(r => r.classList.toggle('active', r === row)); }
   });
   dialog.addEventListener('click', e => { if (e.target === dialog) close(); });   // the backdrop
+  document.getElementById('search-btn').addEventListener('click', open);
 
   document.addEventListener('keydown', e => {
     if (e.key === 'Escape' && !menu.hidden) return closeMenu();
