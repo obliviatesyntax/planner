@@ -52,7 +52,15 @@ const Tasks = (() => {
 
   // Called once after sign-in: fetch this person's data from the database.
   async function init() {
-    const data = await Store.load();
+    const { purged, cleaned } = take(await Store.load());
+    if (cleaned) Store.save('lists', lists);
+    if (purged) Store.save('tasks', [...tasks, ...trash]);
+    rollover();
+  }
+
+  // Use data as loaded from the database: split off the trash, add @triage if missing, tidy up
+  // tasks whose list is gone. Returns what needs saving back (old trash, old note marks).
+  function take(data) {
     // The trash: deleted tasks, kept 30 days. Older ones are dropped here, so the next save
     // deletes them from the database for good.
     const cutoff = new Date(Date.now() - TRASH_DAYS * 864e5).toISOString();
@@ -74,14 +82,38 @@ const Tasks = (() => {
       const notes = typeof l.notes === 'string' ? l.notes.replace(OLD_MARK, '$1') : l.notes;
       if (notes !== l.notes) { l.notes = notes; cleaned = true; }
     });
-    if (cleaned) Store.save('lists', lists);
-    if (purged) Store.save('tasks', [...tasks, ...trash]);
-    rollover();
+    return { purged, cleaned };
+  }
+
+  // ---- auto-refresh -------------------------------------------------------------------------
+  // Changes made elsewhere (another device, or an AI app through the MCP server) are picked up in
+  // the background: app.js calls this when the tab comes back into view, on window focus, and
+  // every 2 minutes while visible. It fetches both tables (2 small requests) and, only if
+  // something differs from what's on screen, takes the database's version and redraws: no
+  // loading screen, no toast. It never overrides your own changes: it skips while a save of
+  // yours is still on its way, and drops its result if you changed anything while it was fetching.
+  // Returns true if anything changed.
+  const snapshot = () => JSON.stringify([tasks, trash, lists].map(items => [...items].sort((a, b) => a.id.localeCompare(b.id))));
+  async function refresh() {
+    if (Store.saving()) return false;
+    const editsBefore = edits;
+    const data = await Store.fetchAll();
+    if (Store.saving() || edits !== editsBefore) return false;   // you changed something meanwhile: next time
+    const before = snapshot();
+    const keep = { tasks, trash, lists };
+    take(data);
+    if (snapshot() === before) { ({ tasks, trash, lists } = keep); return false; }   // nothing new: keep the same objects
+    Store.adopt('tasks', data.tasks);
+    Store.adopt('lists', data.lists);
+    if (!rollover()) listeners.forEach(fn => fn());   // (rollover redraws itself when it moves tasks)
+    return true;
   }
 
   const listeners = [];
   function onChange(fn) { listeners.push(fn); }
+  let edits = 0;   // every change made here (a background refresh drops its result if this moved)
   function commit() {
+    edits++;
     Store.save('tasks', [...tasks, ...trash]);   // the trash is saved too (with deletedAt)
     Store.save('lists', lists);
     listeners.forEach(fn => fn());
@@ -354,7 +386,7 @@ const Tasks = (() => {
   }
 
   return {
-    init, onChange, rollover, get, allTasks,
+    init, refresh, onChange, rollover, get, allTasks,
     listTasks, overdueTasks, planList, calendarList, doneList,
     add, update, cyclePriority, toggleDone, markDone, moveToList, moveToPlan, moveAllToPlan, restoreFields, moveToCalendar, remove, restore, trashed, purge,
     allLists, archivedLists, setArchived, list, findList, addList, setListNotes, projectTasks, renameList, setListColor, moveList,

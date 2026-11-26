@@ -223,6 +223,30 @@ const App = (() => {
     renderAll();
   }, 60 * 1000);
 
+  // ---- auto-refresh: pick up changes made elsewhere (another device, an AI app) -----------------
+  // Quietly, in the background (Tasks.refresh): when the tab comes back into view, when the window
+  // gets focus, and every 2 minutes while it's visible. Never while you're in the middle of
+  // something (dragging, typing in a box, editing notes, resizing, a window open); then it waits
+  // for the next chance. Not in the interactive preview (nothing to fetch).
+  const REFRESH_EVERY = 2 * 60 * 1000;
+  let lastRefresh = Date.now(), refreshing = false;
+  // (Quick add can stay focused: it isn't redrawn. Inputs inside the redrawn sections count.)
+  const busyNow = () => document.querySelector('.dragging, [contenteditable="true"], .col-add-input, .cal-add-input, .list-new-input, .pj-notes-input, .pj-name:focus, dialog[open]')
+    || Calendar.isResizing();
+  async function autoRefresh(force) {
+    if (PLAYGROUND || refreshing || document.hidden || document.getElementById('app').hidden) return;
+    if (!force && Date.now() - lastRefresh < 15 * 1000) return;   // focus + visible fire together
+    if (busyNow()) return;
+    refreshing = true;
+    lastRefresh = Date.now();
+    try { await Tasks.refresh(); } catch (err) { console.warn('Background refresh failed', err); }   // offline etc.: try again later
+    finally { refreshing = false; }
+  }
+  document.addEventListener('visibilitychange', () => autoRefresh());
+  window.addEventListener('focus', () => autoRefresh());
+  window.addEventListener('online', () => autoRefresh(true));
+  setInterval(() => { if (Date.now() - lastRefresh >= REFRESH_EVERY) autoRefresh(true); }, 30 * 1000);
+
   return { toast, renderAll, addFromText, parseQuickAdd };
 })();
 

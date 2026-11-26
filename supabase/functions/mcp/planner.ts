@@ -21,7 +21,7 @@
 //   Nov 2026; projects have a colour instead.)
 // "Overdue" is a view in both, not a list: unfinished tasks planned for a past day show there, but keep their
 // day and time in the database until moved.
-// A Planner tab that's already open doesn't see changes made here until it's reloaded.
+// An open Planner tab picks up changes made here in the background (js/tasks.js → refresh).
 //
 // Signing in (OAuth): Supabase Auth is the sign-in server (Authentication → OAuth Server in the
 // dashboard). A request without a valid token gets "401" plus a pointer to this server's

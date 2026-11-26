@@ -41,11 +41,19 @@ const Store = (() => {
   const lastSaved = { tasks: new Map(), lists: new Map() };   // id -> JSON as the database has it
   let queue = Promise.resolve();      // saves run one after another, never overlapping
   let onError = () => {};
+  let pending = 0;   // saves sent but not finished yet
 
   // Returns { tasks: [...], lists: [...] } for the signed-in person. (Labels were removed in Nov
   // 2026; the old `labels` table and columns are simply no longer read or written.)
   // The three tables are asked for at the same time (one wait, not three in a row).
   async function load() {
+    const result = await fetchAll();
+    Object.keys(result).forEach(table => adopt(table, result[table]));
+    return result;
+  }
+
+  // Both tables as the database has them now, without touching what we remember as saved.
+  async function fetchAll() {
     const tables = Object.keys(TABLES);
     const answers = await Promise.all(tables.map(table => db.from(table).select('*')));
     const result = {};
@@ -53,9 +61,13 @@ const Store = (() => {
       const { data, error } = answers[i];
       if (error) throw error;
       result[table] = data.map(TABLES[table].fromRow);
-      lastSaved[table] = new Map(result[table].map(x => [x.id, JSON.stringify(x)]));
     });
     return result;
+  }
+
+  // "This is what the database has": the next save only sends what differs from it.
+  function adopt(table, items) {
+    lastSaved[table] = new Map(items.map(x => [x.id, JSON.stringify(x)]));
   }
 
   // Called after every change with the whole list for one table. Sends only the differences.
@@ -65,6 +77,7 @@ const Store = (() => {
     const deleted = [...lastSaved[table].keys()].filter(id => !current.has(id));
     if (!changed.length && !deleted.length) return;
     lastSaved[table] = current;
+    pending++;
 
     queue = queue.then(async () => {
       if (changed.length) {
@@ -78,8 +91,12 @@ const Store = (() => {
     }).catch(err => {
       console.error(`Could not save ${table}`, err);
       onError(err);
-    });
+    }).finally(() => { pending--; });
   }
 
-  return { load, save, onSaveError: fn => { onError = fn; } };
+  return {
+    load, save, fetchAll, adopt,
+    saving: () => pending > 0,   // a change of ours is still on its way to the database
+    onSaveError: fn => { onError = fn; },
+  };
 })();

@@ -89,8 +89,8 @@ it. It lives at `https://eiwoavnrsdnffiztwziq.supabase.co/functions/v1/mcp`.
   - The resulting token reads and writes the database as that user, so row-level security keeps
     everyone to their own tasks. No admin key is used.
 - **Time zone:** the app saves the user's time zone on their account, so "today" is right.
-- **Known gap:** a Planner tab that's already open doesn't see changes made from an AI app until
-  it's reloaded. Reload before editing in the app.
+- **Seeing AI changes:** an open Planner tab picks up changes made from an AI app (or another device)
+  in the background when you come back to it, and every 2 minutes while it's visible (`Tasks.refresh`).
 - **Test it:** `deno test supabase/functions/mcp`
 - **Deploy it:** `supabase functions deploy mcp --project-ref eiwoavnrsdnffiztwziq --no-verify-jwt --use-api`
 
