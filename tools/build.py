@@ -15,7 +15,7 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent
 OUT = ROOT / '_site'
-COPY = ['index.html', 'styles.css', '.nojekyll', 'js']
+COPY = ['index.html', 'styles.css', '.nojekyll', 'js', 'manifest.webmanifest', 'sw.js', 'icons']
 LOCAL_SCRIPT = re.compile(r'[ \t]*<script src="(js/[^"]+\.js)"></script>\n?')
 ANY_SCRIPT = re.compile(r'<script\b[^>]*>')
 

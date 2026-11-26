@@ -256,21 +256,65 @@ async function boot() {
   }
   Auth.showApp(user);   // only now, so the page never shows half-empty sections while loading
   App.renderAll();
+  takeShare();
 }
-// Opening a project link (#project/kitchenReno) while signed out: the landing page shows at the
-// plain address, and the project opens once you've signed in (in this tab: sign-in reloads the
-// page, or comes back from Google etc.). Remembered in sessionStorage, so only for this tab.
+// Opening a project link (#project/kitchenReno), or sharing something to the app, while signed
+// out: the landing page shows at the plain address, and the project opens / the shared text
+// lands in quick add once you've signed in (in this tab: sign-in reloads the page, or comes back
+// from Google etc.). Remembered in sessionStorage, so only for this tab.
 const AFTER_SIGN_IN = 'planner.afterSignIn';
+const SHARE_PARAMS = ['share_title', 'share_text', 'share_url'];   // manifest.webmanifest → share_target
 function setAside() {
-  if (!location.hash.startsWith('#project/')) return;
-  try { sessionStorage.setItem(AFTER_SIGN_IN, location.hash); } catch (err) { /* private mode etc.: just not remembered */ }
-  history.replaceState(null, '', location.pathname + location.search);
+  const params = new URLSearchParams(location.search);
+  const share = SHARE_PARAMS.some(p => params.has(p)) ? location.search : '';
+  const hash = location.hash.startsWith('#project/') ? location.hash : '';
+  if (!share && !hash) return;
+  try { sessionStorage.setItem(AFTER_SIGN_IN, JSON.stringify({ hash, share })); } catch (err) { /* private mode etc.: just not remembered */ }
+  history.replaceState(null, '', location.pathname + (share ? '' : location.search));
 }
 function bringBack() {
-  let hash = null;
-  try { hash = sessionStorage.getItem(AFTER_SIGN_IN); sessionStorage.removeItem(AFTER_SIGN_IN); } catch (err) { /* nothing remembered */ }
-  if (hash && !location.hash) history.replaceState(null, '', location.pathname + location.search + hash);
+  let saved = null;
+  try { saved = JSON.parse(sessionStorage.getItem(AFTER_SIGN_IN) || 'null'); sessionStorage.removeItem(AFTER_SIGN_IN); } catch (err) { /* nothing remembered */ }
+  if (saved && saved.hash && !location.hash) history.replaceState(null, '', location.pathname + location.search + saved.hash);
+  if (saved && saved.share && !location.search.includes('share_')) history.replaceState(null, '', location.pathname + saved.share + location.hash);
 }
+
+// Shared to Planner from another app (Android / desktop Chrome: share → Planner). The title, text
+// and link go into quick add, so you can add a day or @list before pressing Add.
+function takeShare() {
+  const params = new URLSearchParams(location.search);
+  if (!SHARE_PARAMS.some(p => params.has(p))) return;
+  const [title, text, url] = SHARE_PARAMS.map(p => (params.get(p) || '').trim());
+  // Some apps put the link inside the text as well: don't repeat it.
+  const parts = [title, text && text !== title ? text : '', url && !text.includes(url) ? url : ''].filter(Boolean);
+  const rest = location.search.slice(1).split('&').filter(kv => kv && !SHARE_PARAMS.includes(kv.split('=')[0])).join('&');
+  history.replaceState(null, '', location.pathname + (rest ? `?${rest}` : '') + location.hash);   // keeps "?playground" as it was
+  const box = document.getElementById('qa-title');
+  box.value = parts.join(' ').replace(/\s+/g, ' ');
+  box.focus();
+  App.toast('Shared to Planner. Add a day or @list if you like, then press Add.');
+}
+
+// ---- installing the app ---------------------------------------------------------------------
+// The service worker (sw.js) makes it installable and able to open offline. "Install app" in the
+// footer shows when the browser offers installing (Chrome, Edge, Android); on an iPhone/iPad
+// (not yet installed) it explains Share → Add to Home Screen.
+if ('serviceWorker' in navigator && location.protocol.startsWith('http') && !PLAYGROUND) {
+  window.addEventListener('load', () => navigator.serviceWorker.register('sw.js').catch(err => console.warn('No offline support', err)));
+}
+(() => {
+  const btn = document.getElementById('install-btn');
+  const installed = matchMedia('(display-mode: standalone)').matches || navigator.standalone;
+  const ios = /iPhone|iPad|iPod/.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+  let offer = null;
+  window.addEventListener('beforeinstallprompt', e => { e.preventDefault(); offer = e; btn.hidden = false; });
+  window.addEventListener('appinstalled', () => { btn.hidden = true; offer = null; });
+  if (ios && !installed) btn.hidden = false;
+  btn.addEventListener('click', async () => {
+    if (offer) { offer.prompt(); await offer.userChoice; offer = null; btn.hidden = true; return; }
+    App.toast('On iPhone or iPad: tap the Share button in Safari, then “Add to Home Screen”.');
+  });
+})();
 
 window.addEventListener('DOMContentLoaded', () => {
   boot().catch(err => console.error(err)).finally(() => { document.getElementById('loading').hidden = true; });

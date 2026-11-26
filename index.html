@@ -6,6 +6,12 @@
   <title>Planner: organize everything, plan today</title>
   <meta name="description" content="A simple, free planner on one screen: no menus, no tabs. Organize tasks into lists by project, then plan the few you'll do each day.">
   <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='15' fill='%234f46e5'/%3E%3Crect x='13' y='17' width='38' height='34' rx='6' fill='none' stroke='white' stroke-width='5'/%3E%3Cpath d='M13 27h38' stroke='white' stroke-width='5'/%3E%3Cpath d='M24 39l5 5 10-11' fill='none' stroke='white' stroke-width='5' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E">
+  <!-- Installable app (phones and computers): manifest, icons, service worker (sw.js, registered in app.js) -->
+  <link rel="manifest" href="manifest.webmanifest">
+  <meta name="theme-color" content="#ffffff">
+  <link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+  <meta name="apple-mobile-web-app-title" content="Planner">
+  <meta name="mobile-web-app-capable" content="yes">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap">
@@ -577,6 +583,7 @@
     <span class="muted"><b>today 5pm</b>, <b>tomorrow</b>, <b>fri 6-7pm</b> → plan · <b>@listName</b> → list · <b>p1 p2 p3</b> priority · <b>#p</b> label · click the calendar to add at a time · drag to “Done today” to complete · click a task to open it</span>
     <span class="spacer"></span>
     <div class="footer-actions">
+      <button type="button" id="install-btn" title="Add Planner to your home screen or dock" hidden>Install app</button>
       <button type="button" data-connect title="Use Planner from Claude, ChatGPT or Gemini">Connect AI apps</button>
       <button type="button" id="export-btn">Export backup</button>
       <label class="file-btn">Import backup<input type="file" id="import-input" accept="application/json" hidden></label>
